@@ -42,7 +42,9 @@ export default function Portal() {
         </dl>
         <div className="aksi jarak">
           <button className="tombol tombol-isi" onClick={keluar}>Keluar</button>
-          {profil.peran !== 'siswa' && <Link to="/portal/profil" className="tombol" style={{ color: 'var(--warna-utama)' }}>Profil dan password</Link>}
+          {profil.peran !== 'siswa'
+            ? <Link to="/portal/profil" className="tombol" style={{ color: 'var(--warna-utama)' }}>Profil dan password</Link>
+            : <Link to="/portal/ganti-sandi" className="tombol" style={{ color: 'var(--warna-utama)' }}>Ganti password</Link>}
           <Link to="/" className="tombol" style={{ color: 'var(--warna-utama)' }}>Ke beranda</Link>
         </div>
       </div>

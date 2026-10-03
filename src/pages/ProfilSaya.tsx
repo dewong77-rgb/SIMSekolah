@@ -61,12 +61,17 @@ export default function ProfilSaya() {
 
   async function gantiSandi(e: FormEvent) {
     e.preventDefault()
-    if (sandiBaru.length < 10) { setPesanSandi({ ok: false, teks: 'Password minimal 10 karakter.' }); return }
+    if (sandiBaru.length < 8) { setPesanSandi({ ok: false, teks: 'Password minimal 8 karakter.' }); return }
     if (sandiBaru !== ulangi) { setPesanSandi({ ok: false, teks: 'Pengulangan password tidak sama.' }); return }
     setSibuk(true)
-    const { error } = await supabase.auth.updateUser({ password: sandiBaru })
+    const { error } = await supabase.functions.invoke('ganti-sandi', { body: { sandi_baru: sandiBaru } })
     setSibuk(false)
-    if (error) { setPesanSandi({ ok: false, teks: error.message }); return }
+    if (error) {
+      let pesan = error.message
+      try { pesan = (await (error as unknown as { context: Response }).context.json()).galat ?? pesan } catch { /* biarkan */ }
+      setPesanSandi({ ok: false, teks: pesan })
+      return
+    }
     setSandiBaru(''); setUlangi('')
     setPesanSandi({ ok: true, teks: ada ? 'Password diperbarui.' : 'Password tersimpan. Isi username di atas agar bisa masuk dengan username dan password.' })
   }
@@ -100,7 +105,7 @@ export default function ProfilSaya() {
           <label>Ulangi password<input type="password" autoComplete="new-password" value={ulangi} onChange={(e) => setUlangi(e.target.value)} /></label>
           <button className="tombol tombol-isi" disabled={sibuk || !sandiBaru}>Simpan password</button>
           <div aria-live="polite">{pesanSandi && <p className="catatan" role={pesanSandi.ok ? 'status' : 'alert'}>{pesanSandi.teks}</p>}</div>
-          <p className="catatan">Setelah username dan password tersimpan, masuk lewat kolom "Masuk admin dan guru". Tautan email tetap berfungsi.</p>
+          <p className="catatan">Setelah username dan password tersimpan, masuk lewat tab Admin di halaman masuk. Tautan email tetap berfungsi.</p>
         </form>
       </div>
       <div className="aksi jarak">

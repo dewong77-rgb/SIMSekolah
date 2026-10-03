@@ -31,6 +31,11 @@ export default function RequireRole({ peran, superAdmin = false, children }: { p
     )
   }
 
+  const wajibGanti = !!(session.user.app_metadata as Record<string, unknown> | undefined)?.wajib_ganti_sandi
+  if (wajibGanti && lokasi.pathname !== '/portal/ganti-sandi') {
+    return <Navigate to="/portal/ganti-sandi" replace />
+  }
+
   if (!peran.includes(profil.peran) || (superAdmin && !adalahSuper)) {
     return (
       <Halaman judul="Tidak ada akses" lead="Peran akun Anda tidak dapat membuka halaman ini.">

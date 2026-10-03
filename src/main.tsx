@@ -12,6 +12,7 @@ import Portal from './pages/Portal'
 const Unggah = lazy(() => import('./pages/Unggah'))
 const Akun = lazy(() => import('./pages/Akun'))
 const Pengguna = lazy(() => import('./pages/Pengguna'))
+const GantiSandi = lazy(() => import('./pages/GantiSandi'))
 const ProfilSaya = lazy(() => import('./pages/ProfilSaya'))
 const RiwayatUnggah = lazy(() => import('./pages/DataSekolah').then((m) => ({ default: m.RiwayatUnggah })))
 const PesertaDidik = lazy(() => import('./pages/DataSekolah').then((m) => ({ default: m.PesertaDidik })))
@@ -69,6 +70,14 @@ createRoot(document.getElementById('root')!).render(
             element={
               <RequireRole peran={['admin_tu']} superAdmin>
                 <Suspense fallback={null}><Pengguna /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/ganti-sandi"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'siswa', 'orang_tua']}>
+                <Suspense fallback={null}><GantiSandi /></Suspense>
               </RequireRole>
             }
           />

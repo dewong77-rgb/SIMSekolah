@@ -4,7 +4,7 @@ import Halaman from '../components/Halaman'
 import { supabase } from '../lib/supabase'
 
 type Pengguna = {
-  user_id: string; peran: string; status_pd: string | null; nama: string | null; nisn: string | null; email: string | null
+  user_id: string; peran: string; status_pd: string | null; sandi: 'belum' | 'awal' | 'diganti' | null; nama: string | null; nisn: string | null; email: string | null
   terakhir_masuk: string | null; nonaktif: boolean; super_admin: boolean; dibuat_pada: string
 }
 type Ringkasan = { siswa_aktif: number; alumni: number; guru_total: number }
@@ -73,32 +73,49 @@ export default function PenggunaHalaman() {
     return h
   }, [daftar])
 
-  async function buatMassal(kelompok: Kelompok) {
-    const nama = kelompok === 'aktif' ? 'siswa aktif' : 'alumni'
-    const belum = (kelompok === 'aktif' ? ring?.siswa_aktif ?? 0 : ring?.alumni ?? 0) - (hitung[kelompok === 'aktif' ? 'siswa' : 'alumni'] ?? 0)
-    if (!window.confirm(`Buat akun untuk ${nama} yang belum punya akun (sekitar ${belum})? Proses bisa beberapa menit, jangan tutup halaman.`)) return
+  async function putaran(judul: string, body: Record<string, unknown>, kunciHasil: 'dibuat' | 'diatur', konfirmasi: string) {
+    if (!window.confirm(konfirmasi)) return
     setSibuk(true)
     setGalat('')
     let total = 0
     let gagal: string[] = []
-    let tanpaNisn = 0
+    let tanpa = 0
     try {
-      for (let putaran = 0; putaran < 100; putaran++) {
-        setProgres(`Membuat akun ${nama}... ${total} dibuat`)
-        const r = await panggil({ aksi: 'buat_massal', kelompok, batas: 100 })
-        total += r.dibuat
+      for (let i = 0; i < 100; i++) {
+        setProgres(`${judul}... ${total} selesai`)
+        const r = await panggil({ ...body, batas: 100 })
+        total += r[kunciHasil]
         gagal = r.gagal
-        tanpaNisn = r.tanpa_nisn
-        if (r.sisa <= 0 || r.dibuat === 0) break
+        tanpa = r.tanpa_nisn ?? 0
+        if (r.sisa <= 0 || r[kunciHasil] === 0) break
       }
-      setProgres(`Selesai: ${total} akun ${nama} dibuat.${gagal.length ? ` ${gagal.length} gagal (mis. NISN kembar): ${gagal.slice(0, 3).join('; ')}` : ''}${tanpaNisn ? ` ${tanpaNisn} tanpa NISN dilewati.` : ''}`)
+      setProgres(`Selesai: ${total} akun. ${gagal.length ? `${gagal.length} gagal (mis. NISN kembar): ${gagal.slice(0, 3).join('; ')}. ` : ''}${tanpa ? `${tanpa} dilewati karena NISN atau tanggal lahir tidak lengkap.` : ''}`)
     } catch (e) {
       setGalat((e as Error).message)
-      setProgres(`Terhenti setelah ${total} akun dibuat. Jalankan lagi untuk melanjutkan.`)
+      setProgres(`Terhenti setelah ${total} akun. Jalankan lagi untuk melanjutkan.`)
     }
     await muat()
     setSibuk(false)
   }
+
+  const nama = (k: Kelompok) => (k === 'aktif' ? 'siswa aktif' : 'alumni')
+  const buatMassal = (k: Kelompok) =>
+    putaran(`Membuat akun ${nama(k)}`, { aksi: 'buat_massal', kelompok: k }, 'dibuat',
+      `Buat akun untuk ${nama(k)} yang belum punya akun? Password awal adalah tanggal lahir (DDMMYYYY). Jangan tutup halaman selama berjalan.`)
+  const aturSandi = (k: 'siswa' | 'alumni' | 'guru') =>
+    putaran(`Menyetel password awal ${k === 'siswa' ? 'siswa aktif' : k}`, { aksi: 'atur_sandi_awal', kelompok: k }, 'diatur',
+      `Setel password awal untuk akun ${k === 'siswa' ? 'siswa aktif' : k} yang belum disetel (${k === 'guru' ? 'NPSN' : 'tanggal lahir DDMMYYYY'})? Mereka wajib menggantinya saat masuk pertama. Jangan tutup halaman selama berjalan.`)
+
+  const belumSandi = useMemo(() => {
+    const h = { siswa: 0, alumni: 0, guru: 0 }
+    for (const p of daftar ?? []) {
+      if (p.sandi !== 'belum') continue
+      if (p.peran === 'guru') h.guru++
+      else if (p.status_pd === 'lulus') h.alumni++
+      else h.siswa++
+    }
+    return h
+  }, [daftar])
 
   const tampil = (daftar ?? []).filter((p) => {
     if (filter === 'alumni') { if (!(p.peran === 'siswa' && p.status_pd === 'lulus')) return false }
@@ -132,6 +149,13 @@ export default function PenggunaHalaman() {
           <button className="tombol tombol-isi" disabled={sibuk || !ring} onClick={() => buatMassal('alumni')}>
             Buat akun alumni ({Math.max((ring?.alumni ?? 0) - (hitung.alumni ?? 0), 0)} belum)
           </button>
+        </div>
+        <h3 className="jarak">Password awal</h3>
+        <p className="catatan">Siswa dan alumni: tanggal lahir DDMMYYYY. Guru: NPSN. Semua wajib mengganti password saat masuk pertama.</p>
+        <div className="aksi">
+          <button className="tombol tombol-isi" disabled={sibuk || !ring || belumSandi.siswa === 0} onClick={() => aturSandi('siswa')}>Siswa aktif ({belumSandi.siswa} belum)</button>
+          <button className="tombol tombol-isi" disabled={sibuk || !ring || belumSandi.alumni === 0} onClick={() => aturSandi('alumni')}>Alumni ({belumSandi.alumni} belum)</button>
+          <button className="tombol tombol-isi" disabled={sibuk || !ring || belumSandi.guru === 0} onClick={() => aturSandi('guru')}>Guru ({belumSandi.guru} belum)</button>
         </div>
         {progres && <p className="catatan" role="status">{progres}</p>}
       </div>
@@ -174,10 +198,10 @@ export default function PenggunaHalaman() {
       <div className="tabel-bungkus jarak">
         <table>
           <thead>
-            <tr><th>Nama</th><th>Peran</th><th>Email atau NISN</th><th>Terakhir masuk</th><th>Status</th><th>Aksi</th></tr>
+            <tr><th>Nama</th><th>Peran</th><th>Email atau NISN</th><th>Terakhir masuk</th><th>Password</th><th>Status</th><th>Aksi</th></tr>
           </thead>
           <tbody>
-            {!daftar && !galat && <tr><td colSpan={6}>Memuat...</td></tr>}
+            {!daftar && !galat && <tr><td colSpan={7}>Memuat...</td></tr>}
             {tampil.slice(0, batasTampil).map((p) => (
               <tr key={p.user_id}>
                 <td>{p.nama ?? '-'}{p.super_admin && <small> (super admin)</small>}</td>
@@ -195,6 +219,7 @@ export default function PenggunaHalaman() {
                 </td>
                 <td>{p.peran === 'siswa' ? p.nisn : p.email}</td>
                 <td>{waktu(p.terakhir_masuk)}</td>
+                <td>{p.sandi === 'belum' ? 'Belum disetel' : p.sandi === 'awal' ? 'Masih awal' : p.sandi === 'diganti' ? 'Sudah diganti' : '-'}</td>
                 <td>{p.nonaktif ? 'Nonaktif' : 'Aktif'}</td>
                 <td>
                   {p.super_admin ? '-' : (
@@ -205,6 +230,16 @@ export default function PenggunaHalaman() {
                       >
                         {p.nonaktif ? 'Aktifkan' : 'Nonaktifkan'}
                       </button>{' '}
+                      {p.sandi && (
+                        <>
+                          <button
+                            className="tombol" style={{ padding: '4px 10px', color: 'var(--warna-utama)' }} disabled={sibuk}
+                            onClick={() => aksi({ aksi: 'reset_sandi', user_id: p.user_id }, `Kembalikan password ${p.nama} ke password awal?`)}
+                          >
+                            Reset password
+                          </button>{' '}
+                        </>
+                      )}
                       <button
                         className="tombol" style={{ padding: '4px 10px', color: '#a11' }} disabled={sibuk}
                         onClick={() => aksi({ aksi: 'hapus', user_id: p.user_id }, `Hapus akun ${p.nama ?? p.email}? Tidak dapat dibatalkan.`)}
