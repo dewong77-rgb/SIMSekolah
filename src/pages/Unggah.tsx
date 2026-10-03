@@ -1,6 +1,8 @@
 import { useState, type ChangeEvent } from 'react'
 import { Link } from 'react-router-dom'
 import Halaman from '../components/Halaman'
+import { useAuth } from '../auth/AuthContext'
+import { sha256Berkas, unggah, type HasilUnggah } from '../dapodik/unggah'
 import { bacaBerkas } from '../dapodik/readers'
 import { uraiBook, type Hasil } from '../dapodik/parser'
 
@@ -23,11 +25,15 @@ const namaTabel: Record<string, string> = {
   mou_kerjasama: 'MoU kerja sama', unit_produksi: 'Unit produksi', praktik_industri: 'Praktik industri',
 }
 
-type Item = { nama: string; ukuran: number; hasil?: Hasil; galat?: string }
+type Item = {
+  nama: string; ukuran: number; hasil?: Hasil; galat?: string; sha?: string
+  proses?: string; hasilUnggah?: HasilUnggah; paksa?: boolean
+}
 
 export default function Unggah() {
   const [item, setItem] = useState<Item[]>([])
   const [sibuk, setSibuk] = useState(false)
+  const { profil } = useAuth()
 
   async function pilih(e: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? [])
@@ -36,8 +42,9 @@ export default function Unggah() {
     const keluar: Item[] = []
     for (const f of files) {
       try {
-        const book = bacaBerkas(new Uint8Array(await f.arrayBuffer()))
-        keluar.push({ nama: f.name, ukuran: f.size, hasil: await uraiBook(book) })
+        const bytes = new Uint8Array(await f.arrayBuffer())
+        const hasil = await uraiBook(bacaBerkas(bytes))
+        keluar.push({ nama: f.name, ukuran: f.size, hasil, sha: await sha256Berkas(bytes) })
       } catch (err) {
         keluar.push({ nama: f.name, ukuran: f.size, galat: (err as Error).message })
       }
@@ -47,15 +54,35 @@ export default function Unggah() {
     e.target.value = ''
   }
 
+  function ubah(nama: string, p: Partial<Item>) {
+    setItem((a) => a.map((x) => (x.nama === nama ? { ...x, ...p } : x)))
+  }
+
+  async function kirim(it: Item) {
+    if (!it.hasil || !it.sha || !profil) return
+    setSibuk(true)
+    ubah(it.nama, { proses: 'Memulai', hasilUnggah: undefined })
+    try {
+      const r = await unggah(it.hasil, it.nama, it.sha, profil.npsn, (m) => ubah(it.nama, { proses: m }), !!it.paksa)
+      ubah(it.nama, { proses: undefined, hasilUnggah: r })
+    } catch (e) {
+      ubah(it.nama, {
+        proses: undefined,
+        hasilUnggah: { status: 'gagal', alasan: (e as Error).message, ringkasan: {}, isu: [] },
+      })
+    }
+    setSibuk(false)
+  }
+
   return (
-    <Halaman judul="Unggah Dapodik" lead="Pilih berkas ekspor Dapodik. Berkas dibaca di peramban Anda dan belum dikirim ke server. Ini tahap pratinjau.">
+    <Halaman judul="Unggah Dapodik" lead="Pilih berkas ekspor Dapodik. Berkas dibaca di peramban Anda. Data baru dikirim ke server setelah Anda menekan Unggah.">
       <div className="kartu form">
         <label>
           Berkas Dapodik (xlsx atau xls)
           <input type="file" multiple accept=".xlsx,.xls" onChange={pilih} disabled={sibuk} />
         </label>
         <p className="catatan">
-          Jenis berkas dikenali dari isinya, bukan dari nama. Data pribadi tidak meninggalkan perangkat ini pada tahap pratinjau.
+          Jenis berkas dikenali dari isinya, bukan dari nama. Urutan yang disarankan: profil, guru dan tendik, daftar peserta didik, peserta didik keluar, daftar hadir, data SMK.
         </p>
         {sibuk && <p className="catatan" aria-live="polite">Membaca berkas...</p>}
       </div>
@@ -65,6 +92,35 @@ export default function Unggah() {
           <h3>{it.nama}</h3>
           {it.galat && <p><strong>Tidak terbaca.</strong> {it.galat}</p>}
           {it.hasil && <Ringkasan h={it.hasil} />}
+          {it.hasil && (
+            <div className="aksi jarak">
+              <button
+                className="tombol tombol-isi"
+                disabled={sibuk || !!it.proses || it.hasilUnggah?.status === 'selesai' || it.hasil.isu.some((i) => i.tingkat === 'galat')}
+                onClick={() => kirim(it)}
+              >
+                {it.proses ? 'Mengunggah...' : 'Unggah ke database'}
+              </button>
+              <label style={{ display: 'inline-flex', gap: 6, alignItems: 'center', marginLeft: 12 }}>
+                <input type="checkbox" checked={!!it.paksa} onChange={(e) => ubah(it.nama, { paksa: e.target.checked })} />
+                Unggah ulang walau berkas identik sudah pernah masuk
+              </label>
+            </div>
+          )}
+          {it.proses && <p className="catatan jarak" aria-live="polite">{it.proses}</p>}
+          {it.hasilUnggah && (
+            <div className="jarak" aria-live="polite">
+              <p>
+                <strong>
+                  {it.hasilUnggah.status === 'selesai' ? 'Selesai diunggah.' : it.hasilUnggah.status === 'dilewati' ? 'Dilewati.' : 'Gagal.'}
+                </strong>{' '}
+                {it.hasilUnggah.alasan}
+              </p>
+              {it.hasilUnggah.status === 'gagal' && it.hasilUnggah.isu.filter((i) => i.tingkat === 'galat').map((i, k) => (
+                <p key={k} className="catatan">{i.pesan}</p>
+              ))}
+            </div>
+          )}
         </div>
       ))}
       <p className="catatan jarak"><Link to="/portal">Kembali ke portal</Link></p>
