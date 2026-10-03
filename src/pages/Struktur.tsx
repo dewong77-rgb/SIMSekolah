@@ -35,7 +35,7 @@ function Kartu({ simpul, tingkat }: { simpul: Simpul; tingkat: number }) {
           {simpul.pemegang.map((p, i) => (
             <li key={i}>
               <span className="avatar" aria-hidden="true">{inisial(p.nama)}</span>
-              <span>{p.label && simpul.lingkup !== 'sekolah' ? <small>{p.label}</small> : null}<strong>{p.nama}</strong></span>
+              <span>{p.label && simpul.lingkup !== 'sekolah' ? <small>{p.label}</small> : null}<strong>{rapikanNama(p.nama)}</strong></span>
             </li>
           ))}
         </ul>
@@ -56,14 +56,22 @@ function Turunan({ simpul, anak, tingkat }: { simpul: Simpul; anak: Peta; tingka
   )
 }
 
+const PER_BARIS = 4
+const rapikanNama = (n: string) => {
+  const t = n.split(/,\s*/)
+  return t.filter((x, i) => t.indexOf(x) === i).join(', ')
+}
+
 function Bagan({ simpul, anak }: { simpul: Simpul; anak: Peta }) {
   const t = anak.get(simpul.kode) ?? []
+  const lajur: Simpul[][] = []
+  for (let i = 0; i < t.length; i += PER_BARIS) lajur.push(t.slice(i, i + PER_BARIS))
   return (
     <div className="bagan-org">
       <div className="bagan-puncak"><Kartu simpul={simpul} tingkat={0} /></div>
-      {t.length > 0 && (
-        <ul className="bagan-baris" style={{ ['--n' as string]: Math.min(t.length, 6) }}>
-          {t.map((x) => (
+      {lajur.map((baris, bi) => (
+        <ul key={bi} className={'bagan-baris' + (lajur.length > 1 ? ' banyak' : '') + (bi < lajur.length - 1 ? ' berlanjut' : '')}>
+          {baris.map((x) => (
             <li key={x.kode} className="bagan-kolom">
               <Kartu simpul={x} tingkat={1} />
               {(anak.get(x.kode) ?? []).length > 0 && (
@@ -74,7 +82,7 @@ function Bagan({ simpul, anak }: { simpul: Simpul; anak: Peta }) {
             </li>
           ))}
         </ul>
-      )}
+      ))}
     </div>
   )
 }
@@ -146,7 +154,7 @@ export default function Struktur() {
                   <h3>Kelas {t}</h3>
                   <div className="grid grid-3">
                     {daftar.map((w, i) => (
-                      <div className="kartu-org t2" key={i}><span className="jabatan">{w.label}</span><ul className="pemegang"><li><span className="avatar" aria-hidden="true">{inisial(w.nama)}</span><strong>{w.nama}</strong></li></ul></div>
+                      <div className="kartu-org t2" key={i}><span className="jabatan">{w.label}</span><ul className="pemegang"><li><span className="avatar" aria-hidden="true">{inisial(w.nama)}</span><strong>{rapikanNama(w.nama)}</strong></li></ul></div>
                     ))}
                   </div>
                 </section>
@@ -159,7 +167,7 @@ export default function Struktur() {
               <div className="judul-bagian jarak"><h2>Pembina ekstrakurikuler</h2></div>
               <div className="grid grid-3">
                 {ekskul.map((p, i) => (
-                  <div className="kartu-org t2" key={i}><span className="jabatan">{p.label}</span><ul className="pemegang"><li><span className="avatar" aria-hidden="true">{inisial(p.nama)}</span><strong>{p.nama}</strong></li></ul></div>
+                  <div className="kartu-org t2" key={i}><span className="jabatan">{p.label}</span><ul className="pemegang"><li><span className="avatar" aria-hidden="true">{inisial(p.nama)}</span><strong>{rapikanNama(p.nama)}</strong></li></ul></div>
                 ))}
               </div>
             </>

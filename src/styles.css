@@ -185,23 +185,27 @@ input[type="search"] { font: inherit; padding: 8px 12px; border: 1px solid #b9c1
 .bagan-org { margin-bottom: 24px; }
 .bagan-puncak { display: flex; justify-content: center; position: relative; padding-bottom: 28px; }
 .bagan-puncak::after { content: ''; position: absolute; left: 50%; bottom: 0; height: 28px; border-left: 2px solid var(--garis); }
-.bagan-baris { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(var(--n, 1), minmax(0, 1fr)); gap: 0 16px; }
+.bagan-baris { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 16px; position: relative; }
+.bagan-baris.banyak { padding-left: 16px; margin-bottom: 4px; }
+.bagan-baris.banyak.berlanjut::before { content: ''; position: absolute; left: 0; top: 0; bottom: -4px; border-left: 2px solid var(--garis); }
+.bagan-baris.banyak .bagan-kolom:first-child::after { left: -16px; }
+.bagan-baris:not(.banyak) .bagan-kolom:only-child::after { display: none; }
 .bagan-kolom { position: relative; padding-top: 28px; }
 .bagan-kolom::before { content: ''; position: absolute; top: 0; left: 50%; height: 28px; border-left: 2px solid var(--garis); }
 .bagan-kolom::after { content: ''; position: absolute; top: 0; left: -8px; right: -8px; border-top: 2px solid var(--garis); }
 .bagan-kolom:first-child::after { left: 50%; }
 .bagan-kolom:last-child::after { right: 50%; }
 .bagan-kolom:only-child::after { display: none; }
-.kartu-org { background: #fff; border: 1px solid var(--garis); border-top: 4px solid var(--warna-aksen); border-radius: var(--radius); padding: 12px 14px; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+.kartu-org { font-size: .9rem; line-height: 1.35; background: #fff; border: 1px solid var(--garis); border-top: 4px solid var(--warna-aksen); border-radius: var(--radius); padding: 12px 14px; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
 .kartu-org.t0 { width: min(340px, 100%); border-top-color: var(--warna-utama); text-align: left; }
 .kartu-org.t2 { border-top-width: 1px; border-left: 4px solid var(--warna-aksen); padding: 9px 12px; }
 .kartu-org.kosong { background: var(--latar-lembut); border-top-color: var(--garis); border-left-color: var(--garis); }
-.kartu-org .jabatan { display: block; font-size: .78rem; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; color: var(--warna-utama); margin-bottom: 6px; }
+.kartu-org .jabatan { display: block; font-size: .74rem; line-height: 1.3; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; color: var(--warna-utama); margin-bottom: 6px; }
 .kartu-org.t2 .jabatan { font-size: .74rem; margin-bottom: 4px; }
 .kartu-org .pemegang { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.kartu-org .pemegang li { display: flex; gap: 10px; align-items: center; }
+.kartu-org .pemegang li { display: flex; gap: 10px; align-items: flex-start; }
 .kartu-org .pemegang small { display: block; color: var(--teks-lembut, #666); }
-.kartu-org .pemegang strong { font-weight: 600; overflow-wrap: anywhere; }
+.kartu-org .pemegang strong { font-size: .95rem; font-weight: 600; overflow-wrap: anywhere; }
 .kartu-org .avatar { flex: none; width: 32px; height: 32px; border-radius: 50%; background: var(--warna-utama); color: #fff; display: grid; place-items: center; font-size: .78rem; font-weight: 700; }
 .kartu-org.t2 .avatar { width: 26px; height: 26px; font-size: .68rem; }
 .kartu-org.kosong .catatan { font-style: italic; }
@@ -214,9 +218,11 @@ input[type="search"] { font: inherit; padding: 8px 12px; border: 1px solid #b9c1
 @media (max-width: 900px) {
   .bagan-puncak { justify-content: flex-start; padding-bottom: 16px; }
   .bagan-puncak::after { left: 14px; height: 16px; }
-  .bagan-baris { display: block; padding-left: 14px; border-left: 2px solid var(--garis); margin-left: 14px; }
+  .bagan-baris, .bagan-baris.banyak { display: block; padding-left: 14px; margin-bottom: 0; border-left: 2px solid var(--garis); margin-left: 14px; }
   .bagan-kolom { padding: 0 0 14px 18px; }
   .bagan-kolom::before { top: 28px; left: -2px; width: 16px; height: 0; border-left: 0; border-top: 2px solid var(--garis); }
   .bagan-kolom::after { display: none; }
   .bagan-baris { padding-top: 14px; }
+  .bagan-baris.banyak::before { display: none; }
+  .bagan-baris.banyak .bagan-kolom:first-child::after { display: none; }
 }
