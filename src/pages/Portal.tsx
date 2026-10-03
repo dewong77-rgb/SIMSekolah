@@ -38,11 +38,11 @@ const menuIzin: { izin: string; nama: string; bidang: string; to?: string }[] = 
 ]
 
 const menuPeran: Record<Peran, string[]> = {
-  admin_tu: ['Ajuan perbaikan', 'Persuratan', 'LMS', 'Unggah Dapodik', 'Riwayat unggah', 'Peserta didik', 'Guru dan tendik', 'Rombel', 'Pengguna dan akun'],
-  guru: ['Profil saya', 'Ajuan saya', 'Disposisi saya', 'Daftar siswa', 'Rombel', 'Data PTK', 'Absensi', 'LMS'],
+  admin_tu: ['Ajuan perbaikan', 'Persuratan', 'LMS', 'Administrasi guru', 'Unggah Dapodik', 'Riwayat unggah', 'Peserta didik', 'Guru dan tendik', 'Rombel', 'Pengguna dan akun'],
+  guru: ['Profil saya', 'Ajuan saya', 'Disposisi saya', 'Daftar siswa', 'Rombel', 'Data PTK', 'Absensi', 'LMS', 'Administrasi guru'],
   staf: ['Profil saya', 'Ajuan saya', 'Disposisi saya'],
   siswa: ['Data saya', 'Ajuan saya', 'Kelas saya', 'LMS'],
-  orang_tua: ['Anak saya', 'Ajuan saya', 'Kelas anak'],
+  orang_tua: ['Anak saya', 'Ajuan saya', 'Kelas anak', 'Belajar anak'],
 }
 
 const tautanMenu: Record<string, [string, string | null, string]> = {
@@ -61,6 +61,8 @@ const tautanMenu: Record<string, [string, string | null, string]> = {
   'Pengguna dan akun': ['/portal/akun', 'Akun guru', 'Daftarkan akun dari data PTK'],
   'Disposisi saya': ['/portal/disposisi', null, 'Instruksi dari pimpinan untuk Anda'],
   'Persuratan': ['/portal/surat', null, 'Register surat masuk dan keluar, disposisi'],
+  'Administrasi guru': ['/portal/lms/administrasi', null, 'ATP, modul ajar, program, dan perangkat ajar lainnya'],
+  'Belajar anak': ['/portal/anak-lms', null, 'Kehadiran, nilai kuis, dan status tugas anak'],
   'LMS': ['/portal/lms', 'Ruang belajar (LMS)', 'Kelas, materi, absensi per pertemuan'],
 }
 

@@ -5,6 +5,8 @@ import { useAuth } from '../auth/AuthContext'
 import { panggil, tgl, tglJam } from '../lib/rpc'
 import { supabase } from '../lib/supabase'
 import { DaftarKuis } from './LmsKuis'
+import { DaftarTugas } from './LmsTugas'
+import { Forum } from './LmsForum'
 
 // Semua data lewat fungsi basis data lms_*. Tabel LMS tidak punya policy, jadi tidak dibaca langsung.
 
@@ -79,6 +81,7 @@ export function DaftarKelas() {
       {bolehBuat && (
         <div className="aksi">
           <button className="tombol tombol-isi" onClick={() => setForm(!form)}>{form ? 'Tutup formulir' : 'Buat kelas ajar'}</button>
+          <Link to="/portal/lms/administrasi" className="tombol" style={{ color: 'var(--warna-utama)' }}>Administrasi guru</Link>
         </div>
       )}
       {form && (
@@ -155,6 +158,8 @@ export function DetailKelas() {
         <div className="aksi">
           <button className="tombol tombol-isi" onClick={() => setForm(!form)}>{form ? 'Tutup formulir' : 'Tambah pertemuan'}</button>
           <Link to={`/portal/lms/${kelasId}/rekap`} className="tombol" style={{ color: 'var(--warna-utama)' }}>Rekap kehadiran</Link>
+          <Link to={`/portal/lms/${kelasId}/nilai`} className="tombol" style={{ color: 'var(--warna-utama)' }}>Buku nilai</Link>
+          <Link to={`/portal/lms/${kelasId}/jurnal`} className="tombol" style={{ color: 'var(--warna-utama)' }}>Jurnal mengajar</Link>
         </div>
       )}
       {form && (
@@ -203,6 +208,7 @@ export function DetailKelas() {
         </table>
       </div>
       {kelas && <DaftarKuis kelasId={kelasId} kelola={kelola} pertemuan={(daftar ?? []).map((p) => ({ id: p.id, nomor: p.nomor, judul: p.judul }))} />}
+      {kelas && <DaftarTugas kelasId={kelasId} kelola={kelola} pertemuan={(daftar ?? []).map((p) => ({ id: p.id, nomor: p.nomor, judul: p.judul }))} />}
       <Kembali ke="/portal/lms" teks="Kembali ke daftar kelas" />
     </Halaman>
   )
@@ -323,8 +329,8 @@ function RekapPertemuan({ pertemuanId, versi }: { pertemuanId: string; versi: nu
   )
 }
 
-function FormMateri({ pertemuanId, muat }: { pertemuanId: string; muat: () => Promise<void> }) {
-  const [v, setV] = useState({ jenis: 'teks', judul: '', isi: '', url: '' })
+function FormMateri({ pertemuanId, muat, awal, selesai }: { pertemuanId: string; muat: () => Promise<void>; awal?: Materi | null; selesai?: () => void }) {
+  const [v, setV] = useState<{ jenis: string; judul: string; isi: string; url: string }>({ jenis: awal?.jenis ?? 'teks', judul: awal?.judul ?? '', isi: awal?.isi ?? '', url: awal?.url ?? '' })
   const [galat, setGalat] = useState('')
   const [sibuk, setSibuk] = useState(false)
   async function simpan(e: FormEvent) {
@@ -332,17 +338,18 @@ function FormMateri({ pertemuanId, muat }: { pertemuanId: string; muat: () => Pr
     setSibuk(true); setGalat('')
     try {
       await panggil('lms_simpan_materi', {
-        p_pertemuan: pertemuanId, p_id: null, p_jenis: v.jenis, p_judul: v.judul,
+        p_pertemuan: pertemuanId, p_id: awal?.id ?? null, p_jenis: v.jenis, p_judul: v.judul,
         p_isi: v.jenis === 'teks' ? v.isi : null, p_url: v.jenis === 'teks' ? null : v.url, p_urutan: null,
       })
-      setV({ jenis: v.jenis, judul: '', isi: '', url: '' })
+      if (!awal) setV({ jenis: v.jenis, judul: '', isi: '', url: '' })
       await muat()
+      selesai?.()
     } catch (er) { setGalat((er as Error).message) }
     setSibuk(false)
   }
   return (
     <form className="kartu form jarak" onSubmit={simpan}>
-      <h3>Tambah materi</h3>
+      <h3>{awal ? 'Ubah materi' : 'Tambah materi'}</h3>
       <div className="grid grid-2">
         <label>Jenis
           <select value={v.jenis} onChange={(e) => setV({ ...v, jenis: e.target.value })}>
@@ -356,7 +363,7 @@ function FormMateri({ pertemuanId, muat }: { pertemuanId: string; muat: () => Pr
         ? <label>Isi bacaan<textarea required rows={8} maxLength={20000} value={v.isi} onChange={(e) => setV({ ...v, isi: e.target.value })} /><span className="petunjuk">Teks biasa. Baris kosong memisahkan paragraf.</span></label>
         : <label>Tautan<input required type="url" pattern="https://.*" value={v.url} onChange={(e) => setV({ ...v, url: e.target.value })} placeholder="https://" /><span className="petunjuk">Harus diawali https://.</span></label>}
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
-      <div className="aksi"><button className="tombol tombol-isi" disabled={sibuk}>{sibuk ? 'Menyimpan...' : 'Simpan materi'}</button></div>
+      <div className="aksi"><button className="tombol tombol-isi" disabled={sibuk}>{sibuk ? 'Menyimpan...' : 'Simpan materi'}</button>{awal && <button type="button" className="tombol" style={{ color: 'var(--warna-utama)' }} onClick={() => selesai?.()}>Batal</button>}</div>
     </form>
   )
 }
@@ -373,6 +380,7 @@ export function RuangPertemuan() {
   const [kode, setKode] = useState('')
   const [sibuk, setSibuk] = useState(false)
   const [versi, setVersi] = useState(0)
+  const [ubahMateri, setUbahMateri] = useState<string | null>(null)
 
   const muat = useCallback(async () => {
     try {
@@ -456,12 +464,21 @@ export function RuangPertemuan() {
           {materi.length === 0 && <div className="kartu"><p className="catatan">Belum ada materi pada pertemuan ini.</p></div>}
           {materi.map((m) => (
             <div key={m.id}>
-              <IsiMateri m={m} siswa={!kelola} selesai={selesai} />
-              {kelola && <div className="aksi"><button className="tombol" style={{ color: '#8a1f1f', borderColor: '#8a1f1f' }} onClick={() => void hapus(m.id)}>Hapus materi ini</button></div>}
+              {ubahMateri === m.id
+                ? <FormMateri pertemuanId={id} muat={muat} awal={m} selesai={() => setUbahMateri(null)} />
+                : <IsiMateri m={m} siswa={!kelola} selesai={selesai} />}
+              {kelola && ubahMateri !== m.id && (
+                <div className="aksi">
+                  <button className="tombol" style={{ color: 'var(--warna-utama)' }} onClick={() => setUbahMateri(m.id)}>Ubah materi ini</button>
+                  <button className="tombol" style={{ color: '#8a1f1f', borderColor: '#8a1f1f' }} onClick={() => void hapus(m.id)}>Hapus materi ini</button>
+                </div>
+              )}
             </div>
           ))}
         </>
       )}
+
+      {p && !terkunci && (kelola || p.status === 'terbit') && <Forum pertemuanId={id} kelola={kelola} />}
 
       {kelola && p && (
         <>

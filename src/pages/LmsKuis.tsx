@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import Halaman from '../components/Halaman'
 import { panggil, tglJam } from '../lib/rpc'
+import { biru, dariInputLokal, dua, keInputLokal, nilaiTeks } from './lmsUtil'
 
 // Kuis dan ulangan. Semua data lewat fungsi basis data lms_*. Kunci jawaban baru dikirim setelah siswa selesai.
 
@@ -24,16 +25,7 @@ const labelJenis: Record<string, string> = { kuis: 'Kuis', ulangan_harian: 'Ulan
 const labelStatusKuis: Record<string, string> = { belum: 'Belum mengerjakan', berjalan: 'Sedang mengerjakan', selesai: 'Selesai' }
 const kelasStatusKuis: Record<string, string> = { belum: 'status-dibatalkan', berjalan: 'status-menunggu', selesai: 'status-selesai' }
 const huruf = 'ABCDEF'
-const biru = { color: 'var(--warna-utama)' }
 
-const dua = (n: number) => String(n).padStart(2, '0')
-function keInputLokal(iso: string | null): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  return `${d.getFullYear()}-${dua(d.getMonth() + 1)}-${dua(d.getDate())}T${dua(d.getHours())}:${dua(d.getMinutes())}`
-}
-const dariInputLokal = (s: string): string | null => (s ? new Date(s).toISOString() : null)
-const nilaiTeks = (n: number | null) => (n === null ? '-' : Number(n).toLocaleString('id-ID', { maximumFractionDigits: 2 }))
 
 function jadwal(a: Asesmen): string {
   if (a.buka && a.tutup) return `${tglJam(a.buka)} sampai ${tglJam(a.tutup)}`
