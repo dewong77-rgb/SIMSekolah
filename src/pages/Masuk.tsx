@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabase'
 type PeranMasuk = 'guru' | 'siswa' | 'alumni' | 'admin' | 'orang_tua'
 
 const peranMasuk: { id: PeranMasuk; nama: string; usernameLabel: string; petunjuk: string }[] = [
-  { id: 'guru', nama: 'Guru', usernameLabel: 'NIP (atau NUPTK)', petunjuk: 'Pertama kali masuk? Password awal adalah NPSN sekolah. Anda akan diminta menggantinya.' },
+  { id: 'guru', nama: 'Guru dan staf', usernameLabel: 'NIP (atau NUPTK)', petunjuk: 'Pertama kali masuk? Password awal adalah NPSN sekolah. Anda akan diminta menggantinya.' },
   { id: 'siswa', nama: 'Siswa', usernameLabel: 'NISN', petunjuk: 'Pertama kali masuk? Password awal adalah tanggal lahir dengan format DDMMYYYY, misalnya 17082009. Anda akan diminta menggantinya.' },
   { id: 'alumni', nama: 'Alumni', usernameLabel: 'NISN', petunjuk: 'Pertama kali masuk? Password awal adalah tanggal lahir dengan format DDMMYYYY. Anda akan diminta menggantinya.' },
   { id: 'orang_tua', nama: 'Orang tua', usernameLabel: '', petunjuk: '' },

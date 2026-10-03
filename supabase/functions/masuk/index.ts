@@ -1,5 +1,5 @@
 // Masuk satu pintu dengan username dan password, per peran.
-//   guru   : username NIP (atau NUPTK), password awal NPSN
+//   guru   : username NIP (atau NUPTK), password awal NPSN (juga untuk tenaga kependidikan)
 //   siswa  : username NISN (siswa aktif), password awal tanggal lahir DDMMYYYY
 //   alumni : username NISN (status lulus), password awal tanggal lahir DDMMYYYY
 //   admin  : username dari profil_admin (hanya admin TU)
@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
     const { data: pt } = await db.from('ptk').select('id').eq('npsn', sk.npsn).or(`nip.eq.${username},nuptk.eq.${username}`)
     const ids = (pt ?? []).map((p) => p.id as string)
     if (ids.length) {
-      const { data } = await db.from('profil_pengguna').select('user_id').in('ptk_id', ids).eq('peran', 'guru')
+      const { data } = await db.from('profil_pengguna').select('user_id').in('ptk_id', ids).in('peran', ['guru', 'staf'])
       userIds = (data ?? []).map((r) => r.user_id as string)
     }
   } else {

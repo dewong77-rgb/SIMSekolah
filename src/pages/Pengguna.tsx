@@ -8,10 +8,10 @@ type Pengguna = {
   user_id: string; peran: string; status_pd: string | null; sandi: 'belum' | 'awal' | 'diganti' | null; nama: string | null; nisn: string | null; email: string | null
   terakhir_masuk: string | null; nonaktif: boolean; super_admin: boolean; dibuat_pada: string
 }
-type Ringkasan = { siswa_aktif: number; alumni: number; guru_total: number }
+type Ringkasan = { siswa_aktif: number; alumni: number; guru_total: number; staf_total: number }
 type Kelompok = 'aktif' | 'alumni'
 
-const namaPeran: Record<string, string> = { admin_tu: 'Admin TU', guru: 'Guru', siswa: 'Siswa', orang_tua: 'Orang tua' }
+const namaPeran: Record<string, string> = { admin_tu: 'Admin TU', guru: 'Guru', staf: 'Staf TU', siswa: 'Siswa', orang_tua: 'Orang tua' }
 
 async function panggil(body: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke('kelola-akun', { body })
@@ -103,15 +103,16 @@ export default function PenggunaHalaman() {
   const buatMassal = (k: Kelompok) =>
     putaran(`Membuat akun ${nama(k)}`, { aksi: 'buat_massal', kelompok: k }, 'dibuat',
       `Buat akun untuk ${nama(k)} yang belum punya akun? Password awal adalah tanggal lahir (DDMMYYYY). Jangan tutup halaman selama berjalan.`)
-  const aturSandi = (k: 'siswa' | 'alumni' | 'guru') =>
+  const aturSandi = (k: 'siswa' | 'alumni' | 'guru' | 'staf') =>
     putaran(`Menyetel password awal ${k === 'siswa' ? 'siswa aktif' : k}`, { aksi: 'atur_sandi_awal', kelompok: k }, 'diatur',
-      `Setel password awal untuk akun ${k === 'siswa' ? 'siswa aktif' : k} yang belum disetel (${k === 'guru' ? 'NPSN' : 'tanggal lahir DDMMYYYY'})? Mereka wajib menggantinya saat masuk pertama. Jangan tutup halaman selama berjalan.`)
+      `Setel password awal untuk akun ${k === 'siswa' ? 'siswa aktif' : k} yang belum disetel (${k === 'guru' || k === 'staf' ? 'NPSN' : 'tanggal lahir DDMMYYYY'})? Mereka wajib menggantinya saat masuk pertama. Jangan tutup halaman selama berjalan.`)
 
   const belumSandi = useMemo(() => {
-    const h = { siswa: 0, alumni: 0, guru: 0 }
+    const h = { siswa: 0, alumni: 0, guru: 0, staf: 0 }
     for (const p of daftar ?? []) {
       if (p.sandi !== 'belum') continue
       if (p.peran === 'guru') h.guru++
+      else if (p.peran === 'staf') h.staf++
       else if (p.status_pd === 'lulus') h.alumni++
       else h.siswa++
     }
@@ -133,6 +134,7 @@ export default function PenggunaHalaman() {
         <div className="kartu"><small>Guru terdaftar</small><h3>{hitung.guru ?? 0} dari {ring?.guru_total ?? '...'}</h3></div>
         <div className="kartu"><small>Akun siswa aktif</small><h3>{hitung.siswa ?? 0} dari {ring?.siswa_aktif ?? '...'}</h3></div>
         <div className="kartu"><small>Akun alumni</small><h3>{hitung.alumni ?? 0} dari {ring?.alumni ?? '...'}</h3></div>
+        <div className="kartu"><small>Staf TU (tendik)</small><h3>{hitung.staf ?? 0} dari {ring?.staf_total ?? '...'}</h3></div>
         <div className="kartu"><small>Admin TU</small><h3>{hitung.admin_tu ?? 0}</h3></div>
         <div className="kartu"><small>Orang tua</small><h3>{hitung.orang_tua ?? 0}</h3></div>
       </div>
@@ -151,12 +153,18 @@ export default function PenggunaHalaman() {
             Buat akun alumni ({Math.max((ring?.alumni ?? 0) - (hitung.alumni ?? 0), 0)} belum)
           </button>
         </div>
+        <div className="aksi jarak">
+          <button className="tombol tombol-isi" disabled={sibuk || !ring} onClick={() => putaran('Membuat akun staf', { aksi: 'buat_staf' }, 'dibuat', 'Buat akun untuk tenaga kependidikan yang belum punya akun? Username NIP atau NUPTK, password awal NPSN.')}>
+            Buat akun staf TU ({Math.max((ring?.staf_total ?? 0) - (hitung.staf ?? 0), 0)} belum)
+          </button>
+        </div>
         <h3 className="jarak">Password awal</h3>
-        <p className="catatan">Siswa dan alumni: tanggal lahir DDMMYYYY. Guru: NPSN. Semua wajib mengganti password saat masuk pertama.</p>
+        <p className="catatan">Siswa dan alumni: tanggal lahir DDMMYYYY. Guru dan staf: NPSN. Semua wajib mengganti password saat masuk pertama.</p>
         <div className="aksi">
           <button className="tombol tombol-isi" disabled={sibuk || !ring || belumSandi.siswa === 0} onClick={() => aturSandi('siswa')}>Siswa aktif ({belumSandi.siswa} belum)</button>
           <button className="tombol tombol-isi" disabled={sibuk || !ring || belumSandi.alumni === 0} onClick={() => aturSandi('alumni')}>Alumni ({belumSandi.alumni} belum)</button>
           <button className="tombol tombol-isi" disabled={sibuk || !ring || belumSandi.guru === 0} onClick={() => aturSandi('guru')}>Guru ({belumSandi.guru} belum)</button>
+          <button className="tombol tombol-isi" disabled={sibuk || !ring || belumSandi.staf === 0} onClick={() => aturSandi('staf')}>Staf ({belumSandi.staf} belum)</button>
         </div>
         {progres && <p className="catatan" role="status">{progres}</p>}
       </div>
@@ -189,6 +197,7 @@ export default function PenggunaHalaman() {
           <option value="siswa">Siswa aktif</option>
           <option value="alumni">Alumni</option>
           <option value="guru">Guru</option>
+          <option value="staf">Staf TU</option>
           <option value="admin_tu">Admin TU</option>
           <option value="orang_tua">Orang tua</option>
         </select>
@@ -214,6 +223,7 @@ export default function PenggunaHalaman() {
                     >
                       <option value="admin_tu">Admin TU</option>
                       <option value="guru">Guru</option>
+                      <option value="staf">Staf TU</option>
                       <option value="orang_tua">Orang tua</option>
                     </select>
                   )}

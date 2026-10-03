@@ -9,7 +9,7 @@ const cors = {
 const json = (b: unknown, status = 200) =>
   new Response(JSON.stringify(b), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
 
-const PERAN = ['admin_tu', 'guru', 'siswa', 'orang_tua']
+const PERAN = ['admin_tu', 'guru', 'staf', 'siswa', 'orang_tua']
 const ddmmyyyy = (t: string) => { const [y, m, d] = t.split('-'); return `${d}${m}${y}` }
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
         nama: r.ptk?.nama ?? pd?.nama ?? null, nisn: pd?.nisn ?? null,
         email: a?.email ?? null, terakhir_masuk: a?.terakhir_masuk ?? null, nonaktif: a?.nonaktif ?? false,
         super_admin: superSet.has(r.user_id), dibuat_pada: r.dibuat_pada,
-        sandi: r.peran !== 'siswa' && r.peran !== 'guru' ? null : !r.sandi_awal_diatur ? 'belum' : a?.wajib_ganti ? 'awal' : 'diganti',
+        sandi: !['siswa', 'guru', 'staf'].includes(r.peran) ? null : !r.sandi_awal_diatur ? 'belum' : a?.wajib_ganti ? 'awal' : 'diganti',
       }
     })
     const hitung = async (status: string) => {
@@ -94,7 +94,8 @@ Deno.serve(async (req) => {
       return count ?? 0
     }
     const { count: guru } = await db.from('ptk').select('*', { count: 'exact', head: true }).eq('npsn', me.npsn).in('jenis_ptk', ['Guru', 'Kepala Sekolah'])
-    return json({ pengguna, ringkasan: { siswa_aktif: await hitung('aktif'), alumni: await hitung('lulus'), guru_total: guru ?? 0 } })
+    const { count: staf } = await db.from('ptk').select('*', { count: 'exact', head: true }).eq('npsn', me.npsn).eq('jenis_ptk', 'Tenaga Kependidikan')
+    return json({ pengguna, ringkasan: { siswa_aktif: await hitung('aktif'), alumni: await hitung('lulus'), guru_total: guru ?? 0, staf_total: staf ?? 0 } })
   }
 
   if (aksi === 'buat_massal') {
@@ -141,17 +142,46 @@ Deno.serve(async (req) => {
     return json({ dibuat: dibuat.length, gagal, sisa, tanpa_nisn: tanpaNisn })
   }
 
+  if (aksi === 'buat_staf') {
+    // Membuat akun tenaga kependidikan (peran staf) dari data PTK. Username NIP atau NUPTK, password awal NPSN.
+    // Kewenangan harian (TU bagian, caraka, satpam, operator) datang dari penugasan, bukan dari peran akun.
+    const { data: sudah } = await db.from('profil_pengguna').select('ptk_id').eq('npsn', me.npsn).not('ptk_id', 'is', null)
+    const ada = new Set((sudah ?? []).map((r) => r.ptk_id as string))
+    const { data: pt, error: ep } = await db.from('ptk').select('id,nama,nip,nuptk').eq('npsn', me.npsn).eq('jenis_ptk', 'Tenaga Kependidikan')
+    if (ep) return json({ galat: ep.message }, 500)
+    const dibuat: { user_id: string; ptk: string }[] = []
+    const gagal: string[] = []
+    const tanpaId: string[] = []
+    for (const p of pt ?? []) {
+      if (ada.has(p.id)) continue
+      const idn = [p.nip, p.nuptk].find((x) => /^\d{8,20}$/.test(x ?? ''))
+      if (!idn) { tanpaId.push(p.nama); continue }
+      const { data: c, error } = await db.auth.admin.createUser({ email: `${idn}@staf.invalid`, password: me.npsn, email_confirm: true, app_metadata: { wajib_ganti_sandi: true } })
+      if (c?.user) dibuat.push({ user_id: c.user.id, ptk: p.id })
+      else gagal.push(`${p.nama}: ${error?.message ?? 'gagal'}`)
+    }
+    if (dibuat.length) {
+      const { error } = await db.from('profil_pengguna').insert(dibuat.map((d) => ({ user_id: d.user_id, npsn: me.npsn, peran: 'staf', ptk_id: d.ptk, sandi_awal_diatur: true })))
+      if (error) {
+        for (const d of dibuat) await db.auth.admin.deleteUser(d.user_id)
+        return json({ galat: error.message }, 500)
+      }
+    }
+    return json({ dibuat: dibuat.length, gagal, tanpa_id: tanpaId, sisa: 0 })
+  }
+
   if (aksi === 'atur_sandi_awal') {
     // Menyetel password awal untuk akun yang belum: siswa/alumni = tanggal lahir DDMMYYYY, guru = NPSN.
     // Dipanggil berulang dari peramban sampai sisa 0. Aman diulang.
     const k = String(b.kelompok ?? '')
-    if (!['siswa', 'alumni', 'guru'].includes(k)) return json({ galat: 'kelompok tidak dikenal' }, 400)
+    if (!['siswa', 'alumni', 'guru', 'staf'].includes(k)) return json({ galat: 'kelompok tidak dikenal' }, 400)
     const batas = Math.min(Math.max(Number(b.batas) || 100, 1), 150)
-    const kolom = k === 'guru' ? 'user_id' : 'user_id,peserta_didik!inner(tanggal_lahir,status_peserta_didik)'
+    const sebagaiPtk = k === 'guru' || k === 'staf'
+    const kolom = sebagaiPtk ? 'user_id' : 'user_id,peserta_didik!inner(tanggal_lahir,status_peserta_didik)'
     const dasar = () => {
       let q = db.from('profil_pengguna').select(kolom, { count: 'exact' }).eq('npsn', me.npsn).eq('sandi_awal_diatur', false)
-        .eq('peran', k === 'guru' ? 'guru' : 'siswa')
-      if (k !== 'guru') q = q.eq('peserta_didik.status_peserta_didik', k === 'siswa' ? 'aktif' : 'lulus').not('peserta_didik.tanggal_lahir', 'is', null)
+        .eq('peran', sebagaiPtk ? k : 'siswa')
+      if (!sebagaiPtk) q = q.eq('peserta_didik.status_peserta_didik', k === 'siswa' ? 'aktif' : 'lulus').not('peserta_didik.tanggal_lahir', 'is', null)
       return q
     }
     const { data, error, count } = await dasar().order('user_id').limit(batas)
@@ -161,7 +191,7 @@ Deno.serve(async (req) => {
     const gagal: string[] = []
     for (let i = 0; i < rows.length; i += 10) {
       await Promise.all(rows.slice(i, i + 10).map(async (r) => {
-        const sandi = k === 'guru' ? me.npsn : ddmmyyyy(r.peserta_didik!.tanggal_lahir)
+        const sandi = sebagaiPtk ? me.npsn : ddmmyyyy(r.peserta_didik!.tanggal_lahir)
         const { error: e } = await db.auth.admin.updateUserById(r.user_id, { password: sandi, app_metadata: { wajib_ganti_sandi: true } })
         if (e) gagal.push(`${r.user_id}: ${e.message}`)
         else ok.push(r.user_id)
@@ -179,9 +209,9 @@ Deno.serve(async (req) => {
     if (diri) return json({ galat: 'ganti password sendiri lewat menu Profil' }, 400)
     let sandi = ''
     const pd = pr.peserta_didik as unknown as { tanggal_lahir: string | null } | null
-    if (pr.peran === 'guru') sandi = me.npsn
+    if (pr.peran === 'guru' || pr.peran === 'staf') sandi = me.npsn
     else if (pr.peran === 'siswa' && pd?.tanggal_lahir) sandi = ddmmyyyy(pd.tanggal_lahir)
-    else return json({ galat: 'reset hanya untuk siswa, alumni, dan guru' }, 400)
+    else return json({ galat: 'reset hanya untuk siswa, alumni, guru, dan staf' }, 400)
     const { error } = await db.auth.admin.updateUserById(target, { password: sandi, app_metadata: { wajib_ganti_sandi: true } })
     if (error) return json({ galat: error.message }, 400)
     await db.from('profil_pengguna').update({ sandi_awal_diatur: true }).eq('user_id', target)

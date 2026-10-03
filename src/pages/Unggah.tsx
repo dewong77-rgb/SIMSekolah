@@ -1,5 +1,6 @@
 import { useState, type ChangeEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
 import Halaman from '../components/Halaman'
 import { useAuth } from '../auth/AuthContext'
 import { sha256Berkas, unggah, type HasilUnggah } from '../dapodik/unggah'
@@ -64,6 +65,11 @@ export default function Unggah() {
     ubah(it.nama, { proses: 'Memulai', hasilUnggah: undefined })
     try {
       const r = await unggah(it.hasil, it.nama, it.sha, profil.npsn, (m) => ubah(it.nama, { proses: m }), !!it.paksa)
+      if (r.status === 'selesai') {
+        const c = await supabase.rpc('cocokkan_ajuan')
+        const j = c.data as { selesai: number; belum_terbukti: number } | null
+        if (j && (j.selesai > 0 || j.belum_terbukti > 0)) r.alasan = `${r.alasan} Ajuan perbaikan: ${j.selesai} selesai, ${j.belum_terbukti} belum tampak di data.`
+      }
       ubah(it.nama, { proses: undefined, hasilUnggah: r })
     } catch (e) {
       ubah(it.nama, {

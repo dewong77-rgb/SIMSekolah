@@ -1,11 +1,14 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Halaman, { Segera } from '../components/Halaman'
 import { useAuth } from '../auth/AuthContext'
 import type { Peran } from '../lib/supabase'
+import { panggil } from '../lib/rpc'
 
 const namaPeran: Record<Peran, string> = {
   admin_tu: 'Admin TU',
   guru: 'Guru',
+  staf: 'Staf TU',
   siswa: 'Siswa',
   orang_tua: 'Orang tua',
 }
@@ -25,13 +28,21 @@ const menuIzin: { izin: string; nama: string; bidang: string; to?: string }[] = 
   { izin: 'lab.kelola', nama: 'Bengkel dan laboratorium', bidang: 'Sarpras' },
   { izin: 'perpus.kelola', nama: 'Perpustakaan', bidang: 'Perpustakaan' },
   { izin: 'laporan.lihat', nama: 'Laporan sekolah', bidang: 'Pimpinan' },
+  { izin: 'profil.setujui_guru', nama: 'Ajuan perbaikan data', bidang: 'Tata usaha', to: '/portal/ajuan-masuk' },
+  { izin: 'profil.setujui_siswa', nama: 'Ajuan perbaikan data', bidang: 'Tata usaha', to: '/portal/ajuan-masuk' },
+  { izin: 'dapodik.kerjakan_ajuan', nama: 'Antrean perbaikan Dapodik', bidang: 'Tata usaha', to: '/portal/ajuan-masuk' },
+  { izin: 'surat.catat', nama: 'Persuratan', bidang: 'Persuratan', to: '/portal/surat' },
+  { izin: 'surat.baca_semua', nama: 'Persuratan', bidang: 'Persuratan', to: '/portal/surat' },
+  { izin: 'surat.disposisi', nama: 'Persuratan dan disposisi', bidang: 'Persuratan', to: '/portal/surat' },
+  { izin: 'keuangan.kelola', nama: 'Keuangan', bidang: 'Tata usaha' },
 ]
 
 const menuPeran: Record<Peran, string[]> = {
-  admin_tu: ['Unggah Dapodik', 'Riwayat unggah', 'Peserta didik', 'Guru dan tendik', 'Rombel', 'Pengguna dan akun'],
-  guru: ['Daftar siswa', 'Rombel', 'Data PTK', 'Absensi', 'LMS'],
-  siswa: ['Data saya', 'Kelas saya', 'LMS'],
-  orang_tua: ['Anak saya', 'Kelas anak'],
+  admin_tu: ['Unggah Dapodik', 'Riwayat unggah', 'Peserta didik', 'Guru dan tendik', 'Rombel', 'Pengguna dan akun', 'Ajuan perbaikan data', 'Persuratan'],
+  guru: ['Cek data saya', 'Disposisi saya', 'Daftar siswa', 'Rombel', 'Data PTK', 'Absensi', 'LMS'],
+  staf: ['Cek data saya', 'Disposisi saya'],
+  siswa: ['Cek data saya', 'Kelas saya', 'LMS'],
+  orang_tua: ['Cek data anak', 'Kelas anak'],
 }
 
 const tautanMenu: Record<string, [string, string | null, string]> = {
@@ -43,13 +54,35 @@ const tautanMenu: Record<string, [string, string | null, string]> = {
   'Data PTK': ['/portal/ptk', null, 'Pendidik dan tenaga kependidikan'],
   'Rombel': ['/portal/rombel', null, 'Kelas, wali kelas, dan anggota'],
   'Pengguna dan akun': ['/portal/akun', 'Akun guru', 'Daftarkan akun dari data PTK'],
+  'Cek data saya': ['/portal/ajuan', null, 'Periksa data dari Dapodik dan ajukan perbaikan'],
+  'Cek data anak': ['/portal/ajuan', null, 'Periksa data anak dari Dapodik dan ajukan perbaikan'],
+  'Disposisi saya': ['/portal/disposisi', null, 'Instruksi dari pimpinan untuk Anda'],
+  'Ajuan perbaikan data': ['/portal/ajuan-masuk', null, 'Periksa dan teruskan ajuan ke operator Dapodik'],
+  'Persuratan': ['/portal/surat', null, 'Register surat masuk dan keluar, disposisi'],
 }
 
 export default function Portal() {
   const { session, profil, superAdmin, penugasan, keluar } = useAuth()
   if (!profil) return null
   const izinSaya = new Set(penugasan.flatMap((p) => p.izin))
-  const tugasMenu = menuIzin.filter((m) => izinSaya.has(m.izin))
+  const tugasMenu = menuIzin
+    .filter((m) => izinSaya.has(m.izin))
+    .filter((m, i, a) => !m.to || a.findIndex((x) => x.to === m.to) === i)
+  const [lencana, setLencana] = useState<Record<string, number>>({})
+  useEffect(() => {
+    if (!profil) return
+    void (async () => {
+      const [aj, sr] = await Promise.allSettled([
+        panggil<{ menunggu: number; antrean: number; saya: number }>('ajuan_ringkasan'),
+        panggil<{ disposisi_menunggu: number; belum_disposisi: number }>('surat_ringkasan'),
+      ])
+      const l: Record<string, number> = {}
+      if (aj.status === 'fulfilled') { l['/portal/ajuan-masuk'] = aj.value.menunggu + aj.value.antrean; l['/portal/ajuan'] = aj.value.saya }
+      if (sr.status === 'fulfilled') { l['/portal/disposisi'] = sr.value.disposisi_menunggu; l['/portal/surat'] = sr.value.belum_disposisi }
+      setLencana(l)
+    })()
+  }, [profil])
+  const tanda = (to: string) => (lencana[to] ? ` (${lencana[to]})` : '')
 
   return (
     <Halaman judul="Portal" lead={`Masuk sebagai ${namaPeran[profil.peran]}.`}>
@@ -89,7 +122,7 @@ export default function Portal() {
         {menuPeran[profil.peran].map((m) => {
           const t = tautanMenu[m]
           return t ? (
-            <Link key={m} to={t[0]} className="kartu tautan"><h3>{t[1] ?? m}</h3><small>{t[2]}</small></Link>
+            <Link key={m} to={t[0]} className="kartu tautan"><h3>{t[1] ?? m}{tanda(t[0])}</h3><small>{t[2]}</small></Link>
           ) : <Segera key={m} nama={m} />
         })}
       </div>
@@ -98,7 +131,7 @@ export default function Portal() {
           <div className="judul-bagian jarak"><h2>Menu tugas</h2></div>
           <div className="grid grid-3">
             {tugasMenu.map((m) => m.to
-              ? <Link key={m.izin} to={m.to} className="kartu tautan"><small>{m.bidang}</small><h3>{m.nama}</h3></Link>
+              ? <Link key={m.izin} to={m.to} className="kartu tautan"><small>{m.bidang}</small><h3>{m.nama}{tanda(m.to)}</h3></Link>
               : <Segera key={m.izin} nama={`${m.nama} (${m.bidang})`} />)}
           </div>
         </>
