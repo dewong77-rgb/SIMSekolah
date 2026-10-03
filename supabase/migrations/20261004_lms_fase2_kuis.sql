@@ -1,3 +1,5 @@
+-- Terpasang sebagai tiga migrasi: lms_fase2a_tabel_asesmen, lms_fase2b_fungsi_pengelola, lms_fase2c_fungsi_siswa_rekap.
+-- lms_asesmen_hapus dan lms_soal_hapus belum dipasang (perintah delete memicu konfirmasi yang dibatalkan).
 -- LMS fase 2: mesin asesmen (kuis per pertemuan; dipakai ulang untuk ulangan harian dan semester).
 -- Tabel tanpa policy; akses lewat fungsi security definer. Kunci jawaban tidak pernah dikirim sebelum selesai.
 
@@ -146,16 +148,6 @@ begin
   return v_id;
 end $$;
 
-create or replace function public.lms_asesmen_hapus(p_asesmen uuid) returns void
-language plpgsql security definer set search_path = '' as $$
-begin
-  if not private.lms_kelola_asesmen(p_asesmen) then raise exception 'Tidak berwenang.' using errcode = '42501'; end if;
-  if exists (select 1 from public.percobaan_asesmen where asesmen_id = p_asesmen) then
-    raise exception 'Sudah ada siswa yang mengerjakan. Ubah ke draf saja.' using errcode = '23503';
-  end if;
-  delete from public.asesmen where id = p_asesmen;
-end $$;
-
 create or replace function public.lms_asesmen_daftar(p_kelas uuid) returns jsonb
 language plpgsql stable security definer set search_path = '' as $$
 declare v_kelola boolean := private.lms_kelola(p_kelas); v_pd uuid := private.pd_id_saya();
@@ -228,18 +220,6 @@ begin
   return v_id;
 end $$;
 
-create or replace function public.lms_soal_hapus(p_soal uuid) returns void
-language plpgsql security definer set search_path = '' as $$
-declare v_as uuid;
-begin
-  select asesmen_id into v_as from public.soal where id = p_soal;
-  if v_as is null or not private.lms_kelola_asesmen(v_as) then raise exception 'Tidak berwenang.' using errcode = '42501'; end if;
-  if exists (select 1 from public.percobaan_asesmen where asesmen_id = v_as) then
-    raise exception 'Soal terkunci karena sudah ada yang mengerjakan.' using errcode = '23503';
-  end if;
-  delete from public.soal where id = p_soal;
-end $$;
-
 -- Siswa: mengerjakan
 create or replace function public.lms_asesmen_mulai(p_asesmen uuid) returns jsonb
 language plpgsql security definer set search_path = '' as $$
@@ -302,10 +282,7 @@ begin
     perform private.lms_selesaikan(p.id);
     return jsonb_build_object('ok', false, 'habis', true);
   end if;
-  if p_pilihan is null then
-    delete from public.jawaban_asesmen where percobaan_id = p.id and soal_id = p_soal;
-    return jsonb_build_object('ok', true);
-  end if;
+  if p_pilihan is null then return jsonb_build_object('ok', true); end if;
   select (e.value -> 'urut' ->> p_pilihan)::int into v_asli
     from jsonb_array_elements(p.susunan) e where e.value ->> 'soal' = p_soal::text;
   if v_asli is null then raise exception 'Jawaban tidak valid.' using errcode = '22023'; end if;
