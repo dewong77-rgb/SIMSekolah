@@ -4,6 +4,7 @@ import Halaman from '../components/Halaman'
 import { useAuth } from '../auth/AuthContext'
 import { panggil, tgl, tglJam } from '../lib/rpc'
 import { supabase } from '../lib/supabase'
+import { DaftarKuis } from './LmsKuis'
 
 // Semua data lewat fungsi basis data lms_*. Tabel LMS tidak punya policy, jadi tidak dibaca langsung.
 
@@ -18,6 +19,7 @@ type Pertemuan = {
 }
 type Materi = { id: string; urutan: number; jenis: 'teks' | 'video' | 'tautan' | 'berkas'; judul: string; isi: string | null; url: string | null; selesai: boolean }
 type BarisAbsen = { peserta_didik_id: string; nama: string; nisn: string | null; no_urut: number | null; status: string; sumber: string | null; catatan: string | null }
+type Progres = { total_materi: number; total_kuis: number; siswa: { peserta_didik_id: string; materi_selesai: number; kuis_selesai: number }[] }
 type BarisRekap = { peserta_didik_id: string; nama: string; nisn: string | null; hadir: number; izin: number; sakit: number; alpa: number }
 
 const labelStatus: Record<string, string> = { hadir: 'Hadir', izin: 'Izin', sakit: 'Sakit', alpa: 'Alpa', belum: 'Belum dicatat' }
@@ -200,6 +202,7 @@ export function DetailKelas() {
           </tbody>
         </table>
       </div>
+      {kelas && <DaftarKuis kelasId={kelasId} kelola={kelola} pertemuan={(daftar ?? []).map((p) => ({ id: p.id, nomor: p.nomor, judul: p.judul }))} />}
       <Kembali ke="/portal/lms" teks="Kembali ke daftar kelas" />
     </Halaman>
   )
@@ -271,9 +274,16 @@ function KontrolAbsen({ p, muat }: { p: Pertemuan; muat: () => Promise<void> }) 
 
 function RekapPertemuan({ pertemuanId, versi }: { pertemuanId: string; versi: number }) {
   const [baris, setBaris] = useState<BarisAbsen[] | null>(null)
+  const [progres, setProgres] = useState<Progres | null>(null)
   const [galat, setGalat] = useState('')
   const muat = useCallback(async () => {
-    try { setBaris((await panggil<{ siswa: BarisAbsen[] }>('lms_rekap_pertemuan', { p_pertemuan: pertemuanId })).siswa) } catch (e) { setGalat((e as Error).message) }
+    try {
+      const [r, g] = await Promise.all([
+        panggil<{ siswa: BarisAbsen[] }>('lms_rekap_pertemuan', { p_pertemuan: pertemuanId }),
+        panggil<Progres>('lms_progres_baca', { p_pertemuan: pertemuanId }),
+      ])
+      setBaris(r.siswa); setProgres(g)
+    } catch (e) { setGalat((e as Error).message) }
   }, [pertemuanId])
   useEffect(() => { void muat() }, [muat, versi])
   async function ubah(pd: string, status: string) {
@@ -288,14 +298,16 @@ function RekapPertemuan({ pertemuanId, versi }: { pertemuanId: string; versi: nu
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
       <div className="tabel-bungkus jarak">
         <table>
-          <thead><tr><th>No</th><th>Nama</th><th>Status</th><th>Ubah</th></tr></thead>
+          <thead><tr><th>No</th><th>Nama</th><th>Status</th><th>Materi selesai</th><th>Kuis</th><th>Ubah</th></tr></thead>
           <tbody>
-            {!baris && <tr><td colSpan={4}>Memuat...</td></tr>}
+            {!baris && <tr><td colSpan={6}>Memuat...</td></tr>}
             {(baris ?? []).map((b, i) => (
               <tr key={b.peserta_didik_id}>
                 <td>{b.no_urut ?? i + 1}</td>
                 <td>{b.nama}<br /><small>{b.nisn ?? ''}</small></td>
                 <td><span className={`status ${kelasStatus[b.status]}`}>{labelStatus[b.status]}</span>{b.sumber === 'guru' ? <small> (guru)</small> : null}</td>
+                <td>{(() => { const g = progres?.siswa.find((x) => x.peserta_didik_id === b.peserta_didik_id); return progres && progres.total_materi > 0 ? `${g?.materi_selesai ?? 0}/${progres.total_materi}` : '-' })()}</td>
+                <td>{(() => { const g = progres?.siswa.find((x) => x.peserta_didik_id === b.peserta_didik_id); return progres && progres.total_kuis > 0 ? `${g?.kuis_selesai ?? 0}/${progres.total_kuis}` : '-' })()}</td>
                 <td>
                   <select aria-label={`Ubah status ${b.nama}`} value="" onChange={(e) => e.target.value && void ubah(b.peserta_didik_id, e.target.value)}>
                     <option value="">Pilih</option>
