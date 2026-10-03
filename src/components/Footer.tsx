@@ -16,6 +16,7 @@ export default function Footer() {
         <div>
           <strong>Layanan</strong>
           <ul>
+            <li><Link to="/portal">Portal sekolah</Link></li>
             <li><Link to="/lms">LMS</Link></li>
             <li><Link to="/perpustakaan">Perpustakaan</Link></li>
             <li><Link to="/alumni">Cek Data Alumni</Link></li>
