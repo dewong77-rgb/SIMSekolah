@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom'
 import { berita } from '../data/contoh'
 import { useSekolah } from '../lib/profilSekolah'
+import JamSistem from '../components/JamSistem'
+import AgendaTerdekat from '../components/AgendaTerdekat'
 import { useJurusan, useStatistik } from '../lib/dataPublik'
 import { tanggalPanjang } from '../lib/format'
 import { useAuth } from '../auth/AuthContext'
@@ -28,6 +30,7 @@ export default function Beranda() {
           <p className="lead">
             {sekolah.data?.slogan ?? 'Mencetak lulusan yang siap kerja, siap berwirausaha, dan siap melanjutkan pendidikan, melalui pembelajaran yang dekat dengan dunia industri.'}
           </p>
+          <JamSistem varian="hero" />
           <div className="aksi">
             <Link to="/ppdb" className="tombol tombol-isi">Informasi PPDB</Link>
             <Link to={pintuPortal} className="tombol tombol-garis">{session ? 'Buka portal' : 'Masuk ke portal'}</Link>
@@ -44,6 +47,10 @@ export default function Beranda() {
             </div>
           ))}
         </div>
+      </section>
+
+      <section className="wadah bagian">
+        <AgendaTerdekat hari={30} judul="Agenda sekolah" />
       </section>
 
       <section className="wadah bagian">

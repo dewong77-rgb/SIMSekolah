@@ -131,14 +131,17 @@ const khususSuper: ItemPortal[] = [
   { to: '/portal/pengguna', label: 'Kelola pengguna', ikon: 'perisai', ket: 'Lihat akun guru dan siswa, ubah peran, nonaktifkan' },
   { to: '/portal/penugasan', label: 'Penugasan', ikon: 'tas', ket: 'Jabatan tambahan, lingkup, dan struktur organisasi' },
   { to: '/portal/profil-sekolah', label: 'Profil sekolah', ikon: 'sekolah', ket: 'Alamat, koordinat, kontak, media sosial, visi dan misi' },
+  { to: '/portal/kalender', label: 'Kalender sekolah', ikon: 'kalender', ket: 'Kalender pendidikan, kegiatan, libur, dan ujian' },
+  { to: '/portal/jam-pelajaran', label: 'Jam pelajaran', ikon: 'kalender', ket: 'Jam masuk, jam pelajaran, dan istirahat' },
 ]
 
 /** Menu dari izin penugasan. Item tanpa `to` belum punya halaman. */
 const menuIzin: { izin: string; nama: string; bidang: string; ikon: string; to?: string }[] = [
   { izin: 'hubin.kelola_dudi', nama: 'Kelola DU/DI dan MoU', bidang: 'Hubungan industri', ikon: 'tas' },
   { izin: 'hubin.kelola_humas', nama: 'Informasi dan kehumasan', bidang: 'Hubungan industri', ikon: 'tas' },
-  { izin: 'kurikulum.atur_jadwal', nama: 'Jadwal pelajaran', bidang: 'Kurikulum', ikon: 'kalender' },
-  { izin: 'kurikulum.kalender', nama: 'Kalender akademik', bidang: 'Kurikulum', ikon: 'kalender' },
+  { izin: 'kurikulum.atur_jadwal', nama: 'Jam pelajaran', bidang: 'Kurikulum', ikon: 'kalender', to: '/portal/jam-pelajaran' },
+  { izin: 'kurikulum.kalender', nama: 'Kalender sekolah', bidang: 'Kurikulum', ikon: 'kalender', to: '/portal/kalender' },
+  { izin: 'kegiatan.kelola', nama: 'Kalender sekolah', bidang: 'Kegiatan sekolah', ikon: 'kalender', to: '/portal/kalender' },
   { izin: 'kurikulum.kelola_info', nama: 'Informasi akademik', bidang: 'Kurikulum', ikon: 'dokumen' },
   { izin: 'program.kelola', nama: 'Program keahlian', bidang: 'Kurikulum', ikon: 'sekolah' },
   { izin: 'kesiswaan.kelola', nama: 'Kesiswaan', bidang: 'Kesiswaan', ikon: 'kelompok' },

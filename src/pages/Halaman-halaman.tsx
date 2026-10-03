@@ -1,5 +1,5 @@
 import Halaman, { Segera } from '../components/Halaman'
-import { berita, kalender, koleksiPerpustakaan, mitraIndustri } from '../data/contoh'
+import { berita, koleksiPerpustakaan, mitraIndustri } from '../data/contoh'
 import { bersihWilayah, nomorWa, useSekolah } from '../lib/profilSekolah'
 import { tanggalPanjang } from '../lib/format'
 import { useJurusan } from '../lib/dataPublik'
@@ -90,29 +90,6 @@ export function HubunganIndustri() {
         </table>
       </div>
       <div className="jarak"><Segera nama="Bursa kerja" /></div>
-    </Halaman>
-  )
-}
-
-export function Akademik() {
-  return (
-    <Halaman judul="Informasi Akademik" lead="Kalender kegiatan dan pengumuman akademik.">
-      <div className="tabel-bungkus">
-        <table>
-          <thead>
-            <tr><th>Tanggal</th><th>Kegiatan</th></tr>
-          </thead>
-          <tbody>
-            {kalender.map((k) => (
-              <tr key={k.tanggal}><td>{tanggalPanjang(k.tanggal)}</td><td>{k.kegiatan}</td></tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="grid grid-2 jarak">
-        <Segera nama="Jadwal pelajaran" />
-        <Segera nama="Pengumuman" />
-      </div>
     </Halaman>
   )
 }

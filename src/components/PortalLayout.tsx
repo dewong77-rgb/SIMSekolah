@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { itemAktif, namaPeran, susunMenu, type MenuPortal } from '../data/menuPortal'
 import { sekolah } from '../data/contoh'
+import JamSistem from './JamSistem'
 import { panggil } from '../lib/rpc'
 import Ikon from './Ikon'
 
@@ -181,6 +182,7 @@ export default function PortalLayout() {
               </nav>
             )}
             <div className="atas-kanan">
+              <JamSistem varian="ringkas" />
               {punyaMenu && totalPerhatian > 0 && (
                 <Link
                   to={nAjuan > 0 ? '/portal/ajuan-masuk' : '/portal/disposisi'}

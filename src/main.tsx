@@ -5,7 +5,7 @@ import Layout from './components/Layout'
 import PortalLayout from './components/PortalLayout'
 import Beranda from './pages/Beranda'
 import {
-  Akademik, Alumni, BeritaHalaman, HubunganIndustri, Jurusan, Kontak,
+  Alumni, BeritaHalaman, HubunganIndustri, Jurusan, Kontak,
   Lms, Perpustakaan, Ppdb, Profil, TidakAda,
 } from './pages/Halaman-halaman'
 import Masuk from './pages/Masuk'
@@ -15,6 +15,9 @@ const Akun = lazy(() => import('./pages/Akun'))
 const Pengguna = lazy(() => import('./pages/Pengguna'))
 const Struktur = lazy(() => import('./pages/Struktur'))
 const Penugasan = lazy(() => import('./pages/Penugasan'))
+const KelolaKalender = lazy(() => import('./pages/KelolaKalender'))
+const KelolaJam = lazy(() => import('./pages/KelolaJam'))
+const Akademik = lazy(() => import('./pages/Akademik'))
 const ProfilSekolah = lazy(() => import('./pages/ProfilSekolah'))
 const RegisterSurat = lazy(() => import('./pages/Persuratan').then((m) => ({ default: m.RegisterSurat })))
 const DetailSurat = lazy(() => import('./pages/Persuratan').then((m) => ({ default: m.DetailSurat })))
@@ -60,7 +63,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="jurusan" element={<Jurusan />} />
           <Route path="struktur-organisasi" element={<Suspense fallback={null}><Struktur /></Suspense>} />
           <Route path="hubungan-industri" element={<HubunganIndustri />} />
-          <Route path="akademik" element={<Akademik />} />
+          <Route path="akademik" element={<Suspense fallback={null}><Akademik /></Suspense>} />
           <Route path="ppdb" element={<Ppdb />} />
           <Route path="lms" element={<Lms />} />
           <Route path="perpustakaan" element={<Perpustakaan />} />
@@ -180,6 +183,22 @@ createRoot(document.getElementById('root')!).render(
             element={
               <RequireRole peran={['admin_tu', 'guru', 'staf']}>
                 <Suspense fallback={null}><AjuanMasuk /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/kalender"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf']}>
+                <Suspense fallback={null}><KelolaKalender /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/jam-pelajaran"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf']}>
+                <Suspense fallback={null}><KelolaJam /></Suspense>
               </RequireRole>
             }
           />

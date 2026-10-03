@@ -4,6 +4,8 @@ import Ikon from '../components/Ikon'
 import { sapaan, usePortal } from '../components/PortalLayout'
 import { useAuth } from '../auth/AuthContext'
 import { namaPeran } from '../data/menuPortal'
+import AgendaTerdekat from '../components/AgendaTerdekat'
+import JamSistem from '../components/JamSistem'
 
 const kalimatPeran = {
   admin_tu: 'Kelola data induk, unggahan Dapodik, ajuan perbaikan, dan akun pengguna.',
@@ -48,6 +50,11 @@ export default function Portal() {
           ))}
         </section>
       )}
+
+      <div className="grid grid-2 menu-bagian">
+        <AgendaTerdekat semua hari={14} maks={5} judul="Agenda 14 hari ke depan" />
+        <JamSistem varian="kartu" />
+      </div>
 
       {menu.kelompok.map((k) => (
         <section key={k.judul} className="menu-bagian" aria-labelledby={`k-${k.judul}`}>
