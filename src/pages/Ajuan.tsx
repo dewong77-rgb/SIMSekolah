@@ -1,45 +1,62 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+// Ajuan perubahan profil: formulir pengaju, riwayat "Ajuan saya", dan layar keputusan admin TU.
+// Alur: menunggu -> diteruskan (TU bagian setuju) -> dikerjakan (operator Dapodik) -> selesai (otomatis saat unggahan Dapodik cocok).
+// Persetujuan tidak mengubah data SIMS. Data berubah hanya lewat unggahan Dapodik.
+import { Fragment, useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import Halaman from '../components/Halaman'
 import Pager, { efektif } from '../components/Pager'
+import { supabase } from '../lib/supabase'
+import { panggil } from '../lib/rpc'
 import { useAuth } from '../auth/AuthContext'
-import { panggil, tglJam } from '../lib/rpc'
 
-type Subjek = { jenis: 'ptk' | 'siswa'; id: string; nama: string }
+type StatusAjuan = 'menunggu' | 'diteruskan' | 'dikerjakan' | 'selesai' | 'ditolak' | 'dibatalkan'
 type Kolom = {
-  kunci: string; label: string; kelompok: string; tipe: 'teks' | 'pilihan' | 'tanggal' | 'angka'
-  pilihan: string[] | null; pola: string | null; wajib: boolean; butuh_dokumen: boolean; nilai: string | null
+  jenis: string; kunci: string; tabel: string; kolom: string; hubungan: string | null; label: string; kelompok: string
+  tipe: 'teks' | 'angka' | 'tanggal' | 'pilihan'; pilihan: string[] | null; wajib: boolean; butuh_dokumen: boolean; terapkan: boolean; urutan: number
 }
-type Perubahan = { kunci: string; label: string; kelompok: string; lama: string | null; baru: string | null; butuh_dokumen?: boolean }
+type Butir = { kunci: string; label: string; kelompok: string; lama: string | null; baru: string | null; butuh_dokumen: boolean; terapkan: boolean }
 type Ajuan = {
-  id: string; jenis: 'ptk' | 'siswa'; subjek_nama: string; perubahan: Perubahan[]; alasan: string; status: string
-  catatan_admin: string | null; catatan_operator: string | null; bagian: string | null; butuh_dokumen: boolean
-  dibuat_pada: string; diteruskan_pada: string | null; dikerjakan_pada: string | null; selesai_pada: string | null
-  belum_terbukti: boolean; pengaju_peran: string; aksi?: string[]
+  id: string; jenis: 'ptk' | 'siswa'; subjek_id: string; subjek_nama: string; pengaju_peran: string; perubahan: Butir[]; alasan: string
+  butuh_dokumen: boolean; status: StatusAjuan; catatan_admin: string | null; catatan_operator: string | null
+  diputuskan_pada: string | null; dibuat_pada: string; bagian: string | null; belum_terbukti: boolean
+  dikerjakan_pada: string | null; selesai_pada: string | null; aksi?: string[]
 }
+type Profil = { jenis: 'ptk' | 'siswa'; data: Record<string, unknown>; sensitif: Record<string, unknown>; disamarkan: boolean; orang_tua?: Record<string, unknown>[] }
 
+const waktu = (t: string | null) => (t ? new Date(t).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : '-')
+const namaStatus: Record<StatusAjuan, string> = {
+  menunggu: 'Menunggu TU', diteruskan: 'Menunggu operator Dapodik', dikerjakan: 'Dikerjakan operator', selesai: 'Selesai', ditolak: 'Ditolak', dibatalkan: 'Dibatalkan',
+}
 const namaBagian: Record<string, string> = { kepegawaian: 'TU Kepegawaian', kesiswaan: 'TU Kesiswaan' }
+const namaPengaju: Record<string, string> = { guru: 'Guru/tendik', siswa: 'Siswa', orang_tua: 'Orang tua' }
+const namaJenis = { ptk: 'Guru/tendik', siswa: 'Siswa' } as const
+const nilaiTampil = (kunci: string, x: string | null) => {
+  if (x === null || x === '') return '(kosong)'
+  if (kunci === 'jk') return x === 'L' ? 'Laki-laki' : x === 'P' ? 'Perempuan' : x
+  if (/^\d{4}-\d{2}-\d{2}$/.test(x)) return new Date(x + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+  return x
+}
+const pesan = (e: { message: string } | null) => e?.message ?? 'Terjadi kesalahan.'
 
-function labelStatus(a: Ajuan): string {
-  switch (a.status) {
-    case 'menunggu': return `Menunggu keputusan ${namaBagian[a.bagian ?? ''] ?? 'TU'}`
-    case 'diteruskan': return 'Disetujui, menunggu operator Dapodik'
-    case 'dikerjakan': return a.belum_terbukti ? 'Dikerjakan operator, belum tampak di unggahan terakhir' : 'Sedang diperbaiki operator Dapodik'
-    case 'selesai': return 'Selesai, data sudah diperbarui dari Dapodik'
-    case 'ditolak': return 'Ditolak'
-    case 'dibatalkan': return 'Dibatalkan'
-    default: return a.status
-  }
+function Status({ s }: { s: StatusAjuan }) {
+  return <span className={`status status-${s}`}>{namaStatus[s]}</span>
 }
 
-function Rincian({ p }: { p: Perubahan[] }) {
+function TabelButir({ butir }: { butir: Butir[] }) {
   return (
-    <div className="tabel-bungkus jarak">
+    <div className="tabel-bungkus">
       <table>
-        <thead><tr><th>Data</th><th>Sekarang</th><th>Seharusnya</th></tr></thead>
+        <thead><tr><th>Kolom</th><th>Sekarang</th><th>Diajukan</th></tr></thead>
         <tbody>
-          {p.map((x) => (
-            <tr key={x.kunci}><td>{x.label}</td><td>{x.lama ?? '-'}</td><td>{x.baru ?? '(dikosongkan)'}</td></tr>
+          {butir.map((b) => (
+            <tr key={b.kunci}>
+              <td>
+                <strong>{/^Data (ayah|ibu|wali)/.test(b.kelompok) ? `${b.kelompok.replace('Data ', '').replace(/^./, (c) => c.toUpperCase())}: ` : ''}{b.label}</strong>
+                {b.butuh_dokumen && <small className="petunjuk"> Perlu dokumen pendukung</small>}
+              </td>
+              <td>{nilaiTampil(b.kunci, b.lama)}</td>
+              <td><strong>{nilaiTampil(b.kunci, b.baru)}</strong></td>
+            </tr>
           ))}
         </tbody>
       </table>
@@ -47,161 +64,196 @@ function Rincian({ p }: { p: Perubahan[] }) {
   )
 }
 
-/** Cek data mandiri dan ajuan perbaikan oleh guru, tendik, siswa, atau orang tua. */
-export function AjuanSaya() {
-  const [subjek, setSubjek] = useState<Subjek[] | null>(null)
-  const [pilih, setPilih] = useState<Subjek | null>(null)
-  const [kolom, setKolom] = useState<Kolom[] | null>(null)
-  const [isi, setIsi] = useState<Record<string, string>>({})
+// ------------------------------------------------------------------ formulir pengaju
+
+export function FormAjuan() {
+  const { jenis, id } = useParams()
+  const nav = useNavigate()
+  const valid = (jenis === 'ptk' || jenis === 'siswa') && !!id
+  const [kolom, setKolom] = useState<Kolom[]>([])
+  const [asal, setAsal] = useState<Record<string, string>>({})
+  const [samarAsal, setSamarAsal] = useState<Record<string, string>>({})
+  const [nilai, setNilai] = useState<Record<string, string>>({})
+  const [nama, setNama] = useState('')
   const [alasan, setAlasan] = useState('')
-  const [riwayat, setRiwayat] = useState<Ajuan[] | null>(null)
   const [galat, setGalat] = useState('')
-  const [pesan, setPesan] = useState('')
+  const [memuat, setMemuat] = useState(true)
   const [sibuk, setSibuk] = useState(false)
 
-  const muatRiwayat = useCallback(async () => {
-    try { setRiwayat(await panggil<Ajuan[]>('ajuan_saya')) } catch (e) { setGalat((e as Error).message) }
-  }, [])
   useEffect(() => {
-    void muatRiwayat()
-    panggil<Subjek[]>('ajuan_subjek_saya').then((s) => { setSubjek(s); if (s.length === 1) setPilih(s[0]) }).catch((e: Error) => setGalat(e.message))
-  }, [muatRiwayat])
+    if (!valid) return
+    let batal = false
+    Promise.all([
+      supabase.from('kolom_ajuan').select('*').eq('jenis', jenis).order('urutan'),
+      supabase.rpc('profil_dapodik', { p_jenis: jenis, p_id: id }),
+    ]).then(([k, p]) => {
+      if (batal) return
+      if (k.error || p.error || !p.data) {
+        setGalat(k.error?.message ?? p.error?.message ?? 'Profil tidak ditemukan, atau Anda tidak berhak mengajukan perubahan.')
+        setMemuat(false)
+        return
+      }
+      const h = p.data as Profil
+      const daftar = (k.data as Kolom[]) ?? []
+      const a: Record<string, string> = {}
+      const sm: Record<string, string> = {}
+      for (const c of daftar) {
+        let v: unknown
+        if (c.tabel === 'ptk' || c.tabel === 'peserta_didik') v = h.data[c.kolom]
+        else if (c.tabel.endsWith('_sensitif')) {
+          if (h.disamarkan) { sm[c.kunci] = String(h.sensitif[c.kolom] ?? ''); v = '' } else v = h.sensitif[c.kolom]
+        } else v = (h.orang_tua ?? []).find((o) => o.hubungan === c.hubungan)?.[c.kolom]
+        a[c.kunci] = v === null || v === undefined ? '' : c.tipe === 'tanggal' ? String(v).slice(0, 10) : String(v)
+      }
+      setKolom(daftar); setAsal(a); setSamarAsal(sm); setNilai(a); setNama(String(h.data.nama ?? ''))
+      setMemuat(false)
+    })
+    return () => { batal = true }
+  }, [valid, jenis, id])
 
-  useEffect(() => {
-    setKolom(null); setIsi({})
-    if (!pilih) return
-    panggil<Kolom[]>('ajuan_data_saya', { p_jenis: pilih.jenis, p_subjek: pilih.id }).then(setKolom).catch((e: Error) => setGalat(e.message))
-  }, [pilih])
-
-  const berubah = useMemo(
-    () => (kolom ?? []).filter((k) => isi[k.kunci] !== undefined && isi[k.kunci].trim() !== (k.nilai ?? '').trim()),
-    [kolom, isi],
-  )
-  const kelompok = useMemo(() => {
+  const grup = useMemo(() => {
     const m = new Map<string, Kolom[]>()
-    for (const k of kolom ?? []) m.set(k.kelompok, [...(m.get(k.kelompok) ?? []), k])
+    for (const c of kolom) m.set(c.kelompok, [...(m.get(c.kelompok) ?? []), c])
     return [...m.entries()]
   }, [kolom])
+  const diubah = kolom.filter((c) => (nilai[c.kunci] ?? '').trim() !== (asal[c.kunci] ?? '').trim())
+  const butuhDok = diubah.some((c) => c.butuh_dokumen)
 
-  async function kirim() {
-    if (!pilih) return
-    setSibuk(true); setGalat(''); setPesan('')
-    try {
-      await panggil('ajukan_perubahan', {
-        p_jenis: pilih.jenis, p_subjek: pilih.id, p_alasan: alasan,
-        p_perubahan: berubah.map((k) => ({ kunci: k.kunci, baru: isi[k.kunci].trim() })),
-      })
-      setPesan('Ajuan terkirim. Pantau statusnya di bawah.')
-      setIsi({}); setAlasan('')
-      await muatRiwayat()
-    } catch (e) { setGalat((e as Error).message) }
+  async function kirim(e: FormEvent) {
+    e.preventDefault()
+    setGalat('')
+    if (diubah.length === 0) { setGalat('Belum ada data yang diubah.'); return }
+    setSibuk(true)
+    const { error } = await supabase.rpc('ajukan_perubahan', {
+      p_jenis: jenis, p_subjek: id, p_alasan: alasan,
+      p_perubahan: diubah.map((c) => ({ kunci: c.kunci, baru: (nilai[c.kunci] ?? '').trim() })),
+    })
     setSibuk(false)
+    if (error) { setGalat(pesan(error)); return }
+    nav('/portal/ajuan', { state: { baru: true } })
   }
 
-  async function batal(id: string) {
-    if (!confirm('Batalkan ajuan ini?')) return
-    try { await panggil('batalkan_ajuan', { p_id: id }); await muatRiwayat() } catch (e) { setGalat((e as Error).message) }
+  if (!valid) return <Halaman judul="Ajukan perbaikan data"><p className="catatan">Alamat tidak valid.</p></Halaman>
+  return (
+    <Halaman judul="Ajukan perbaikan data" lead={nama ? `Untuk ${nama}. Ubah hanya kolom yang keliru, sisanya biarkan.` : undefined}>
+      {memuat && <p className="catatan">Memuat formulir...</p>}
+      {!memuat && kolom.length > 0 && (
+        <form onSubmit={kirim}>
+          <p className="catatan">
+            Ajuan diperiksa TU bagian terkait, lalu diteruskan ke operator Dapodik yang memperbaiki datanya di Dapodik dan mengunggah ulang ke sini. Data di SIMS berubah setelah itu, dan ajuan selesai otomatis. Perubahan identitas (nama, tanggal lahir, NIK, No. KK, dan sejenisnya) biasanya perlu dokumen pendukung. Unggah dokumen menyusul; sementara, siapkan KK atau akta untuk ditunjukkan ke admin.
+          </p>
+          <div className="grid grid-2 jarak">
+            {grup.map(([judul, daftar]) => (
+              <section key={judul} className="kartu form bagian-profil">
+                <h3>{judul}</h3>
+                {daftar.map((c) => {
+                  const ubah = (nilai[c.kunci] ?? '').trim() !== (asal[c.kunci] ?? '').trim()
+                  const opsi = c.tipe === 'pilihan' ? [...new Set([...(c.pilihan ?? []), ...(asal[c.kunci] ? [asal[c.kunci]] : [])])] : []
+                  return (
+                    <label key={c.kunci} className={ubah ? 'diubah' : undefined}>
+                      <span>
+                        {c.label}{c.wajib ? ' *' : ''}
+                        {c.butuh_dokumen && <small className="petunjuk"> Perlu dokumen</small>}
+                      </span>
+                      {c.tipe === 'pilihan' ? (
+                        <select value={nilai[c.kunci] ?? ''} onChange={(e) => setNilai({ ...nilai, [c.kunci]: e.target.value })}>
+                          {!c.wajib && <option value="">(kosong)</option>}
+                          {opsi.map((o) => <option key={o} value={o}>{c.kunci === 'jk' ? (o === 'L' ? 'Laki-laki' : 'Perempuan') : o}</option>)}
+                        </select>
+                      ) : (
+                        <input
+                          type={c.tipe === 'tanggal' ? 'date' : c.tipe === 'angka' ? 'number' : 'text'}
+                          step={c.tipe === 'angka' ? 'any' : undefined} min={c.tipe === 'angka' ? 0 : undefined}
+                          maxLength={c.tipe === 'teks' ? 200 : undefined} autoComplete="off"
+                          value={nilai[c.kunci] ?? ''} placeholder={samarAsal[c.kunci] ? `Saat ini ${samarAsal[c.kunci]}` : undefined}
+                          onChange={(e) => setNilai({ ...nilai, [c.kunci]: e.target.value })}
+                        />
+                      )}
+                    </label>
+                  )
+                })}
+              </section>
+            ))}
+          </div>
+          <section className="kartu form jarak">
+            <label>
+              <span>Alasan perubahan *</span>
+              <textarea rows={3} maxLength={500} value={alasan} onChange={(e) => setAlasan(e.target.value)} placeholder="Contoh: pindah alamat, salah ketik nama saat pendataan." />
+            </label>
+            {butuhDok && <p className="catatan" role="note">Ajuan ini memuat perubahan identitas. Admin dapat meminta dokumen pendukung sebelum menyetujui.</p>}
+            <div aria-live="polite">{galat && <p className="catatan galat" role="alert">{galat}</p>}</div>
+            <div className="aksi">
+              <button className="tombol tombol-isi" disabled={sibuk || diubah.length === 0}>{sibuk ? 'Mengirim...' : `Kirim ajuan${diubah.length ? ` (${diubah.length} kolom)` : ''}`}</button>
+              <button type="button" className="tombol" onClick={() => nav(-1)}>Batal</button>
+            </div>
+          </section>
+        </form>
+      )}
+      {!memuat && kolom.length === 0 && galat && <p className="catatan galat" role="alert">{galat}</p>}
+    </Halaman>
+  )
+}
+
+// ------------------------------------------------------------------ ajuan saya
+
+export function AjuanSaya() {
+  const lokasi = useLocation()
+  const baru = (lokasi.state as { baru?: boolean } | null)?.baru
+  const [rows, setRows] = useState<Ajuan[] | null>(null)
+  const [galat, setGalat] = useState('')
+  const [tick, setTick] = useState(0)
+
+  useEffect(() => {
+    let batal = false
+    supabase.rpc('ajuan_saya').then(({ data, error }) => {
+      if (batal) return
+      if (error) setGalat(error.message)
+      setRows((data as Ajuan[] | null) ?? [])
+    })
+    return () => { batal = true }
+  }, [tick])
+
+  async function batalkan(id: string) {
+    if (!window.confirm('Batalkan ajuan ini?')) return
+    const { error } = await supabase.rpc('batalkan_ajuan', { p_id: id })
+    if (error) setGalat(pesan(error))
+    setTick((n) => n + 1)
   }
 
   return (
-    <Halaman judul="Cek data dan ajuan perbaikan" lead="Data di sini berasal dari Dapodik. Jika ada yang keliru, ajukan perbaikan.">
-      <div className="kartu">
-        <p className="catatan">
-          Alurnya: Anda mengajukan, TU bagian terkait memeriksa, operator Dapodik memperbaiki di Dapodik, lalu mengunggah ulang datanya ke sini.
-          Ajuan selesai otomatis ketika data baru terbaca. Data di halaman ini tidak berubah sampai saat itu.
-        </p>
+    <Halaman judul="Ajuan saya" lead="Perbaikan data yang pernah diajukan dan keputusannya.">
+      {baru && <p className="catatan sukses" role="status">Ajuan terkirim. TU bagian terkait akan memeriksanya.</p>}
+      {galat && <p className="catatan galat" role="alert">{galat}</p>}
+      {!rows && !galat && <p className="catatan">Memuat...</p>}
+      {rows?.length === 0 && <p className="catatan">Belum ada ajuan. Buka profil Anda lalu pilih "Ajukan perbaikan data".</p>}
+      <div className="daftar-ajuan">
+        {rows?.map((a) => (
+          <article key={a.id} className="kartu jarak">
+            <header className="kepala-ajuan">
+              <div><strong>{a.subjek_nama}</strong> <small>{namaJenis[a.jenis]}</small></div>
+              <div><Status s={a.status} /> <small>{waktu(a.dibuat_pada)}</small></div>
+            </header>
+            <TabelButir butir={a.perubahan} />
+            <p className="catatan jarak"><strong>Alasan:</strong> {a.alasan}</p>
+            {a.catatan_admin && <p className="catatan"><strong>Catatan admin:</strong> {a.catatan_admin}</p>}
+            {a.catatan_operator && <p className="catatan"><strong>Catatan operator:</strong> {a.catatan_operator}</p>}
+            <p className="catatan">
+              {a.status === 'menunggu' && `Menunggu keputusan ${namaBagian[a.bagian ?? ''] ?? 'TU'}.`}
+              {a.status === 'diteruskan' && `Disetujui ${waktu(a.diputuskan_pada)}. Menunggu operator Dapodik memperbaiki datanya.`}
+              {a.status === 'dikerjakan' && (a.belum_terbukti ? 'Sedang dikerjakan. Data terbaru belum menunjukkan perubahan ini, operator akan memeriksanya lagi.' : 'Operator Dapodik sedang memperbaiki datanya.')}
+              {a.status === 'selesai' && `Selesai ${waktu(a.selesai_pada)}. Data di SIMS sudah sesuai dengan Dapodik.`}
+            </p>
+            {a.status === 'menunggu' && <div className="aksi jarak"><button className="tombol" onClick={() => batalkan(a.id)}>Batalkan ajuan</button></div>}
+          </article>
+        ))}
       </div>
-      {galat && <p className="catatan jarak" role="alert">Galat: {galat}</p>}
-      {pesan && <p className="catatan jarak" aria-live="polite">{pesan}</p>}
-
-      {subjek && subjek.length === 0 && <div className="kartu jarak"><p>Akun ini tidak tertaut ke data Dapodik, jadi belum ada yang dapat dicek.</p></div>}
-      {subjek && subjek.length > 1 && (
-        <div className="aksi jarak">
-          <select value={pilih?.id ?? ''} onChange={(e) => setPilih(subjek.find((s) => s.id === e.target.value) ?? null)} aria-label="Pilih data">
-            <option value="">Pilih anak</option>
-            {subjek.map((s) => <option key={s.id} value={s.id}>{s.nama}</option>)}
-          </select>
-        </div>
-      )}
-
-      {pilih && (
-        <div className="kartu jarak">
-          <h3>Data {pilih.nama}</h3>
-          {!kolom && <p className="catatan">Memuat...</p>}
-          {kelompok.map(([nama, ks]) => (
-            <div key={nama} className="jarak">
-              <strong>{nama}</strong>
-              <div className="tabel-bungkus jarak">
-                <table>
-                  <thead><tr><th>Data</th><th>Isi sekarang</th><th>Ajukan perubahan</th></tr></thead>
-                  <tbody>
-                    {ks.map((k) => (
-                      <tr key={k.kunci}>
-                        <td>{k.label}{k.butuh_dokumen ? <small> (perlu dokumen)</small> : null}</td>
-                        <td>{k.nilai ?? '-'}</td>
-                        <td>
-                          {k.tipe === 'pilihan' ? (
-                            <select value={isi[k.kunci] ?? k.nilai ?? ''} onChange={(e) => setIsi({ ...isi, [k.kunci]: e.target.value })} aria-label={k.label}>
-                              {!k.wajib && <option value="">(kosong)</option>}
-                              {(k.pilihan ?? []).map((o) => <option key={o} value={o}>{o}</option>)}
-                            </select>
-                          ) : (
-                            <input
-                              type={k.tipe === 'tanggal' ? 'date' : k.tipe === 'angka' ? 'number' : 'text'}
-                              value={isi[k.kunci] ?? ''}
-                              placeholder="Biarkan kosong bila benar"
-                              onChange={(e) => setIsi({ ...isi, [k.kunci]: e.target.value })}
-                              aria-label={k.label}
-                              style={{ width: '100%', minWidth: 160 }}
-                            />
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ))}
-          {kolom && (
-            <div className="form jarak">
-              <label>
-                Alasan perubahan (wajib)
-                <textarea value={alasan} onChange={(e) => setAlasan(e.target.value)} rows={3} maxLength={500} style={{ font: 'inherit', fontWeight: 400, padding: 10, border: '1px solid #b9c1cd', borderRadius: 8 }} />
-              </label>
-              <div className="aksi">
-                <button className="tombol tombol-isi" disabled={sibuk || berubah.length === 0 || alasan.trim().length < 5} onClick={kirim}>
-                  {sibuk ? 'Mengirim...' : `Kirim ajuan (${berubah.length} data)`}
-                </button>
-              </div>
-              <p className="catatan">Perubahan identitas (nama, tanggal lahir, NIK) membutuhkan dokumen pendukung. Siapkan KK atau akta, TU akan memintanya bila perlu.</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      <div className="judul-bagian jarak"><h2>Ajuan saya</h2></div>
-      {!riwayat && <p className="catatan">Memuat...</p>}
-      {riwayat && riwayat.length === 0 && <p className="catatan">Belum ada ajuan.</p>}
-      {(riwayat ?? []).map((a) => (
-        <div className="kartu jarak" key={a.id}>
-          <div className="aksi" style={{ justifyContent: 'space-between' }}>
-            <div><span className="lencana">{labelStatus(a)}</span><br /><small>{a.subjek_nama}, diajukan {tglJam(a.dibuat_pada)}</small></div>
-            {a.status === 'menunggu' && <button className="tombol" onClick={() => batal(a.id)}>Batalkan</button>}
-          </div>
-          <Rincian p={a.perubahan} />
-          <p className="catatan jarak">Alasan: {a.alasan}</p>
-          {a.catatan_admin && <p className="catatan">Catatan TU: {a.catatan_admin}</p>}
-          {a.catatan_operator && <p className="catatan">Catatan operator: {a.catatan_operator}</p>}
-          {a.status === 'selesai' && <p className="catatan">Selesai {tglJam(a.selesai_pada)}.</p>}
-        </div>
-      ))}
       <p className="catatan jarak"><Link to="/portal">Kembali ke portal</Link></p>
     </Halaman>
   )
 }
 
-/** Antrean ajuan untuk TU bagian terkait dan operator Dapodik. */
+// ------------------------------------------------------------------ antrean TU bagian dan operator Dapodik
+
 export function AjuanMasuk() {
   const { profil } = useAuth()
   const [daftar, setDaftar] = useState<Ajuan[] | null>(null)
@@ -212,7 +264,7 @@ export function AjuanMasuk() {
   const [buka, setBuka] = useState<string | null>(null)
   const [catatan, setCatatan] = useState('')
   const [galat, setGalat] = useState('')
-  const [pesan, setPesan] = useState('')
+  const [info, setInfo] = useState('')
   const [sibuk, setSibuk] = useState(false)
 
   const muat = useCallback(async () => {
@@ -220,46 +272,51 @@ export function AjuanMasuk() {
   }, [])
   useEffect(() => { void muat() }, [muat])
 
-  const sesuai = (a: Ajuan) =>
+  const dalamTab = (a: Ajuan) =>
     tab === 'keputusan' ? a.status === 'menunggu'
       : tab === 'operator' ? a.status === 'diteruskan' || a.status === 'dikerjakan'
         : !['menunggu', 'diteruskan', 'dikerjakan'].includes(a.status)
-  const k = cari.trim().toLowerCase()
-  const tampil = (daftar ?? []).filter((a) => sesuai(a) && (!k || [a.subjek_nama, a.alasan].some((x) => x.toLowerCase().includes(k))))
+  const q = cari.trim().toLowerCase()
+  const tampil = useMemo(
+    () => (daftar ?? []).filter((a) => dalamTab(a) && (!q || a.subjek_nama.toLowerCase().includes(q) || a.alasan.toLowerCase().includes(q))),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [daftar, tab, q],
+  )
   const per = efektif(ukuran)
-  const irisan = tampil.slice((hal - 1) * per, hal * per)
-  const hitung = (t: typeof tab) => (daftar ?? []).filter((a) => (t === 'keputusan' ? a.status === 'menunggu' : t === 'operator' ? ['diteruskan', 'dikerjakan'].includes(a.status) : false)).length
+  const halaman = tampil.slice((hal - 1) * per, hal * per)
+  const jumlah = (t: 'keputusan' | 'operator') => (daftar ?? []).filter((a) => (t === 'keputusan' ? a.status === 'menunggu' : a.status === 'diteruskan' || a.status === 'dikerjakan')).length
+  const bisaKerjakan = (daftar ?? []).some((a) => a.aksi?.includes('kerjakan')) || profil?.peran === 'admin_tu'
 
   async function jalankan(fn: string, args: Record<string, unknown>, ok: string) {
-    setSibuk(true); setGalat(''); setPesan('')
-    try { await panggil(fn, args); setPesan(ok); setBuka(null); setCatatan(''); await muat() } catch (e) { setGalat((e as Error).message) }
+    setSibuk(true); setGalat(''); setInfo('')
+    try { await panggil(fn, args); setInfo(ok); setBuka(null); setCatatan(''); await muat() } catch (e) { setGalat((e as Error).message) }
     setSibuk(false)
   }
   async function cocokkan() {
-    setSibuk(true); setGalat(''); setPesan('')
+    setSibuk(true); setGalat(''); setInfo('')
     try {
       const r = await panggil<{ selesai: number; belum_terbukti: number }>('cocokkan_ajuan')
-      setPesan(`Pencocokan selesai: ${r.selesai} ajuan selesai, ${r.belum_terbukti} belum tampak di data.`)
+      setInfo(`Pencocokan selesai: ${r.selesai} ajuan selesai, ${r.belum_terbukti} belum tampak di data.`)
       await muat()
     } catch (e) { setGalat((e as Error).message) }
     setSibuk(false)
   }
 
-  const bisaKerjakan = (daftar ?? []).some((a) => a.aksi?.includes('kerjakan'))
-
   return (
-    <Halaman judul="Ajuan perbaikan data" lead="Periksa ajuan sesuai bagian Anda. Operator Dapodik memperbaiki di Dapodik lalu mengunggah ulang.">
+    <Halaman judul="Ajuan perbaikan data" lead="TU bagian terkait memeriksa. Operator Dapodik memperbaiki di Dapodik lalu mengunggah ulang.">
       <div className="pilih-peran" role="tablist">
         {([['keputusan', 'Menunggu keputusan'], ['operator', 'Antrean operator Dapodik'], ['riwayat', 'Riwayat']] as const).map(([id, nama]) => (
           <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'aktif' : ''} onClick={() => { setTab(id); setHal(1); setBuka(null) }}>
-            {nama}{id !== 'riwayat' ? ` (${hitung(id)})` : ''}
+            {nama}{id !== 'riwayat' ? ` (${jumlah(id)})` : ''}
           </button>
         ))}
       </div>
-      {galat && <p className="catatan jarak" role="alert">Galat: {galat}</p>}
-      {pesan && <p className="catatan jarak" aria-live="polite">{pesan}</p>}
-      <div className="aksi jarak">
-        <input type="search" placeholder="Cari nama atau alasan" value={cari} onChange={(e) => { setCari(e.target.value); setHal(1) }} style={{ minWidth: 260 }} aria-label="Cari" />
+      <div aria-live="polite">
+        {info && <p className="catatan sukses jarak" role="status">{info}</p>}
+        {galat && <p className="catatan galat jarak" role="alert">{galat}</p>}
+      </div>
+      <div className="aksi jarak" style={{ alignItems: 'center' }}>
+        <input type="search" placeholder="Cari nama atau alasan" aria-label="Cari ajuan" value={cari} onChange={(e) => { setCari(e.target.value); setHal(1) }} style={{ flex: '1 1 14rem', maxWidth: '24rem' }} />
         {tab === 'operator' && bisaKerjakan && (
           <>
             <button className="tombol" disabled={sibuk} onClick={cocokkan}>Cocokkan dengan data terbaru</button>
@@ -267,54 +324,55 @@ export function AjuanMasuk() {
           </>
         )}
       </div>
-      {tab === 'operator' && <p className="catatan jarak">Perbaiki datanya di aplikasi Dapodik atau VervalPD, ekspor ulang, lalu unggah di sini. Ajuan selesai otomatis bila nilainya sama dengan usulan.</p>}
+      {tab === 'operator' && <p className="catatan jarak">Perbaiki datanya di aplikasi Dapodik atau VervalPD, ekspor ulang, lalu unggah di menu Unggah Dapodik. Ajuan selesai otomatis bila nilainya sama dengan usulan.</p>}
 
       <div className="tabel-bungkus jarak">
         <table>
-          <thead><tr><th>Pemilik data</th><th>Bagian</th><th>Perubahan</th><th>Status</th><th></th></tr></thead>
+          <thead><tr><th>Diajukan</th><th>Nama</th><th>Bagian</th><th>Kolom</th><th>Status</th></tr></thead>
           <tbody>
             {!daftar && <tr><td colSpan={5}>Memuat...</td></tr>}
-            {daftar && tampil.length === 0 && <tr><td colSpan={5}>Tidak ada ajuan.</td></tr>}
-            {irisan.map((a) => (
+            {daftar && halaman.length === 0 && <tr><td colSpan={5}>Tidak ada ajuan.</td></tr>}
+            {halaman.map((a) => (
               <Fragment key={a.id}>
                 <tr>
-                  <td>{a.subjek_nama}<br /><small>{a.jenis === 'ptk' ? 'Guru/tendik' : 'Siswa'}, {tglJam(a.dibuat_pada)}</small></td>
+                  <td>{waktu(a.dibuat_pada)}</td>
+                  <td>
+                    <button className="tombol" style={{ padding: '2px 8px', color: 'var(--warna-utama)', textAlign: 'left' }} aria-expanded={buka === a.id} onClick={() => { setBuka(buka === a.id ? null : a.id); setCatatan('') }}>{a.subjek_nama}</button>
+                    <br /><small>{namaJenis[a.jenis]}, oleh {namaPengaju[a.pengaju_peran] ?? a.pengaju_peran}</small>
+                  </td>
                   <td>{namaBagian[a.bagian ?? ''] ?? '-'}</td>
-                  <td>{a.perubahan.map((p) => p.label).join(', ')}{a.butuh_dokumen ? <small> (perlu dokumen)</small> : null}</td>
-                  <td>{labelStatus(a)}</td>
-                  <td><button className="tombol" onClick={() => { setBuka(buka === a.id ? null : a.id); setCatatan('') }}>{buka === a.id ? 'Tutup' : 'Buka'}</button></td>
+                  <td>{a.perubahan.length}{a.butuh_dokumen ? ' (perlu dokumen)' : ''}</td>
+                  <td><Status s={a.status} />{a.belum_terbukti && a.status === 'dikerjakan' ? <small> belum tampak di data</small> : null}</td>
                 </tr>
                 {buka === a.id && (
-                  <tr>
-                    <td colSpan={5}>
-                      <Rincian p={a.perubahan} />
-                      <p className="catatan jarak">Alasan pengaju: {a.alasan}</p>
-                      {a.catatan_admin && <p className="catatan">Catatan TU: {a.catatan_admin}</p>}
-                      {a.catatan_operator && <p className="catatan">Catatan operator: {a.catatan_operator}</p>}
-                      {(a.aksi ?? []).length > 0 && (
-                        <div className="form jarak">
-                          <label>
-                            Catatan {a.aksi?.includes('putuskan') ? '(wajib bila menolak)' : '(wajib bila mengembalikan)'}
-                            <input value={catatan} onChange={(e) => setCatatan(e.target.value)} maxLength={300} />
-                          </label>
-                          <div className="aksi">
-                            {a.aksi?.includes('putuskan') && (
-                              <>
-                                <button className="tombol tombol-isi" disabled={sibuk} onClick={() => jalankan('putuskan_ajuan', { p_id: a.id, p_setuju: true, p_catatan: catatan }, 'Ajuan diteruskan ke operator Dapodik.')}>Setujui dan teruskan</button>
-                                <button className="tombol" disabled={sibuk || catatan.trim().length < 3} onClick={() => jalankan('putuskan_ajuan', { p_id: a.id, p_setuju: false, p_catatan: catatan }, 'Ajuan ditolak.')}>Tolak</button>
-                              </>
-                            )}
-                            {a.aksi?.includes('kerjakan') && (
-                              <>
-                                {a.status === 'diteruskan' && <button className="tombol tombol-isi" disabled={sibuk} onClick={() => jalankan('kerjakan_ajuan', { p_aksi: 'mulai', p_id: a.id, p_catatan: catatan }, 'Ajuan ditandai sedang dikerjakan.')}>Mulai kerjakan</button>}
-                                <button className="tombol" disabled={sibuk || catatan.trim().length < 3} onClick={() => jalankan('kerjakan_ajuan', { p_aksi: 'kembalikan', p_id: a.id, p_catatan: catatan }, 'Ajuan dikembalikan.')}>Kembalikan</button>
-                              </>
-                            )}
-                          </div>
+                  <tr><td colSpan={5}>
+                    <TabelButir butir={a.perubahan} />
+                    <p className="catatan jarak"><strong>Alasan:</strong> {a.alasan}</p>
+                    {a.butuh_dokumen && <p className="catatan">Memuat perubahan identitas. Minta KK, akta, atau ijazah dari pengaju sebelum menyetujui.</p>}
+                    {a.catatan_admin && <p className="catatan"><strong>Catatan TU:</strong> {a.catatan_admin}</p>}
+                    {a.catatan_operator && <p className="catatan"><strong>Catatan operator:</strong> {a.catatan_operator}</p>}
+                    {(a.aksi ?? []).length > 0 && (
+                      <div className="form jarak">
+                        <label><span>Catatan {a.aksi?.includes('putuskan') ? '(wajib bila menolak)' : '(wajib bila mengembalikan)'}</span>
+                          <textarea rows={2} maxLength={500} value={catatan} onChange={(e) => setCatatan(e.target.value)} />
+                        </label>
+                        <div className="aksi">
+                          {a.aksi?.includes('putuskan') && (
+                            <>
+                              <button className="tombol tombol-isi" disabled={sibuk} onClick={() => jalankan('putuskan_ajuan', { p_id: a.id, p_setuju: true, p_catatan: catatan }, `Ajuan ${a.subjek_nama} diteruskan ke operator Dapodik.`)}>Setujui dan teruskan</button>
+                              <button className="tombol" disabled={sibuk || catatan.trim().length < 3} onClick={() => jalankan('putuskan_ajuan', { p_id: a.id, p_setuju: false, p_catatan: catatan }, `Ajuan ${a.subjek_nama} ditolak.`)}>Tolak</button>
+                            </>
+                          )}
+                          {a.aksi?.includes('kerjakan') && (
+                            <>
+                              {a.status === 'diteruskan' && <button className="tombol tombol-isi" disabled={sibuk} onClick={() => jalankan('kerjakan_ajuan', { p_id: a.id, p_aksi: 'mulai', p_catatan: catatan }, 'Ajuan ditandai sedang dikerjakan.')}>Mulai kerjakan</button>}
+                              <button className="tombol" disabled={sibuk || catatan.trim().length < 3} onClick={() => jalankan('kerjakan_ajuan', { p_id: a.id, p_aksi: 'kembalikan', p_catatan: catatan }, 'Ajuan dikembalikan ke pengaju.')}>Kembalikan</button>
+                            </>
+                          )}
                         </div>
-                      )}
-                    </td>
-                  </tr>
+                      </div>
+                    )}
+                  </td></tr>
                 )}
               </Fragment>
             ))}

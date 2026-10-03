@@ -238,3 +238,12 @@ begin
     execute format('grant execute on function %s to authenticated', f);
   end loop;
 end $do$;
+
+-- tendik (peran staf) membuka profilnya sendiri seperti guru
+do $do$
+declare d text; sig regprocedure;
+begin
+  select p.oid::regprocedure into sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'profil_dapodik';
+  d := replace(pg_get_functiondef(sig), 'v_peran = ''guru''', 'v_peran in (''guru'',''staf'')');
+  execute d;
+end $do$;

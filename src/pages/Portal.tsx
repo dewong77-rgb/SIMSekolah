@@ -38,14 +38,19 @@ const menuIzin: { izin: string; nama: string; bidang: string; to?: string }[] = 
 ]
 
 const menuPeran: Record<Peran, string[]> = {
-  admin_tu: ['Unggah Dapodik', 'Riwayat unggah', 'Peserta didik', 'Guru dan tendik', 'Rombel', 'Pengguna dan akun', 'Ajuan perbaikan data', 'Persuratan'],
-  guru: ['Cek data saya', 'Disposisi saya', 'Daftar siswa', 'Rombel', 'Data PTK', 'Absensi', 'LMS'],
-  staf: ['Cek data saya', 'Disposisi saya'],
-  siswa: ['Cek data saya', 'Kelas saya', 'LMS'],
-  orang_tua: ['Cek data anak', 'Kelas anak'],
+  admin_tu: ['Ajuan perbaikan', 'Persuratan', 'Unggah Dapodik', 'Riwayat unggah', 'Peserta didik', 'Guru dan tendik', 'Rombel', 'Pengguna dan akun'],
+  guru: ['Profil saya', 'Ajuan saya', 'Disposisi saya', 'Daftar siswa', 'Rombel', 'Data PTK', 'Absensi', 'LMS'],
+  staf: ['Profil saya', 'Ajuan saya', 'Disposisi saya'],
+  siswa: ['Data saya', 'Ajuan saya', 'Kelas saya', 'LMS'],
+  orang_tua: ['Anak saya', 'Ajuan saya', 'Kelas anak'],
 }
 
 const tautanMenu: Record<string, [string, string | null, string]> = {
+  'Profil saya': ['/portal/data-saya', null, 'Data pribadi dan kepegawaian seperti di Dapodik'],
+  'Data saya': ['/portal/data-saya', null, 'Identitas, alamat, orang tua, dan kelas Anda'],
+  'Ajuan saya': ['/portal/ajuan', null, 'Perbaikan data yang diajukan dan keputusannya'],
+  'Ajuan perbaikan': ['/portal/ajuan-masuk', null, 'Periksa ajuan dan teruskan ke operator Dapodik'],
+  'Anak saya': ['/portal/anak', null, 'Profil anak yang ditautkan ke akun Anda'],
   'Unggah Dapodik': ['/portal/unggah', null, 'Unggah berkas ekspor Dapodik'],
   'Riwayat unggah': ['/portal/riwayat', null, 'Berkas yang pernah diunggah dan ringkasannya'],
   'Peserta didik': ['/portal/peserta-didik', null, 'Aktif, lulus, dan mutasi, lengkap dengan pencarian'],
@@ -54,20 +59,12 @@ const tautanMenu: Record<string, [string, string | null, string]> = {
   'Data PTK': ['/portal/ptk', null, 'Pendidik dan tenaga kependidikan'],
   'Rombel': ['/portal/rombel', null, 'Kelas, wali kelas, dan anggota'],
   'Pengguna dan akun': ['/portal/akun', 'Akun guru', 'Daftarkan akun dari data PTK'],
-  'Cek data saya': ['/portal/ajuan', null, 'Periksa data dari Dapodik dan ajukan perbaikan'],
-  'Cek data anak': ['/portal/ajuan', null, 'Periksa data anak dari Dapodik dan ajukan perbaikan'],
   'Disposisi saya': ['/portal/disposisi', null, 'Instruksi dari pimpinan untuk Anda'],
-  'Ajuan perbaikan data': ['/portal/ajuan-masuk', null, 'Periksa dan teruskan ajuan ke operator Dapodik'],
   'Persuratan': ['/portal/surat', null, 'Register surat masuk dan keluar, disposisi'],
 }
 
 export default function Portal() {
   const { session, profil, superAdmin, penugasan, keluar } = useAuth()
-  if (!profil) return null
-  const izinSaya = new Set(penugasan.flatMap((p) => p.izin))
-  const tugasMenu = menuIzin
-    .filter((m) => izinSaya.has(m.izin))
-    .filter((m, i, a) => !m.to || a.findIndex((x) => x.to === m.to) === i)
   const [lencana, setLencana] = useState<Record<string, number>>({})
   useEffect(() => {
     if (!profil) return
@@ -82,6 +79,11 @@ export default function Portal() {
       setLencana(l)
     })()
   }, [profil])
+  if (!profil) return null
+  const izinSaya = new Set(penugasan.flatMap((p) => p.izin))
+  const tugasMenu = menuIzin
+    .filter((m) => izinSaya.has(m.izin))
+    .filter((m, i, a) => !m.to || a.findIndex((x) => x.to === m.to) === i)
   const tanda = (to: string) => (lencana[to] ? ` (${lencana[to]})` : '')
 
   return (

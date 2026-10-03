@@ -14,13 +14,17 @@ const Akun = lazy(() => import('./pages/Akun'))
 const Pengguna = lazy(() => import('./pages/Pengguna'))
 const Struktur = lazy(() => import('./pages/Struktur'))
 const Penugasan = lazy(() => import('./pages/Penugasan'))
-const AjuanSaya = lazy(() => import('./pages/Ajuan').then((m) => ({ default: m.AjuanSaya })))
-const AjuanMasuk = lazy(() => import('./pages/Ajuan').then((m) => ({ default: m.AjuanMasuk })))
 const RegisterSurat = lazy(() => import('./pages/Persuratan').then((m) => ({ default: m.RegisterSurat })))
 const DetailSurat = lazy(() => import('./pages/Persuratan').then((m) => ({ default: m.DetailSurat })))
 const KotakDisposisi = lazy(() => import('./pages/Persuratan').then((m) => ({ default: m.KotakDisposisi })))
 const GantiSandi = lazy(() => import('./pages/GantiSandi'))
 const ProfilSaya = lazy(() => import('./pages/ProfilSaya'))
+const ProfilSendiri = lazy(() => import('./pages/ProfilDapodik').then((m) => ({ default: m.ProfilSendiri })))
+const DaftarAnak = lazy(() => import('./pages/ProfilDapodik').then((m) => ({ default: m.DaftarAnak })))
+const FormAjuan = lazy(() => import('./pages/Ajuan').then((m) => ({ default: m.FormAjuan })))
+const AjuanSaya = lazy(() => import('./pages/Ajuan').then((m) => ({ default: m.AjuanSaya })))
+const AjuanMasuk = lazy(() => import('./pages/Ajuan').then((m) => ({ default: m.AjuanMasuk })))
+const ProfilOrang = lazy(() => import('./pages/ProfilDapodik').then((m) => ({ default: m.ProfilOrang })))
 const RiwayatUnggah = lazy(() => import('./pages/DataSekolah').then((m) => ({ default: m.RiwayatUnggah })))
 const PesertaDidik = lazy(() => import('./pages/DataSekolah').then((m) => ({ default: m.PesertaDidik })))
 const GuruTendik = lazy(() => import('./pages/DataSekolah').then((m) => ({ default: m.GuruTendik })))
@@ -106,6 +110,54 @@ createRoot(document.getElementById('root')!).render(
             }
           />
           <Route
+            path="portal/data-saya"
+            element={
+              <RequireRole peran={['guru', 'staf', 'siswa']}>
+                <Suspense fallback={null}><ProfilSendiri /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/anak"
+            element={
+              <RequireRole peran={['orang_tua']}>
+                <Suspense fallback={null}><DaftarAnak /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/profil/:jenis/:id"
+            element={
+              <RequireRole peran={['admin_tu', 'orang_tua']}>
+                <Suspense fallback={null}><ProfilOrang /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/ajuan/baru/:jenis/:id"
+            element={
+              <RequireRole peran={['guru', 'staf', 'siswa', 'orang_tua']}>
+                <Suspense fallback={null}><FormAjuan /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/ajuan"
+            element={
+              <RequireRole peran={['guru', 'staf', 'siswa', 'orang_tua']}>
+                <Suspense fallback={null}><AjuanSaya /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/ajuan-masuk"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf']}>
+                <Suspense fallback={null}><AjuanMasuk /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
             path="portal/riwayat"
             element={
               <RequireRole peran={['admin_tu']}>
@@ -145,8 +197,6 @@ createRoot(document.getElementById('root')!).render(
               </RequireRole>
             }
           />
-          <Route path="portal/ajuan" element={<RequireRole peran={['guru', 'staf', 'siswa', 'orang_tua']}><Suspense fallback={null}><AjuanSaya /></Suspense></RequireRole>} />
-          <Route path="portal/ajuan-masuk" element={<RequireRole peran={['admin_tu', 'guru', 'staf']}><Suspense fallback={null}><AjuanMasuk /></Suspense></RequireRole>} />
           <Route path="portal/surat" element={<RequireRole peran={['admin_tu', 'guru', 'staf']}><Suspense fallback={null}><RegisterSurat /></Suspense></RequireRole>} />
           <Route path="portal/surat/:id" element={<RequireRole peran={['admin_tu', 'guru', 'staf']}><Suspense fallback={null}><DetailSurat /></Suspense></RequireRole>} />
           <Route path="portal/disposisi" element={<RequireRole peran={['admin_tu', 'guru', 'staf']}><Suspense fallback={null}><KotakDisposisi /></Suspense></RequireRole>} />
