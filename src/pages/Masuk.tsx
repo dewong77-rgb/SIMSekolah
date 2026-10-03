@@ -10,7 +10,7 @@ const peranMasuk: { id: PeranMasuk; nama: string; usernameLabel: string; petunju
   { id: 'guru', nama: 'Guru dan staf', usernameLabel: 'NIP (atau NUPTK)', petunjuk: 'Pertama kali masuk? Password awal adalah NPSN sekolah. Anda akan diminta menggantinya.' },
   { id: 'siswa', nama: 'Siswa', usernameLabel: 'NISN', petunjuk: 'Pertama kali masuk? Password awal adalah tanggal lahir dengan format DDMMYYYY, misalnya 17082009. Anda akan diminta menggantinya.' },
   { id: 'alumni', nama: 'Alumni', usernameLabel: 'NISN', petunjuk: 'Pertama kali masuk? Password awal adalah tanggal lahir dengan format DDMMYYYY. Anda akan diminta menggantinya.' },
-  { id: 'orang_tua', nama: 'Orang tua', usernameLabel: '', petunjuk: '' },
+  { id: 'orang_tua', nama: 'Orang tua', usernameLabel: 'NIK ibu (16 digit)', petunjuk: 'Pertama kali masuk? Username adalah NIK ibu yang tercatat di data sekolah. Password awal adalah NPSN sekolah. Anda akan diminta menggantinya. Bila NIK tidak bisa dipakai, hubungi admin sekolah.' },
   { id: 'admin', nama: 'Admin', usernameLabel: 'Username', petunjuk: 'Username dan password admin diatur dari menu Profil setelah masuk pertama dengan tautan email.' },
 ]
 
@@ -42,7 +42,9 @@ export default function Masuk() {
   async function masuk(e: FormEvent) {
     e.preventDefault()
     setStatus('kirim')
-    const { data, error } = await supabase.functions.invoke('masuk', { body: { peran, username: username.trim(), password: sandi } })
+    const { data, error } = peran === 'orang_tua'
+      ? await supabase.functions.invoke('ortu', { body: { aksi: 'masuk', username: username.trim(), password: sandi } })
+      : await supabase.functions.invoke('masuk', { body: { peran, username: username.trim(), password: sandi } })
     // Pada status 429 supabase-js mengembalikan error; badan jawabannya ada di error.context.
     let hasil = data as { ok?: boolean; access_token?: string; refresh_token?: string; dibatasi?: boolean; nonaktif?: boolean } | null
     if (error && 'context' in error) {
@@ -100,14 +102,14 @@ export default function Masuk() {
           ))}
         </div>
 
-        {peran !== 'orang_tua' && (
+        {(
           <form className="form" onSubmit={masuk}>
             <label>
               {info.usernameLabel}
               <input
                 required autoComplete="username" autoCapitalize="none" value={username}
                 inputMode={peran === 'admin' ? 'text' : 'numeric'}
-                maxLength={peran === 'siswa' || peran === 'alumni' ? 10 : 40}
+                maxLength={peran === 'siswa' || peran === 'alumni' ? 10 : peran === 'orang_tua' ? 16 : 40}
                 onChange={(e) => setUsername(peran === 'admin' ? e.target.value : e.target.value.replace(/\D/g, ''))}
                 disabled={status === 'kirim'}
               />
@@ -128,14 +130,7 @@ export default function Masuk() {
           </form>
         )}
 
-        {peran === 'orang_tua' && (
-          <>
-            <p className="catatan">Akun orang tua belum memakai username dan password. Sementara ini orang tua masuk dengan tautan email yang didaftarkan sekolah.</p>
-            {formEmail}
-          </>
-        )}
-
-        {peran !== 'orang_tua' && adaTautanEmail.includes(peran) && (
+        {adaTautanEmail.includes(peran) && (
           <div>
             <button type="button" className="tombol" style={{ color: 'var(--warna-utama)' }} aria-expanded={bukaEmail} onClick={() => setBukaEmail(!bukaEmail)}>
               {bukaEmail ? 'Tutup' : 'Masuk dengan tautan email'}

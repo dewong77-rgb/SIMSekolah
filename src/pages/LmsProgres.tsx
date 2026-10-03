@@ -15,6 +15,12 @@ export type KelasRingkas = {
   tugas: { judul: string; tenggat: string | null; nilai_maks: number; status: string; nilai: number | null }[]
 }
 
+/** Email teknis akun orang tua adalah <NIK>@ortu.invalid. Ditampilkan sebagian saja. */
+const namaAkun = (email: string) => {
+  const m = /^(\d{16})@ortu\.invalid$/.exec(email)
+  return m ? `NIK ibu ${m[1].slice(0, 6)}******${m[1].slice(-4)}` : email
+}
+
 const labelTugas: Record<string, string> = { belum: 'Belum', terkumpul: 'Terkumpul', terlambat: 'Terlambat', dinilai: 'Dinilai' }
 const labelJenis: Record<string, string> = { kuis: 'Kuis', ulangan_harian: 'Ulangan harian', ulangan_semester: 'Ulangan semester' }
 
@@ -111,7 +117,7 @@ export function TautanOrtu() {
         <label>Akun orang tua
           <select value={pilih} onChange={(e) => setPilih(e.target.value)}>
             <option value="">Pilih akun</option>
-            {(daftar ?? []).map((o) => <option key={o.user_id} value={o.user_id}>{o.email} ({o.anak.length} anak)</option>)}
+            {(daftar ?? []).map((o) => <option key={o.user_id} value={o.user_id}>{namaAkun(o.email)} ({o.anak.length} anak)</option>)}
           </select>
           {daftar && daftar.length === 0 && <span className="petunjuk">Belum ada akun orang tua. Buat dulu di Pengguna dan akun, peran Orang tua.</span>}
         </label>
@@ -134,7 +140,7 @@ export function TautanOrtu() {
       {!daftar && <p className="catatan">Memuat...</p>}
       {(daftar ?? []).map((o) => (
         <div key={o.user_id} className="kartu" style={{ marginTop: 8 }}>
-          <p style={{ margin: 0 }}><strong>{o.email}</strong></p>
+          <p style={{ margin: 0 }}><strong>{namaAkun(o.email)}</strong></p>
           {o.anak.length === 0
             ? <p className="catatan">Belum ditautkan ke anak.</p>
             : <ul style={{ margin: '4px 0 0' }}>{o.anak.map((a) => <li key={a.id}>{a.nama} <small>{a.nisn ?? ''}</small></li>)}</ul>}

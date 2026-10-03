@@ -1,5 +1,5 @@
 // Ganti password sendiri. Juga mencabut penanda wajib_ganti_sandi (app_metadata, hanya bisa ditulis server).
-// Password baru tidak boleh sama dengan password awal (tanggal lahir DDMMYYYY atau NPSN) maupun username.
+// Password baru tidak boleh sama dengan password awal (tanggal lahir DDMMYYYY atau NPSN) maupun username (termasuk NIK ibu untuk orang tua).
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const cors = {
@@ -45,7 +45,12 @@ Deno.serve(async (req) => {
   }
   const { data: pa } = await db.from('profil_admin').select('username').eq('user_id', u.user.id).maybeSingle()
   if (pa?.username) terlarang.add(pa.username)
-  if (u.user.email) terlarang.add(u.user.email.toLowerCase())
+  if (u.user.email) {
+    terlarang.add(u.user.email.toLowerCase())
+    // Akun orang tua: username adalah NIK ibu (bagian depan email teknis <NIK>@ortu.invalid).
+    const m = /^(\d{16})@ortu\.invalid$/.exec(u.user.email.toLowerCase())
+    if (m) terlarang.add(m[1])
+  }
   if (terlarang.has(sandi) || terlarang.has(sandi.toLowerCase())) {
     return json({ galat: 'Password terlalu mudah ditebak (sama dengan password awal atau username). Pilih yang lain.' }, 400)
   }
