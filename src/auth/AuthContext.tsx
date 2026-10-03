@@ -2,10 +2,18 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import type { Session } from '@supabase/supabase-js'
 import { supabase, type ProfilPengguna } from '../lib/supabase'
 
+export type PenugasanSaya = {
+  jabatan_kode: string; jabatan_nama: string; kelompok: string
+  lingkup_id: string | null; lingkup_label: string | null; izin: string[]
+}
+
 type NilaiAuth = {
   session: Session | null
   profil: ProfilPengguna | null
   superAdmin: boolean
+  penugasan: PenugasanSaya[]
+  /** Super admin selalu true. Lingkup kosong pada penugasan berarti seluruh sekolah. */
+  punyaIzin: (izin: string, lingkup?: string) => boolean
   memuat: boolean
   keluar: () => Promise<void>
 }
@@ -16,6 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profil, setProfil] = useState<ProfilPengguna | null>(null)
   const [superAdmin, setSuperAdmin] = useState(false)
+  const [penugasan, setPenugasan] = useState<PenugasanSaya[]>([])
   const [memuatSesi, setMemuatSesi] = useState(true)
   const [memuatProfil, setMemuatProfil] = useState(false)
 
@@ -36,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!userId) {
       setProfil(null)
       setSuperAdmin(false)
+      setPenugasan([])
       setMemuatProfil(false)
       return
     }
@@ -48,10 +58,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('user_id', userId)
         .maybeSingle(),
       supabase.from('super_admin').select('user_id').eq('user_id', userId).maybeSingle(),
-    ]).then(([p, sa]) => {
+      supabase.rpc('penugasan_saya'),
+    ]).then(([p, sa, pg]) => {
       if (batal) return
       setProfil((p.data as ProfilPengguna | null) ?? null)
       setSuperAdmin(!!sa.data)
+      setPenugasan((pg.data as PenugasanSaya[] | null) ?? [])
       setMemuatProfil(false)
     })
     return () => {
@@ -63,6 +75,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     session,
     profil,
     superAdmin,
+    penugasan,
+    punyaIzin: (izin, lingkup) =>
+      superAdmin ||
+      penugasan.some((p) => p.izin.includes(izin) && (!lingkup || !p.lingkup_id || p.lingkup_id === lingkup)),
     memuat: memuatSesi || memuatProfil,
     keluar: async () => {
       await supabase.auth.signOut()

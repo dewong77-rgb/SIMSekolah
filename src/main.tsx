@@ -12,6 +12,8 @@ import Portal from './pages/Portal'
 const Unggah = lazy(() => import('./pages/Unggah'))
 const Akun = lazy(() => import('./pages/Akun'))
 const Pengguna = lazy(() => import('./pages/Pengguna'))
+const Struktur = lazy(() => import('./pages/Struktur'))
+const Penugasan = lazy(() => import('./pages/Penugasan'))
 const GantiSandi = lazy(() => import('./pages/GantiSandi'))
 const ProfilSaya = lazy(() => import('./pages/ProfilSaya'))
 const RiwayatUnggah = lazy(() => import('./pages/DataSekolah').then((m) => ({ default: m.RiwayatUnggah })))
@@ -32,6 +34,7 @@ createRoot(document.getElementById('root')!).render(
           <Route index element={<Beranda />} />
           <Route path="profil" element={<Profil />} />
           <Route path="jurusan" element={<Jurusan />} />
+          <Route path="struktur-organisasi" element={<Suspense fallback={null}><Struktur /></Suspense>} />
           <Route path="hubungan-industri" element={<HubunganIndustri />} />
           <Route path="akademik" element={<Akademik />} />
           <Route path="ppdb" element={<Ppdb />} />
@@ -70,6 +73,14 @@ createRoot(document.getElementById('root')!).render(
             element={
               <RequireRole peran={['admin_tu']} superAdmin>
                 <Suspense fallback={null}><Pengguna /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/penugasan"
+            element={
+              <RequireRole peran={['admin_tu']} superAdmin>
+                <Suspense fallback={null}><Penugasan /></Suspense>
               </RequireRole>
             }
           />

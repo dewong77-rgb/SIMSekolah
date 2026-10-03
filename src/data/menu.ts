@@ -10,6 +10,7 @@ export const menuUtama: ItemMenu[] = [
     label: 'Profil Sekolah',
     anak: [
       { label: 'Profil dan Visi Misi', to: '/profil' },
+      { label: 'Struktur Organisasi', to: '/struktur-organisasi' },
       { label: 'Jurusan', to: '/jurusan' },
       { label: 'Hubungan Industri', to: '/hubungan-industri' },
     ],

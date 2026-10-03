@@ -10,6 +10,23 @@ const namaPeran: Record<Peran, string> = {
   orang_tua: 'Orang tua',
 }
 
+// Menu tambahan dari izin penugasan. Halaman modul menyusul, kecuali yang sudah punya tautan.
+const menuIzin: { izin: string; nama: string; bidang: string; to?: string }[] = [
+  { izin: 'hubin.kelola_dudi', nama: 'Kelola DU/DI dan MoU', bidang: 'Hubungan industri' },
+  { izin: 'hubin.kelola_humas', nama: 'Informasi dan kehumasan', bidang: 'Hubungan industri' },
+  { izin: 'kurikulum.atur_jadwal', nama: 'Jadwal pelajaran', bidang: 'Kurikulum' },
+  { izin: 'kurikulum.kalender', nama: 'Kalender akademik', bidang: 'Kurikulum' },
+  { izin: 'kurikulum.kelola_info', nama: 'Informasi akademik', bidang: 'Kurikulum' },
+  { izin: 'program.kelola', nama: 'Program keahlian', bidang: 'Kurikulum' },
+  { izin: 'kesiswaan.kelola', nama: 'Kesiswaan', bidang: 'Kesiswaan' },
+  { izin: 'kelas.kelola', nama: 'Kelas saya', bidang: 'Kelas' },
+  { izin: 'ekskul.kelola', nama: 'Ekstrakurikuler saya', bidang: 'Kesiswaan' },
+  { izin: 'sarpras.kelola', nama: 'Sarana dan prasarana', bidang: 'Sarpras' },
+  { izin: 'lab.kelola', nama: 'Bengkel dan laboratorium', bidang: 'Sarpras' },
+  { izin: 'perpus.kelola', nama: 'Perpustakaan', bidang: 'Perpustakaan' },
+  { izin: 'laporan.lihat', nama: 'Laporan sekolah', bidang: 'Pimpinan' },
+]
+
 const menuPeran: Record<Peran, string[]> = {
   admin_tu: ['Unggah Dapodik', 'Riwayat unggah', 'Peserta didik', 'Guru dan tendik', 'Rombel', 'Pengguna dan akun'],
   guru: ['Daftar siswa', 'Rombel', 'Data PTK', 'Absensi', 'LMS'],
@@ -29,8 +46,10 @@ const tautanMenu: Record<string, [string, string | null, string]> = {
 }
 
 export default function Portal() {
-  const { session, profil, superAdmin, keluar } = useAuth()
+  const { session, profil, superAdmin, penugasan, keluar } = useAuth()
   if (!profil) return null
+  const izinSaya = new Set(penugasan.flatMap((p) => p.izin))
+  const tugasMenu = menuIzin.filter((m) => izinSaya.has(m.izin))
 
   return (
     <Halaman judul="Portal" lead={`Masuk sebagai ${namaPeran[profil.peran]}.`}>
@@ -48,10 +67,24 @@ export default function Portal() {
           <Link to="/" className="tombol" style={{ color: 'var(--warna-utama)' }}>Ke beranda</Link>
         </div>
       </div>
+      {penugasan.length > 0 && (
+        <div className="kartu jarak">
+          <h3>Tugas saya</h3>
+          <ul className="label-tugas">
+            {penugasan.map((p, i) => (
+              <li key={i}><strong>{p.jabatan_nama}</strong>{p.lingkup_label ? <small>: {p.lingkup_label}</small> : null}</li>
+            ))}
+          </ul>
+          <p className="catatan">Menu tugas muncul di bagian bawah halaman ini sesuai penugasan tahun ajaran berjalan.</p>
+        </div>
+      )}
       <div className="judul-bagian jarak"><h2>Menu {namaPeran[profil.peran]}</h2></div>
       <div className="grid grid-3">
         {superAdmin && (
           <Link to="/portal/pengguna" className="kartu tautan"><h3>Kelola pengguna</h3><small>Lihat akun guru dan siswa, ubah peran, nonaktifkan</small></Link>
+        )}
+        {superAdmin && (
+          <Link to="/portal/penugasan" className="kartu tautan"><h3>Penugasan</h3><small>Jabatan tambahan, lingkup, dan struktur organisasi</small></Link>
         )}
         {menuPeran[profil.peran].map((m) => {
           const t = tautanMenu[m]
@@ -60,6 +93,16 @@ export default function Portal() {
           ) : <Segera key={m} nama={m} />
         })}
       </div>
+      {tugasMenu.length > 0 && (
+        <>
+          <div className="judul-bagian jarak"><h2>Menu tugas</h2></div>
+          <div className="grid grid-3">
+            {tugasMenu.map((m) => m.to
+              ? <Link key={m.izin} to={m.to} className="kartu tautan"><small>{m.bidang}</small><h3>{m.nama}</h3></Link>
+              : <Segera key={m.izin} nama={`${m.nama} (${m.bidang})`} />)}
+          </div>
+        </>
+      )}
     </Halaman>
   )
 }

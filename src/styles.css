@@ -144,3 +144,21 @@ tr:last-child td { border-bottom: 0; }
 .pilih-peran button { flex: 1 1 auto; font: inherit; font-weight: 600; padding: 8px 14px; border: 0; border-radius: 8px; background: transparent; color: var(--teks-lembut, #4a5568); cursor: pointer; }
 .pilih-peran button.aktif { background: var(--warna-utama, #1a3e6f); color: #fff; }
 .pilih-peran button:focus-visible { outline: 3px solid var(--warna-aksen); outline-offset: 2px; }
+
+/* Bagan struktur organisasi: daftar bertingkat dengan garis penghubung, aman di layar sempit */
+.pohon { list-style: none; margin: 0; padding: 0 0 0 22px; position: relative; }
+.pohon.akar { padding-left: 0; }
+.pohon li { position: relative; padding: 8px 0 0 18px; }
+.pohon.akar > li { padding-left: 0; }
+.pohon:not(.akar) > li::before { content: ''; position: absolute; left: -2px; top: 0; bottom: 0; border-left: 2px solid var(--garis); }
+.pohon:not(.akar) > li:last-child::before { bottom: auto; height: 34px; }
+.pohon:not(.akar) > li::after { content: ''; position: absolute; left: -2px; top: 34px; width: 16px; border-top: 2px solid var(--garis); }
+.simpul { display: inline-block; min-width: 260px; max-width: 100%; padding: 12px 16px; background: #fff; border: 1px solid var(--garis); border-left: 4px solid var(--warna-aksen); border-radius: var(--radius); }
+.simpul.kosong { border-left-color: var(--garis); background: var(--latar-lembut); }
+.simpul strong { display: block; color: var(--warna-utama); }
+.simpul .pemegang { list-style: none; margin: 6px 0 0; padding: 0; }
+.simpul .pemegang li { padding: 2px 0; }
+.simpul .pemegang li::before, .simpul .pemegang li::after { display: none; }
+
+.label-tugas { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 8px 0; padding: 0; }
+.label-tugas li { background: var(--latar-lembut); border: 1px solid var(--garis); border-radius: 999px; padding: 4px 12px; }
