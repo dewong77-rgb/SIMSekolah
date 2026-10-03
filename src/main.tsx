@@ -12,6 +12,12 @@ import Portal from './pages/Portal'
 const Unggah = lazy(() => import('./pages/Unggah'))
 const Akun = lazy(() => import('./pages/Akun'))
 const Pengguna = lazy(() => import('./pages/Pengguna'))
+const ProfilSaya = lazy(() => import('./pages/ProfilSaya'))
+const RiwayatUnggah = lazy(() => import('./pages/DataSekolah').then((m) => ({ default: m.RiwayatUnggah })))
+const PesertaDidik = lazy(() => import('./pages/DataSekolah').then((m) => ({ default: m.PesertaDidik })))
+const GuruTendik = lazy(() => import('./pages/DataSekolah').then((m) => ({ default: m.GuruTendik })))
+const DaftarRombel = lazy(() => import('./pages/DataSekolah').then((m) => ({ default: m.DaftarRombel })))
+const DetailRombel = lazy(() => import('./pages/DataSekolah').then((m) => ({ default: m.DetailRombel })))
 import { AuthProvider } from './auth/AuthContext'
 import RequireRole from './auth/RequireRole'
 import './styles.css'
@@ -63,6 +69,54 @@ createRoot(document.getElementById('root')!).render(
             element={
               <RequireRole peran={['admin_tu']} superAdmin>
                 <Suspense fallback={null}><Pengguna /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/profil"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'orang_tua']}>
+                <Suspense fallback={null}><ProfilSaya /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/riwayat"
+            element={
+              <RequireRole peran={['admin_tu']}>
+                <Suspense fallback={null}><RiwayatUnggah /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/peserta-didik"
+            element={
+              <RequireRole peran={['admin_tu', 'guru']}>
+                <Suspense fallback={null}><PesertaDidik /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/ptk"
+            element={
+              <RequireRole peran={['admin_tu', 'guru']}>
+                <Suspense fallback={null}><GuruTendik /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/rombel"
+            element={
+              <RequireRole peran={['admin_tu', 'guru']}>
+                <Suspense fallback={null}><DaftarRombel /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/rombel/:id"
+            element={
+              <RequireRole peran={['admin_tu', 'guru']}>
+                <Suspense fallback={null}><DetailRombel /></Suspense>
               </RequireRole>
             }
           />

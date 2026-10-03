@@ -12,6 +12,9 @@ export default function Masuk() {
   const [pesan, setPesan] = useState('')
   const [nisn, setNisn] = useState('')
   const [lahir, setLahir] = useState('')
+  const [username, setUsername] = useState('')
+  const [sandi, setSandi] = useState('')
+  const [statusAdmin, setStatusAdmin] = useState<'diam' | 'kirim' | 'galat' | 'dibatasi'>('diam')
   const [statusSiswa, setStatusSiswa] = useState<'diam' | 'kirim' | 'galat' | 'dibatasi' | 'nonaktif'>('diam')
 
   if (session) return <Navigate to="/portal" replace />
@@ -55,10 +58,47 @@ export default function Masuk() {
     setStatusSiswa(hasil?.dibatasi ? 'dibatasi' : hasil?.nonaktif ? 'nonaktif' : 'galat')
   }
 
+  async function masukAdmin(e: FormEvent) {
+    e.preventDefault()
+    setStatusAdmin('kirim')
+    const { data, error } = await supabase.functions.invoke('masuk-admin', {
+      body: { username: username.trim(), password: sandi },
+    })
+    let hasil = data as { ok?: boolean; access_token?: string; refresh_token?: string; dibatasi?: boolean } | null
+    if (error && 'context' in error) {
+      try { hasil = await (error as { context: Response }).context.json() } catch { hasil = null }
+    }
+    if (hasil?.ok && hasil.access_token && hasil.refresh_token) {
+      const { error: es } = await supabase.auth.setSession({ access_token: hasil.access_token, refresh_token: hasil.refresh_token })
+      if (!es) return // sesi terbentuk, halaman berpindah sendiri ke /portal
+    }
+    setSandi('')
+    setStatusAdmin(hasil?.dibatasi ? 'dibatasi' : 'galat')
+  }
+
   return (
-    <Halaman judul="Masuk" lead="Guru dan staf masuk dengan tautan email. Siswa masuk dengan NISN dan tanggal lahir.">
-      <div className="grid grid-2">
+    <Halaman judul="Masuk" lead="Admin dan guru masuk dengan username atau tautan email. Siswa masuk dengan NISN dan tanggal lahir.">
+      <div className="grid grid-3">
+        <form className="kartu form" onSubmit={masukAdmin}>
+          <h3>Masuk admin dan guru</h3>
+          <label>
+            Username
+            <input required autoComplete="username" autoCapitalize="none" value={username} onChange={(e) => setUsername(e.target.value)} disabled={statusAdmin === 'kirim'} />
+          </label>
+          <label>
+            Password
+            <input type="password" required autoComplete="current-password" value={sandi} onChange={(e) => setSandi(e.target.value)} disabled={statusAdmin === 'kirim'} />
+          </label>
+          <button className="tombol tombol-isi" disabled={statusAdmin === 'kirim' || !username || !sandi}>
+            {statusAdmin === 'kirim' ? 'Memeriksa...' : 'Masuk'}
+          </button>
+          <div aria-live="polite">
+            {statusAdmin === 'galat' && <p className="catatan">Username atau password tidak cocok. Username dan password diatur dari menu Profil setelah masuk dengan tautan email.</p>}
+            {statusAdmin === 'dibatasi' && <p className="catatan">Terlalu banyak percobaan. Coba lagi dalam 15 menit.</p>}
+          </div>
+        </form>
         <form className="kartu form" onSubmit={kirim}>
+          <h3>Masuk dengan email</h3>
           <label>
             Email
             <input

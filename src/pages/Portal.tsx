@@ -17,6 +17,17 @@ const menuPeran: Record<Peran, string[]> = {
   orang_tua: ['Anak saya', 'Kelas anak'],
 }
 
+const tautanMenu: Record<string, [string, string | null, string]> = {
+  'Unggah Dapodik': ['/portal/unggah', null, 'Unggah berkas ekspor Dapodik'],
+  'Riwayat unggah': ['/portal/riwayat', null, 'Berkas yang pernah diunggah dan ringkasannya'],
+  'Peserta didik': ['/portal/peserta-didik', null, 'Aktif, lulus, dan mutasi, lengkap dengan pencarian'],
+  'Daftar siswa': ['/portal/peserta-didik', null, 'Siswa aktif per kelas'],
+  'Guru dan tendik': ['/portal/ptk', null, 'Pendidik dan tenaga kependidikan'],
+  'Data PTK': ['/portal/ptk', null, 'Pendidik dan tenaga kependidikan'],
+  'Rombel': ['/portal/rombel', null, 'Kelas, wali kelas, dan anggota'],
+  'Pengguna dan akun': ['/portal/akun', 'Akun guru', 'Daftarkan akun dari data PTK'],
+}
+
 export default function Portal() {
   const { session, profil, superAdmin, keluar } = useAuth()
   if (!profil) return null
@@ -31,6 +42,7 @@ export default function Portal() {
         </dl>
         <div className="aksi jarak">
           <button className="tombol tombol-isi" onClick={keluar}>Keluar</button>
+          {profil.peran !== 'siswa' && <Link to="/portal/profil" className="tombol" style={{ color: 'var(--warna-utama)' }}>Profil dan password</Link>}
           <Link to="/" className="tombol" style={{ color: 'var(--warna-utama)' }}>Ke beranda</Link>
         </div>
       </div>
@@ -39,12 +51,12 @@ export default function Portal() {
         {superAdmin && (
           <Link to="/portal/pengguna" className="kartu tautan"><h3>Kelola pengguna</h3><small>Lihat akun guru dan siswa, ubah peran, nonaktifkan</small></Link>
         )}
-        {menuPeran[profil.peran].map((m) =>
-          m === 'Unggah Dapodik' ? (
-            <Link key={m} to="/portal/unggah" className="kartu tautan"><h3>{m}</h3><small>Unggah berkas ekspor Dapodik</small></Link>
-          ) : m === 'Pengguna dan akun' ? (
-            <Link key={m} to="/portal/akun" className="kartu tautan"><h3>Akun guru</h3><small>Daftarkan akun dari data PTK</small></Link>
-          ) : <Segera key={m} nama={m} />)}
+        {menuPeran[profil.peran].map((m) => {
+          const t = tautanMenu[m]
+          return t ? (
+            <Link key={m} to={t[0]} className="kartu tautan"><h3>{t[1] ?? m}</h3><small>{t[2]}</small></Link>
+          ) : <Segera key={m} nama={m} />
+        })}
       </div>
     </Halaman>
   )
