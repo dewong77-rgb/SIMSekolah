@@ -1,7 +1,8 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Halaman, { Segera } from '../components/Halaman'
 import { useAuth } from '../auth/AuthContext'
-import type { Peran } from '../lib/supabase'
+import { supabase, type Peran } from '../lib/supabase'
 
 const namaPeran: Record<Peran, string> = {
   admin_tu: 'Admin TU',
@@ -28,15 +29,17 @@ const menuIzin: { izin: string; nama: string; bidang: string; to?: string }[] = 
 ]
 
 const menuPeran: Record<Peran, string[]> = {
-  admin_tu: ['Unggah Dapodik', 'Riwayat unggah', 'Peserta didik', 'Guru dan tendik', 'Rombel', 'Pengguna dan akun'],
-  guru: ['Profil saya', 'Daftar siswa', 'Rombel', 'Data PTK', 'Absensi', 'LMS'],
-  siswa: ['Data saya', 'Kelas saya', 'LMS'],
-  orang_tua: ['Anak saya', 'Kelas anak'],
+  admin_tu: ['Ajuan perbaikan', 'Unggah Dapodik', 'Riwayat unggah', 'Peserta didik', 'Guru dan tendik', 'Rombel', 'Pengguna dan akun'],
+  guru: ['Profil saya', 'Ajuan saya', 'Daftar siswa', 'Rombel', 'Data PTK', 'Absensi', 'LMS'],
+  siswa: ['Data saya', 'Ajuan saya', 'Kelas saya', 'LMS'],
+  orang_tua: ['Anak saya', 'Ajuan saya', 'Kelas anak'],
 }
 
 const tautanMenu: Record<string, [string, string | null, string]> = {
   'Profil saya': ['/portal/data-saya', null, 'Data pribadi dan kepegawaian seperti di Dapodik'],
   'Data saya': ['/portal/data-saya', null, 'Identitas, alamat, orang tua, dan kelas Anda'],
+  'Ajuan saya': ['/portal/ajuan', null, 'Perbaikan data yang diajukan dan keputusannya'],
+  'Ajuan perbaikan': ['/portal/ajuan-masuk', null, 'Setujui atau tolak ajuan perbaikan data'],
   'Anak saya': ['/portal/anak', null, 'Profil anak yang ditautkan ke akun Anda'],
   'Unggah Dapodik': ['/portal/unggah', null, 'Unggah berkas ekspor Dapodik'],
   'Riwayat unggah': ['/portal/riwayat', null, 'Berkas yang pernah diunggah dan ringkasannya'],
@@ -50,6 +53,12 @@ const tautanMenu: Record<string, [string, string | null, string]> = {
 
 export default function Portal() {
   const { session, profil, superAdmin, penugasan, keluar } = useAuth()
+  const [menunggu, setMenunggu] = useState<number | null>(null)
+  const tu = profil?.peran === 'admin_tu'
+  useEffect(() => {
+    if (!tu) return
+    supabase.rpc('ajuan_daftar', { p_status: 'menunggu' }).then(({ data }) => setMenunggu(Array.isArray(data) ? data.length : null))
+  }, [tu])
   if (!profil) return null
   const izinSaya = new Set(penugasan.flatMap((p) => p.izin))
   const tugasMenu = menuIzin.filter((m) => izinSaya.has(m.izin))
@@ -92,7 +101,7 @@ export default function Portal() {
         {menuPeran[profil.peran].map((m) => {
           const t = tautanMenu[m]
           return t ? (
-            <Link key={m} to={t[0]} className="kartu tautan"><h3>{t[1] ?? m}</h3><small>{t[2]}</small></Link>
+            <Link key={m} to={t[0]} className="kartu tautan"><h3>{t[1] ?? m}</h3><small>{m === 'Ajuan perbaikan' && menunggu !== null ? (menunggu > 0 ? `${menunggu} ajuan menunggu keputusan` : 'Tidak ada ajuan yang menunggu') : t[2]}</small></Link>
           ) : <Segera key={m} nama={m} />
         })}
       </div>

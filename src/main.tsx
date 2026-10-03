@@ -18,6 +18,9 @@ const GantiSandi = lazy(() => import('./pages/GantiSandi'))
 const ProfilSaya = lazy(() => import('./pages/ProfilSaya'))
 const ProfilSendiri = lazy(() => import('./pages/ProfilDapodik').then((m) => ({ default: m.ProfilSendiri })))
 const DaftarAnak = lazy(() => import('./pages/ProfilDapodik').then((m) => ({ default: m.DaftarAnak })))
+const FormAjuan = lazy(() => import('./pages/Ajuan').then((m) => ({ default: m.FormAjuan })))
+const AjuanSaya = lazy(() => import('./pages/Ajuan').then((m) => ({ default: m.AjuanSaya })))
+const AjuanMasuk = lazy(() => import('./pages/Ajuan').then((m) => ({ default: m.AjuanMasuk })))
 const ProfilOrang = lazy(() => import('./pages/ProfilDapodik').then((m) => ({ default: m.ProfilOrang })))
 const RiwayatUnggah = lazy(() => import('./pages/DataSekolah').then((m) => ({ default: m.RiwayatUnggah })))
 const PesertaDidik = lazy(() => import('./pages/DataSekolah').then((m) => ({ default: m.PesertaDidik })))
@@ -124,6 +127,30 @@ createRoot(document.getElementById('root')!).render(
             element={
               <RequireRole peran={['admin_tu', 'orang_tua']}>
                 <Suspense fallback={null}><ProfilOrang /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/ajuan/baru/:jenis/:id"
+            element={
+              <RequireRole peran={['guru', 'siswa', 'orang_tua']}>
+                <Suspense fallback={null}><FormAjuan /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/ajuan"
+            element={
+              <RequireRole peran={['guru', 'siswa', 'orang_tua']}>
+                <Suspense fallback={null}><AjuanSaya /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/ajuan-masuk"
+            element={
+              <RequireRole peran={['admin_tu']}>
+                <Suspense fallback={null}><AjuanMasuk /></Suspense>
               </RequireRole>
             }
           />

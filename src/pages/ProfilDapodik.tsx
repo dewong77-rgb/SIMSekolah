@@ -55,12 +55,21 @@ function Kepala({ nama, anak, catatan }: { nama: string; anak?: string[]; catata
   )
 }
 
-function Perbaikan({ disamarkan }: { disamarkan: boolean }) {
+function Perbaikan({ disamarkan, ajukan }: { disamarkan: boolean; ajukan: boolean }) {
   return (
     <p className="catatan jarak">
       {disamarkan && 'NIK dan nomor kartu ditampilkan sebagian demi keamanan. '}
-      Data ini bersumber dari Dapodik. Jika ada yang keliru, sampaikan ke admin TU sekolah. Pengajuan perbaikan langsung dari halaman ini sedang disiapkan.
+      Data ini bersumber dari Dapodik.{ajukan ? ' Jika ada yang keliru, gunakan tombol "Ajukan perbaikan data". Admin TU akan memeriksanya.' : ''}
     </p>
+  )
+}
+
+function AksiAjuan({ jenis, id }: { jenis: string; id: unknown }) {
+  return (
+    <div className="aksi jarak">
+      <Link to={`/portal/ajuan/baru/${jenis}/${String(id)}`} className="tombol tombol-isi">Ajukan perbaikan data</Link>
+      <Link to="/portal/ajuan" className="tombol" style={{ color: 'var(--warna-utama)' }}>Ajuan saya</Link>
+    </div>
   )
 }
 
@@ -189,12 +198,12 @@ function useProfil(jenis?: string, id?: string) {
   return { hasil, galat }
 }
 
-function Isi({ hasil, galat }: { hasil: Hasil | null | undefined; galat: string }) {
+function Isi({ hasil, galat, ajukan = false }: { hasil: Hasil | null | undefined; galat: string; ajukan?: boolean }) {
   if (hasil === undefined) return <p className="catatan">Memuat profil...</p>
   if (galat) return <p className="catatan" role="alert">Gagal memuat profil: {galat}</p>
   if (!hasil) return <p className="catatan">Profil tidak ditemukan, atau Anda tidak berhak melihatnya.</p>
-  if (hasil.jenis === 'ptk') return <><ProfilPtk h={hasil} /><Perbaikan disamarkan={false} /></>
-  if (hasil.jenis === 'siswa') return <><ProfilSiswa h={hasil} /><Perbaikan disamarkan={hasil.disamarkan} /></>
+  if (hasil.jenis === 'ptk') return <>{ajukan && <AksiAjuan jenis="ptk" id={hasil.data.id} />}<ProfilPtk h={hasil} /><Perbaikan disamarkan={false} ajukan={ajukan} /></>
+  if (hasil.jenis === 'siswa') return <>{ajukan && <AksiAjuan jenis="siswa" id={hasil.data.id} />}<ProfilSiswa h={hasil} /><Perbaikan disamarkan={hasil.disamarkan} ajukan={ajukan} /></>
   return null
 }
 
@@ -204,7 +213,7 @@ export function ProfilSendiri() {
   const { hasil, galat } = useProfil()
   return (
     <Halaman judul={profil?.peran === 'siswa' ? 'Data saya' : 'Profil saya'} lead="Data pribadi Anda seperti tercatat di Dapodik.">
-      <Isi hasil={hasil} galat={galat} />
+      <Isi hasil={hasil} galat={galat} ajukan />
       <p className="catatan jarak"><Link to="/portal">Kembali ke portal</Link></p>
     </Halaman>
   )
@@ -237,7 +246,7 @@ export function ProfilOrang() {
   const balik = profil?.peran === 'orang_tua' ? '/portal/anak' : jenis === 'ptk' ? '/portal/ptk' : '/portal/peserta-didik'
   return (
     <Halaman judul={jenis === 'ptk' ? 'Profil guru dan tendik' : 'Profil peserta didik'} lead="Tampilan formulir Dapodik, hanya baca.">
-      {valid ? <Isi hasil={hasil} galat={galat} /> : <p className="catatan">Alamat tidak valid.</p>}
+      {valid ? <Isi hasil={hasil} galat={galat} ajukan={profil?.peran === 'orang_tua'} /> : <p className="catatan">Alamat tidak valid.</p>}
       <p className="catatan jarak"><Link to={balik}>Kembali</Link></p>
     </Halaman>
   )

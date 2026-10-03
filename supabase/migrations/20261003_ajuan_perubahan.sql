@@ -29,10 +29,8 @@ create table if not exists public.kolom_ajuan (
   primary key (jenis, kunci)
 );
 alter table public.kolom_ajuan enable row level security;
-drop policy if exists kolom_ajuan_baca on public.kolom_ajuan;
 create policy kolom_ajuan_baca on public.kolom_ajuan for select to authenticated using (true);
 
-truncate public.kolom_ajuan;
 insert into public.kolom_ajuan (jenis, kunci, tabel, kolom, hubungan, label, kelompok, tipe, tipe_sql, pilihan, pola, wajib, butuh_dokumen, terapkan, urutan) values
 -- Guru dan tendik: identitas
 ('ptk','nama','ptk','nama',null,'Nama lengkap','Identitas','teks','text',null,null,true,true,false,10),

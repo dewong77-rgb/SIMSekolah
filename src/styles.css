@@ -174,3 +174,21 @@ tr:last-child td { border-bottom: 0; }
 .bagian-profil .daftar { grid-template-columns: 10rem 1fr; overflow-wrap: anywhere; }
 .bagian-profil .kosong { color: var(--teks-lembut); font-style: italic; }
 @media (max-width: 640px) { .bagian-profil .daftar { grid-template-columns: 1fr; } .bagian-profil .daftar dt { margin-top: 6px; font-size: .85rem; } }
+
+/* Ajuan perubahan */
+.form select, .form textarea { font: inherit; padding: 10px 12px; border: 1px solid #b9c1cd; border-radius: 8px; background: #fff; width: 100%; box-sizing: border-box; }
+.form select:focus-visible, .form textarea:focus-visible { outline: 3px solid var(--warna-aksen); outline-offset: 2px; }
+.form label.diubah input, .form label.diubah select { border-color: var(--warna-aksen); background: #fffaf0; }
+.petunjuk { color: var(--teks-lembut); font-weight: 400; display: block; font-size: .8rem; }
+span > .petunjuk { display: inline; }
+.status { display: inline-block; font-size: .75rem; font-weight: 600; padding: 2px 10px; border-radius: 99px; }
+.status-menunggu { background: #fdf1d8; color: #7a5200; }
+.status-disetujui { background: #dff3e4; color: #1d6b34; }
+.status-ditolak { background: #fbe1e1; color: #8a1f1f; }
+.status-dibatalkan { background: #e8ebf0; color: #4a5361; }
+.kepala-ajuan { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.catatan.galat { color: #8a1f1f; font-weight: 600; }
+.catatan.sukses { color: #1d6b34; font-weight: 600; }
+.centang { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+input[type="search"] { font: inherit; padding: 8px 12px; border: 1px solid #b9c1cd; border-radius: 8px; }
+.aksi select { font: inherit; padding: 6px 8px; border: 1px solid #b9c1cd; border-radius: 8px; background: #fff; }
