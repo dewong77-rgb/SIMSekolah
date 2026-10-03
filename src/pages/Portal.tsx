@@ -62,6 +62,7 @@ const tautanMenu: Record<string, [string, string | null, string]> = {
   'Disposisi saya': ['/portal/disposisi', null, 'Instruksi dari pimpinan untuk Anda'],
   'Persuratan': ['/portal/surat', null, 'Register surat masuk dan keluar, disposisi'],
   'Administrasi guru': ['/portal/lms/administrasi', null, 'ATP, modul ajar, program, dan perangkat ajar lainnya'],
+  'Absensi': ['/portal/absensi', null, 'Jumlah siswa yang diajar dan rekap kehadiran'],
   'Progres saya': ['/portal/progres-lms', null, 'Kehadiran, materi, nilai kuis, dan tugas semua mapel'],
   'Tautan orang tua': ['/portal/tautan-ortu', null, 'Hubungkan akun orang tua ke anak'],
   'Belajar anak': ['/portal/anak-lms', null, 'Kehadiran, nilai kuis, dan status tugas anak'],
