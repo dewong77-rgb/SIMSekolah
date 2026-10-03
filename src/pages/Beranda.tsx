@@ -2,12 +2,15 @@ import { Link } from 'react-router-dom'
 import { berita, sekolah } from '../data/contoh'
 import { useJurusan, useStatistik } from '../lib/dataPublik'
 import { tanggalPanjang } from '../lib/format'
+import { useAuth } from '../auth/AuthContext'
 
 const angka = (n: number | undefined) => (n === undefined ? '...' : n.toLocaleString('id-ID'))
 
 export default function Beranda() {
   const { jurusan } = useJurusan()
   const st = useStatistik()
+  const { session } = useAuth()
+  const pintuPortal = session ? '/portal' : '/masuk'
   const ringkasan = [
     { label: 'Peserta didik aktif', nilai: angka(st?.peserta_didik_aktif) },
     { label: 'Guru dan tenaga kependidikan', nilai: angka(st?.ptk) },
@@ -26,7 +29,7 @@ export default function Beranda() {
           </p>
           <div className="aksi">
             <Link to="/ppdb" className="tombol tombol-isi">Informasi PPDB</Link>
-            <Link to="/lms" className="tombol tombol-garis">Masuk ke LMS</Link>
+            <Link to={pintuPortal} className="tombol tombol-garis">{session ? 'Buka portal' : 'Masuk ke portal'}</Link>
           </div>
         </div>
       </section>
@@ -47,9 +50,9 @@ export default function Beranda() {
           <h2>Layanan cepat</h2>
         </div>
         <div className="grid grid-4">
-          <Link to="/lms" className="kartu tautan">
+          <Link to={session ? '/portal/lms' : '/masuk'} className="kartu tautan">
             <h3>LMS</h3>
-            <p>Ruang belajar daring untuk siswa dan guru.</p>
+            <p>Ruang belajar daring untuk siswa dan guru. {session ? 'Buka kelas Anda.' : 'Masuk untuk membuka kelas.'}</p>
           </Link>
           <Link to="/perpustakaan" className="kartu tautan">
             <h3>Perpustakaan</h3>

@@ -71,11 +71,11 @@ export default function Header() {
             )}
             {session ? (
               <>
-                <li>
-                  <NavLink to="/portal" className="nav-tautan">Portal</NavLink>
-                </li>
                 <li className="nav-masuk">
-                  <button className="tombol tombol-isi" onClick={keluar}>Keluar</button>
+                  <Link to="/portal" className="tombol tombol-isi">Buka portal</Link>
+                </li>
+                <li>
+                  <button className="nav-tautan" onClick={keluar}>Keluar</button>
                 </li>
               </>
             ) : (

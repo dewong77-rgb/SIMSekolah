@@ -8,19 +8,24 @@ import Ikon from './Ikon'
 
 export type Lencana = Partial<Record<'ajuan_masuk' | 'ajuan_saya' | 'disposisi' | 'surat', number>>
 
-type NilaiPortal = { menu: MenuPortal; lencana: Lencana }
+type NilaiPortal = { menu: MenuPortal; lencana: Lencana; nama: string | null }
 const KonteksPortal = createContext<NilaiPortal | null>(null)
 
 /** Menu dan lencana yang sama dipakai sidebar dan halaman utama portal. */
 export function usePortal(): NilaiPortal {
   const k = useContext(KonteksPortal)
-  return k ?? { menu: { kelompok: [], segera: [] }, lencana: {} }
+  return k ?? { menu: { kelompok: [], segera: [] }, lencana: {}, nama: null }
 }
 
 function namaTampil(email: string | undefined): string {
   if (!email) return 'Pengguna'
   // Akun massal memakai email teknis (NIK atau NIP di depan @). Tampilkan bagian depannya.
   return email.endsWith('.invalid') ? email.split('@')[0] : email
+}
+
+// Dapodik menyimpan nama huruf besar semua. Tampilkan huruf awal kapital per kata.
+function kapital(n: string): string {
+  return n.toLowerCase().replace(/(^|[\s.'-])(\p{L})/gu, (_m, a: string, b: string) => a + b.toUpperCase())
 }
 
 const sapaan = () => {
@@ -35,6 +40,7 @@ export default function PortalLayout() {
   const [drawer, setDrawer] = useState(false)
   const [akun, setAkun] = useState(false)
   const [lencana, setLencana] = useState<Lencana>({})
+  const [nama, setNama] = useState<string | null>(null)
   const akunRef = useRef<HTMLDivElement>(null)
 
   const wajibGanti = !!(session?.user.app_metadata as Record<string, unknown> | undefined)?.wajib_ganti_sandi
@@ -69,6 +75,15 @@ export default function PortalLayout() {
     return () => { batal = true }
   }, [punyaMenu, pathname])
 
+  // Nama dari data PTK atau peserta didik. Gagal atau kosong: header memakai email.
+  const userId = session?.user.id
+  useEffect(() => {
+    if (!userId || !profil) { setNama(null); return }
+    let batal = false
+    panggil<string | null>('nama_saya').then((n) => { if (!batal) setNama(n ? kapital(n) : null) }).catch(() => { if (!batal) setNama(null) })
+    return () => { batal = true }
+  }, [userId, profil])
+
   useEffect(() => {
     if (!akun) return
     const tutupLuar = (e: MouseEvent) => { if (!akunRef.current?.contains(e.target as Node)) setAkun(false) }
@@ -80,14 +95,15 @@ export default function PortalLayout() {
 
   const aktif = itemAktif(menu.kelompok, pathname)
   const email = session?.user.email
-  const inisial = (namaTampil(email)[0] ?? 'P').toUpperCase()
+  const tampil = nama ?? namaTampil(email)
+  const inisial = (tampil[0] ?? 'P').toUpperCase()
   const ada = (to: string) => menu.kelompok.some((k) => k.item.some((i) => i.to === to))
   const nAjuan = ada('/portal/ajuan-masuk') ? lencana.ajuan_masuk ?? 0 : 0
   const nDisposisi = ada('/portal/disposisi') ? lencana.disposisi ?? 0 : 0
   const totalPerhatian = nAjuan + nDisposisi
 
   return (
-    <KonteksPortal.Provider value={{ menu, lencana }}>
+    <KonteksPortal.Provider value={{ menu, lencana, nama }}>
       <div className={'portal' + (punyaMenu ? '' : ' tanpa-menu')}>
         <a href="#isi-portal" className="lewati">Lewati ke isi</a>
 
@@ -180,8 +196,8 @@ export default function PortalLayout() {
                   <button className="akun-tombol" aria-expanded={akun} aria-haspopup="menu" onClick={() => setAkun(!akun)}>
                     <span className="avatar-bulat" aria-hidden="true">{inisial}</span>
                     <span className="akun-teks">
-                      <strong>{profil ? namaPeran[profil.peran] : 'Akun'}{superAdmin ? ' (super admin)' : ''}</strong>
-                      <small>{namaTampil(email)}</small>
+                      <strong>{tampil}</strong>
+                      <small>{profil ? namaPeran[profil.peran] : 'Akun'}{superAdmin ? ' (super admin)' : ''}</small>
                     </span>
                   </button>
                   {akun && (
@@ -189,8 +205,9 @@ export default function PortalLayout() {
                       {profil && (
                         <div className="akun-info">
                           <small>Masuk sebagai</small>
-                          <strong>{namaPeran[profil.peran]}</strong>
-                          <small>NPSN {profil.npsn}</small>
+                          <strong>{tampil}</strong>
+                          <small>{namaPeran[profil.peran]} · NPSN {profil.npsn}</small>
+                          <small>{namaTampil(email)}</small>
                           {penugasan.length > 0 && (
                             <ul className="label-tugas">
                               {penugasan.map((p, i) => <li key={i}>{p.jabatan_nama}{p.lingkup_label ? `: ${p.lingkup_label}` : ''}</li>)}

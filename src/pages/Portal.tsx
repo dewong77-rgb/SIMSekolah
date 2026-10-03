@@ -15,7 +15,7 @@ const kalimatPeran = {
 
 export default function Portal() {
   const { profil, superAdmin, penugasan } = useAuth()
-  const { menu, lencana } = usePortal()
+  const { menu, lencana, nama } = usePortal()
   if (!profil) return null
 
   const perhatian = [
@@ -26,7 +26,7 @@ export default function Portal() {
 
   return (
     <Halaman
-      judul={`${sapaan()}`}
+      judul={nama && profil.peran !== 'orang_tua' ? `${sapaan()}, ${nama.split(' ')[0]}` : sapaan()}
       lead={`${namaPeran[profil.peran]}${superAdmin ? ' (super admin)' : ''}. ${kalimatPeran[profil.peran]}`}
     >
       {penugasan.length > 0 && (
