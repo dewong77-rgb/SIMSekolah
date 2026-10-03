@@ -103,6 +103,31 @@ export default function PenggunaHalaman() {
   const buatMassal = (k: Kelompok) =>
     putaran(`Membuat akun ${nama(k)}`, { aksi: 'buat_massal', kelompok: k }, 'dibuat',
       `Buat akun untuk ${nama(k)} yang belum punya akun? Password awal adalah tanggal lahir (DDMMYYYY). Jangan tutup halaman selama berjalan.`)
+  async function buatOrtu() {
+    if (!window.confirm('Buat akun orang tua dari NIK ibu siswa aktif? Username NIK ibu, password awal NPSN. Aman diulang. Jangan tutup halaman selama berjalan.')) return
+    setSibuk(true); setGalat('')
+    let total = 0; let tautan = 0; let tanpa = 0; let akun = 0
+    let gagal: string[] = []
+    try {
+      for (let i = 0; i < 100; i++) {
+        setProgres(`Membuat akun orang tua... ${total} selesai`)
+        const { data, error } = await supabase.functions.invoke('ortu', { body: { aksi: 'buat', batas: 100 } })
+        if (error) {
+          let pesan = error.message
+          try { pesan = (await (error as unknown as { context: Response }).context.json()).galat ?? pesan } catch { /* biarkan */ }
+          throw new Error(pesan)
+        }
+        total += data.dibuat; tautan += data.tautan; tanpa = data.tanpa_nik; akun = data.total_akun; gagal = data.gagal
+        if (data.sisa <= 0 || data.dibuat === 0) break
+      }
+      setProgres(`Selesai: ${total} akun baru, total ${akun} akun orang tua, ${tautan} tautan anak. ${tanpa} siswa dilewati karena NIK ibu tidak ada atau tidak valid. ${gagal.length ? `${gagal.length} gagal: ${gagal.slice(0, 3).join('; ')}.` : ''}`)
+    } catch (e) {
+      setGalat((e as Error).message)
+      setProgres(`Terhenti setelah ${total} akun. Jalankan lagi untuk melanjutkan.`)
+    }
+    await muat()
+    setSibuk(false)
+  }
   const aturSandi = (k: 'siswa' | 'alumni' | 'guru' | 'staf') =>
     putaran(`Menyetel password awal ${k === 'siswa' ? 'siswa aktif' : k}`, { aksi: 'atur_sandi_awal', kelompok: k }, 'diatur',
       `Setel password awal untuk akun ${k === 'siswa' ? 'siswa aktif' : k} yang belum disetel (${k === 'guru' || k === 'staf' ? 'NPSN' : 'tanggal lahir DDMMYYYY'})? Mereka wajib menggantinya saat masuk pertama. Jangan tutup halaman selama berjalan.`)
@@ -158,6 +183,10 @@ export default function PenggunaHalaman() {
             Buat akun staf TU ({Math.max((ring?.staf_total ?? 0) - (hitung.staf ?? 0), 0)} belum)
           </button>
         </div>
+        <div className="aksi jarak">
+          <button className="tombol tombol-isi" disabled={sibuk || !ring} onClick={() => void buatOrtu()}>Buat akun orang tua dari data ibu</button>
+        </div>
+        <p className="catatan">Satu akun per NIK ibu, ditautkan ke semua anak aktif dengan NIK ibu yang sama. Username NIK ibu, password awal NPSN, wajib diganti saat masuk pertama.</p>
         <h3 className="jarak">Password awal</h3>
         <p className="catatan">Siswa dan alumni: tanggal lahir DDMMYYYY. Guru dan staf: NPSN. Semua wajib mengganti password saat masuk pertama.</p>
         <div className="aksi">

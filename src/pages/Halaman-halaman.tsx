@@ -125,11 +125,10 @@ export function Ppdb() {
 export function Lms() {
   return (
     <Halaman judul="LMS" lead="Ruang belajar daring untuk siswa dan guru. Perlu masuk dengan akun sekolah.">
-      <div className="kartu segera">
-        <span className="lencana">Segera hadir</span>
+      <div className="kartu">
         <h3>Ruang belajar</h3>
-        <p>Kelas, materi, tugas, dan nilai akan tersedia di sini. Rancangannya dibahas terpisah.</p>
-        <Link to="/masuk" className="tombol tombol-isi">Masuk</Link>
+        <p>Absen per pertemuan, materi, dan video pelajaran. Tahap awal berjalan untuk Informatika kelas X.</p>
+        <Link to="/portal/lms" className="tombol tombol-isi">Buka ruang belajar</Link>
       </div>
     </Halaman>
   )
