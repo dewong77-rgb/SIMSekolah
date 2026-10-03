@@ -44,6 +44,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
       judul: 'Mengajar',
       item: [
         { to: '/portal/lms', label: 'Ruang belajar', ikon: 'buku', ket: 'Kelas, materi, absensi per pertemuan, kuis, tugas' },
+        { to: '/portal/absensi', label: 'Absensi', ikon: 'centang', ket: 'Jumlah siswa yang diajar dan rekap kehadiran per kelas' },
         { to: '/portal/lms/administrasi', label: 'Administrasi guru', ikon: 'dokumen', ket: 'ATP, modul ajar, program, dan perangkat ajar lain' },
       ],
     },
@@ -105,6 +106,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
       judul: 'Pembelajaran',
       item: [
         { to: '/portal/lms', label: 'Ruang belajar', ikon: 'buku', ket: 'Kelas, materi, absensi per pertemuan' },
+        { to: '/portal/absensi', label: 'Absensi', ikon: 'centang', ket: 'Jumlah siswa yang diajar dan rekap kehadiran per kelas' },
         { to: '/portal/lms/administrasi', label: 'Administrasi guru', ikon: 'dokumen', ket: 'Perangkat ajar dan supervisi' },
       ],
     },
@@ -182,7 +184,6 @@ export function susunMenu(peran: Peran, superAdmin: boolean, izin: Set<string>):
     }
   }
   if (tambahan.length) kelompok.push({ judul: 'Tugas jabatan', item: tambahan })
-  if (peran === 'guru' || peran === 'admin_tu') segera.push({ nama: 'Absensi harian', bidang: 'Kesiswaan' })
   return { kelompok, segera }
 }
 
