@@ -15,6 +15,7 @@ const Akun = lazy(() => import('./pages/Akun'))
 const Pengguna = lazy(() => import('./pages/Pengguna'))
 const Struktur = lazy(() => import('./pages/Struktur'))
 const Penugasan = lazy(() => import('./pages/Penugasan'))
+const ProfilSekolah = lazy(() => import('./pages/ProfilSekolah'))
 const RegisterSurat = lazy(() => import('./pages/Persuratan').then((m) => ({ default: m.RegisterSurat })))
 const DetailSurat = lazy(() => import('./pages/Persuratan').then((m) => ({ default: m.DetailSurat })))
 const KotakDisposisi = lazy(() => import('./pages/Persuratan').then((m) => ({ default: m.KotakDisposisi })))
@@ -107,6 +108,14 @@ createRoot(document.getElementById('root')!).render(
             element={
               <RequireRole peran={['admin_tu']} superAdmin>
                 <Suspense fallback={null}><Penugasan /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/profil-sekolah"
+            element={
+              <RequireRole peran={['admin_tu']} superAdmin>
+                <Suspense fallback={null}><ProfilSekolah /></Suspense>
               </RequireRole>
             }
           />

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
-import { berita, sekolah } from '../data/contoh'
+import { berita } from '../data/contoh'
+import { useSekolah } from '../lib/profilSekolah'
 import { useJurusan, useStatistik } from '../lib/dataPublik'
 import { tanggalPanjang } from '../lib/format'
 import { useAuth } from '../auth/AuthContext'
@@ -7,6 +8,7 @@ import { useAuth } from '../auth/AuthContext'
 const angka = (n: number | undefined) => (n === undefined ? '...' : n.toLocaleString('id-ID'))
 
 export default function Beranda() {
+  const sekolah = useSekolah()
   const { jurusan } = useJurusan()
   const st = useStatistik()
   const { session } = useAuth()
@@ -24,8 +26,7 @@ export default function Beranda() {
           <p className="atas">Sekolah Menengah Kejuruan Negeri</p>
           <h1>{sekolah.nama}</h1>
           <p className="lead">
-            Mencetak lulusan yang siap kerja, siap berwirausaha, dan siap melanjutkan pendidikan,
-            melalui pembelajaran yang dekat dengan dunia industri.
+            {sekolah.data?.slogan ?? 'Mencetak lulusan yang siap kerja, siap berwirausaha, dan siap melanjutkan pendidikan, melalui pembelajaran yang dekat dengan dunia industri.'}
           </p>
           <div className="aksi">
             <Link to="/ppdb" className="tombol tombol-isi">Informasi PPDB</Link>

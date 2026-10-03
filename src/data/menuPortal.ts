@@ -130,6 +130,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
 const khususSuper: ItemPortal[] = [
   { to: '/portal/pengguna', label: 'Kelola pengguna', ikon: 'perisai', ket: 'Lihat akun guru dan siswa, ubah peran, nonaktifkan' },
   { to: '/portal/penugasan', label: 'Penugasan', ikon: 'tas', ket: 'Jabatan tambahan, lingkup, dan struktur organisasi' },
+  { to: '/portal/profil-sekolah', label: 'Profil sekolah', ikon: 'sekolah', ket: 'Alamat, koordinat, kontak, media sosial, visi dan misi' },
 ]
 
 /** Menu dari izin penugasan. Item tanpa `to` belum punya halaman. */

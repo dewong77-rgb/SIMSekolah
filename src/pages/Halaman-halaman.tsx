@@ -1,5 +1,6 @@
 import Halaman, { Segera } from '../components/Halaman'
-import { berita, kalender, koleksiPerpustakaan, mitraIndustri, sekolah } from '../data/contoh'
+import { berita, kalender, koleksiPerpustakaan, mitraIndustri } from '../data/contoh'
+import { bersihWilayah, nomorWa, useSekolah } from '../lib/profilSekolah'
 import { tanggalPanjang } from '../lib/format'
 import { useJurusan } from '../lib/dataPublik'
 import { Link } from 'react-router-dom'
@@ -7,37 +8,43 @@ import { useState, type FormEvent } from 'react'
 import { cekDataAlumni, type HasilAlumni } from '../lib/alumni'
 
 export function Profil() {
+  const { data: d } = useSekolah()
+  const misi = (d?.misi ?? '').split('\n').map((x) => x.trim()).filter(Boolean)
   return (
-    <Halaman judul="Profil Sekolah" lead="Identitas, visi, dan misi sekolah. Teks di bawah masih contoh.">
+    <Halaman judul="Profil Sekolah" lead={d?.slogan ?? 'Identitas, visi, dan misi sekolah.'}>
       <div className="grid grid-2">
         <div className="kartu">
           <h3>Identitas</h3>
           <dl className="daftar">
-            <dt>Nama</dt><dd>{sekolah.nama}</dd>
-            <dt>NPSN</dt><dd>{sekolah.npsn}</dd>
-            <dt>Wilayah</dt><dd>{sekolah.kabupaten}, {sekolah.provinsi}</dd>
-            <dt>Jenjang</dt><dd>SMK</dd>
+            <dt>Nama</dt><dd>{d?.nama ?? '-'}</dd>
+            <dt>NPSN</dt><dd>{d?.npsn ?? '-'}</dd>
+            <dt>Jenjang</dt><dd>{d?.jenjang ?? 'SMK'}{d?.status_sekolah ? `, ${d.status_sekolah}` : ''}</dd>
+            <dt>Wilayah</dt><dd>{[bersihWilayah(d?.kecamatan) && `Kecamatan ${bersihWilayah(d?.kecamatan)}`, bersihWilayah(d?.kabupaten_kota) && `Kabupaten ${bersihWilayah(d?.kabupaten_kota)}`, bersihWilayah(d?.provinsi)].filter(Boolean).join(', ') || '-'}</dd>
+            {d?.akreditasi && <><dt>Akreditasi</dt><dd>{d.akreditasi}</dd></>}
+            {d?.tahun_berdiri && <><dt>Berdiri</dt><dd>{d.tahun_berdiri}</dd></>}
           </dl>
         </div>
         <div className="kartu">
           <h3>Visi</h3>
-          <p>Contoh visi sekolah. Isi dengan visi resmi.</p>
+          <p>{d?.visi ?? 'Visi sekolah belum diisi.'}</p>
           <h3>Misi</h3>
-          <ul>
-            <li>Contoh misi pertama.</li>
-            <li>Contoh misi kedua.</li>
-            <li>Contoh misi ketiga.</li>
-          </ul>
+          {misi.length > 0 ? <ul>{misi.map((m, i) => <li key={i}>{m}</li>)}</ul> : <p>Misi sekolah belum diisi.</p>}
         </div>
       </div>
+      {(d?.tentang || d?.sejarah) && (
+        <div className="grid grid-2 jarak">
+          {d?.tentang && <div className="kartu"><h3>Tentang sekolah</h3><p style={{ whiteSpace: 'pre-line' }}>{d.tentang}</p></div>}
+          {d?.sejarah && <div className="kartu"><h3>Sejarah</h3><p style={{ whiteSpace: 'pre-line' }}>{d.sejarah}</p></div>}
+        </div>
+      )}
       <div className="grid grid-3 jarak">
-        <Segera nama="Sejarah sekolah" />
         <Segera nama="Guru dan tenaga kependidikan" />
         <Segera nama="Sarana dan prasarana" />
       </div>
     </Halaman>
   )
 }
+
 
 export function Jurusan() {
   const { jurusan, galat } = useJurusan()
@@ -250,19 +257,43 @@ export function BeritaHalaman() {
 }
 
 export function Kontak() {
+  const sekolah = useSekolah()
+  const d = sekolah.data
+  const ada = d?.lintang != null && d?.bujur != null
+  const peta = ada ? (() => {
+    const lat = Number(d!.lintang), lon = Number(d!.bujur), g = 0.004
+    return `https://www.openstreetmap.org/export/embed.html?bbox=${lon - g}%2C${lat - g}%2C${lon + g}%2C${lat + g}&layer=mapnik&marker=${lat}%2C${lon}`
+  })() : null
   return (
     <Halaman judul="Kontak" lead="Hubungi sekolah.">
       <div className="grid grid-2">
         <div className="kartu">
           <h3>Alamat dan layanan</h3>
           <dl className="daftar">
-            <dt>Alamat</dt><dd>{sekolah.alamat}</dd>
-            <dt>Telepon</dt><dd>{sekolah.telepon}</dd>
-            <dt>Email</dt><dd>{sekolah.email}</dd>
-            <dt>Jam layanan</dt><dd>{sekolah.jam}</dd>
+            <dt>Alamat</dt><dd>{sekolah.alamat ?? '-'}</dd>
+            <dt>Telepon</dt><dd>{sekolah.telepon ?? '-'}</dd>
+            {d?.whatsapp && <><dt>WhatsApp</dt><dd><a href={`https://wa.me/${nomorWa(d.whatsapp)}`} rel="noopener noreferrer" target="_blank">{d.whatsapp}</a></dd></>}
+            <dt>Email</dt><dd>{sekolah.email ? <a href={`mailto:${sekolah.email}`}>{sekolah.email}</a> : '-'}</dd>
+            <dt>Jam layanan</dt><dd>{d?.jam_layanan ?? '-'}</dd>
           </dl>
+          {sekolah.sosial.length > 0 && (
+            <>
+              <h3 style={{ marginTop: 16 }}>Media sosial</h3>
+              <ul className="label-tugas" style={{ margin: 0 }}>
+                {sekolah.sosial.map(([n, u]) => <li key={n}><a href={u} rel="noopener noreferrer" target="_blank">{n}</a></li>)}
+              </ul>
+            </>
+          )}
         </div>
-        <Segera nama="Peta lokasi" />
+        {peta ? (
+          <div className="kartu">
+            <h3>Peta lokasi</h3>
+            <iframe title="Peta lokasi sekolah" src={peta} loading="lazy" style={{ width: '100%', height: 320, border: 0, borderRadius: 8 }} />
+            <p style={{ margin: '8px 0 0' }}>
+              <a href={`https://www.google.com/maps?q=${d!.lintang},${d!.bujur}`} rel="noopener noreferrer" target="_blank">Buka di Google Maps</a>
+            </p>
+          </div>
+        ) : <Segera nama="Peta lokasi" />}
       </div>
     </Halaman>
   )

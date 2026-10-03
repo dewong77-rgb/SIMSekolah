@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom'
-import { sekolah } from '../data/contoh'
+import { nomorWa, useSekolah } from '../lib/profilSekolah'
 
 export default function Footer() {
+  const sekolah = useSekolah()
+  const wa = sekolah.data?.whatsapp
   return (
     <footer className="footer">
       <div className="wadah footer-grid">
@@ -10,7 +12,7 @@ export default function Footer() {
           <p>
             NPSN {sekolah.npsn}
             <br />
-            {sekolah.kabupaten}, {sekolah.provinsi}
+            {sekolah.alamat ?? sekolah.wilayah}
           </p>
         </div>
         <div>
@@ -27,13 +29,19 @@ export default function Footer() {
           <strong>Kontak</strong>
           <p>
             {sekolah.telepon}
-            <br />
+            {sekolah.telepon && <br />}
+            {wa && <><a href={`https://wa.me/${nomorWa(wa)}`} rel="noopener noreferrer" target="_blank">WhatsApp {wa}</a><br /></>}
             {sekolah.email}
           </p>
+          {sekolah.sosial.length > 0 && (
+            <p className="footer-sosial">
+              {sekolah.sosial.map(([n, u]) => <a key={n} href={u} rel="noopener noreferrer" target="_blank" style={{ marginRight: 12 }}>{n}</a>)}
+            </p>
+          )}
         </div>
       </div>
       <div className="wadah footer-bawah">
-        <small>© {new Date().getFullYear()} {sekolah.nama}. Tahap prototipe: data masih contoh.</small>
+        <small>© {new Date().getFullYear()} {sekolah.nama}</small>
       </div>
     </footer>
   )
