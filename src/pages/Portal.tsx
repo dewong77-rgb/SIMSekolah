@@ -38,7 +38,7 @@ const menuIzin: { izin: string; nama: string; bidang: string; to?: string }[] = 
 ]
 
 const menuPeran: Record<Peran, string[]> = {
-  admin_tu: ['Ajuan perbaikan', 'Persuratan', 'Unggah Dapodik', 'Riwayat unggah', 'Peserta didik', 'Guru dan tendik', 'Rombel', 'Pengguna dan akun'],
+  admin_tu: ['Ajuan perbaikan', 'Persuratan', 'LMS', 'Unggah Dapodik', 'Riwayat unggah', 'Peserta didik', 'Guru dan tendik', 'Rombel', 'Pengguna dan akun'],
   guru: ['Profil saya', 'Ajuan saya', 'Disposisi saya', 'Daftar siswa', 'Rombel', 'Data PTK', 'Absensi', 'LMS'],
   staf: ['Profil saya', 'Ajuan saya', 'Disposisi saya'],
   siswa: ['Data saya', 'Ajuan saya', 'Kelas saya', 'LMS'],
@@ -61,6 +61,7 @@ const tautanMenu: Record<string, [string, string | null, string]> = {
   'Pengguna dan akun': ['/portal/akun', 'Akun guru', 'Daftarkan akun dari data PTK'],
   'Disposisi saya': ['/portal/disposisi', null, 'Instruksi dari pimpinan untuk Anda'],
   'Persuratan': ['/portal/surat', null, 'Register surat masuk dan keluar, disposisi'],
+  'LMS': ['/portal/lms', 'Ruang belajar (LMS)', 'Kelas, materi, absensi per pertemuan'],
 }
 
 export default function Portal() {
