@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import Halaman from '../components/Halaman'
 import { panggil, tglJam } from '../lib/rpc'
-import { biru, dariInputLokal, keInputLokal, merah, nilaiTeks } from './lmsUtil'
+import { biru, dariInputLokal, keInputLokal, merah, nilaiTeks, unduhCsv } from './lmsUtil'
 import type { PertemuanRingkas } from './LmsKuis'
 
 // Tugas dan pengumpulan. Pengumpulan berupa teks dan atau tautan https (Drive, GitHub, dan sebagainya).
@@ -198,6 +198,12 @@ function TugasGuru({ kelasId, t, pertemuan, muat }: { kelasId: string; t: Tugas;
       {atur && <FormTugas kelasId={kelasId} pertemuan={pertemuan} awal={t} selesai={async () => { await muat(); setAtur(false) }} />}
       <div className="kartu jarak">
         <h3>Siapa yang sudah mengumpulkan</h3>
+        <div className="aksi">
+          <button className="tombol" style={biru} disabled={!baris} onClick={() => baris && unduhCsv('rekap-tugas.csv', [
+            ['No', 'Nama', 'NISN', 'Status', 'Dikumpulkan', 'Nilai', 'Umpan balik'],
+            ...baris.map((b, i) => [b.no_urut ?? i + 1, b.nama, b.nisn, labelStatus[b.status], b.dikumpul_pada ? tglJam(b.dikumpul_pada) : '', b.nilai, b.umpan_balik]),
+          ])}>Unduh CSV</button>
+        </div>
         {baris && <p className="catatan">{hitung('terkumpul') + hitung('terlambat') + hitung('dinilai')} dari {baris.length} sudah mengumpulkan ({hitung('terlambat')} terlambat), {hitung('dinilai')} dinilai, {hitung('belum')} belum.</p>}
         <div className="tabel-bungkus jarak">
           <table>

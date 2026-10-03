@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import Halaman from '../components/Halaman'
 import { panggil, tglJam } from '../lib/rpc'
-import { biru, dariInputLokal, dua, keInputLokal, merah, nilaiTeks } from './lmsUtil'
+import { biru, dariInputLokal, dua, keInputLokal, merah, nilaiTeks, unduhCsv } from './lmsUtil'
 
 // Kuis dan ulangan: pilihan ganda, isian singkat, esai dengan rubrik. Semua data lewat fungsi basis data lms_*.
 // Kunci jawaban dan rubrik skor baru dikirim setelah siswa selesai.
@@ -337,6 +337,13 @@ function RekapKuis({ asesmenId, kkm, versi }: { asesmenId: string; kkm: number |
   return (
     <div className="kartu jarak">
       <h3>Siapa yang sudah mengerjakan</h3>
+      <div className="aksi">
+        <button className="tombol" style={biru} disabled={!baris} onClick={() => baris && unduhCsv('rekap-kuis.csv', [
+          ['No', 'Nama', 'NISN', 'Status', 'Percobaan', 'Nilai terbaik', 'Nilai terakhir', kkm !== null ? `KKM ${kkm}` : 'KKM'],
+          ...baris.map((b, i) => [b.no_urut ?? i + 1, b.nama, b.nisn, labelStatusKuis[b.status], b.percobaan, b.nilai_terbaik, b.nilai_terakhir,
+            kkm !== null && b.nilai_terbaik !== null ? (Number(b.nilai_terbaik) >= kkm ? 'Lulus' : 'Belum lulus') : '']),
+        ])}>Unduh CSV</button>
+      </div>
       {baris && (
         <p className="catatan">
           {hitung('selesai')} selesai, {hitung('perlu_koreksi')} menunggu koreksi, {hitung('berjalan')} sedang mengerjakan, {hitung('belum')} belum.

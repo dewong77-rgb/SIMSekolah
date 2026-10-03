@@ -7,6 +7,8 @@ import { supabase } from '../lib/supabase'
 import { DaftarKuis } from './LmsKuis'
 import { DaftarTugas } from './LmsTugas'
 import { Forum } from './LmsForum'
+import { unduhCsv } from './lmsUtil'
+import { unduhRekapKelas } from './lmsXlsx'
 
 // Semua data lewat fungsi basis data lms_*. Tabel LMS tidak punya policy, jadi tidak dibaca langsung.
 
@@ -151,6 +153,14 @@ export function DetailKelas() {
     setSibuk(false)
   }
 
+  const [mengunduh, setMengunduh] = useState(false)
+  async function unduhSemua() {
+    if (!kelas) return
+    setMengunduh(true); setGalat('')
+    try { await unduhRekapKelas(kelas) } catch (er) { setGalat('Gagal menyiapkan rekap. ' + (er as Error).message) }
+    setMengunduh(false)
+  }
+
   return (
     <Halaman judul={kelas ? `${kelas.mapel} ${kelas.rombel}` : 'Kelas'} lead={kelas ? `Pengampu: ${kelas.guru}` : undefined}>
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
@@ -160,6 +170,9 @@ export function DetailKelas() {
           <Link to={`/portal/lms/${kelasId}/rekap`} className="tombol" style={{ color: 'var(--warna-utama)' }}>Rekap kehadiran</Link>
           <Link to={`/portal/lms/${kelasId}/nilai`} className="tombol" style={{ color: 'var(--warna-utama)' }}>Buku nilai</Link>
           <Link to={`/portal/lms/${kelasId}/jurnal`} className="tombol" style={{ color: 'var(--warna-utama)' }}>Jurnal mengajar</Link>
+          <button className="tombol" style={{ color: 'var(--warna-utama)' }} disabled={!kelas || mengunduh} onClick={() => void unduhSemua()}>
+            {mengunduh ? 'Menyiapkan berkas...' : 'Unduh rekap (Excel)'}
+          </button>
         </div>
       )}
       {form && (
@@ -516,6 +529,12 @@ export function RekapKelas() {
             ))}
           </tbody>
         </table>
+      </div>
+      <div className="aksi jarak">
+        <button className="tombol" style={{ color: 'var(--warna-utama)' }} disabled={!data} onClick={() => data && unduhCsv('rekap-kehadiran.csv', [
+          ['Nama', 'NISN', 'Hadir', 'Izin', 'Sakit', 'Alpa', 'Persen hadir'],
+          ...data.siswa.map((s) => [s.nama, s.nisn, s.hadir, s.izin, s.sakit, s.alpa, data.total_sesi > 0 ? Math.round((s.hadir / data.total_sesi) * 100) : null]),
+        ])}>Unduh CSV</button>
       </div>
       <p className="catatan jarak">Pertemuan yang belum dicatat untuk seorang siswa tidak dihitung hadir.</p>
       <Kembali ke={`/portal/lms/${kelasId}`} teks="Kembali ke kelas" />
