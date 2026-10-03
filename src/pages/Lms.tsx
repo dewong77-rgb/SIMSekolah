@@ -4,6 +4,11 @@ import Halaman from '../components/Halaman'
 import { useAuth } from '../auth/AuthContext'
 import { panggil, tgl, tglJam } from '../lib/rpc'
 import { supabase } from '../lib/supabase'
+import { DaftarKuis } from './LmsKuis'
+import { DaftarTugas } from './LmsTugas'
+import { Forum } from './LmsForum'
+import { unduhCsv } from './lmsUtil'
+import { unduhRekapKelas } from './lmsXlsx'
 
 // Semua data lewat fungsi basis data lms_*. Tabel LMS tidak punya policy, jadi tidak dibaca langsung.
 
@@ -18,6 +23,7 @@ type Pertemuan = {
 }
 type Materi = { id: string; urutan: number; jenis: 'teks' | 'video' | 'tautan' | 'berkas'; judul: string; isi: string | null; url: string | null; selesai: boolean }
 type BarisAbsen = { peserta_didik_id: string; nama: string; nisn: string | null; no_urut: number | null; status: string; sumber: string | null; catatan: string | null }
+type Progres = { total_materi: number; total_kuis: number; siswa: { peserta_didik_id: string; materi_selesai: number; kuis_selesai: number }[] }
 type BarisRekap = { peserta_didik_id: string; nama: string; nisn: string | null; hadir: number; izin: number; sakit: number; alpa: number }
 
 const labelStatus: Record<string, string> = { hadir: 'Hadir', izin: 'Izin', sakit: 'Sakit', alpa: 'Alpa', belum: 'Belum dicatat' }
@@ -77,6 +83,7 @@ export function DaftarKelas() {
       {bolehBuat && (
         <div className="aksi">
           <button className="tombol tombol-isi" onClick={() => setForm(!form)}>{form ? 'Tutup formulir' : 'Buat kelas ajar'}</button>
+          <Link to="/portal/lms/administrasi" className="tombol" style={{ color: 'var(--warna-utama)' }}>Administrasi guru</Link>
         </div>
       )}
       {form && (
@@ -146,6 +153,14 @@ export function DetailKelas() {
     setSibuk(false)
   }
 
+  const [mengunduh, setMengunduh] = useState(false)
+  async function unduhSemua() {
+    if (!kelas) return
+    setMengunduh(true); setGalat('')
+    try { await unduhRekapKelas(kelas) } catch (er) { setGalat('Gagal menyiapkan rekap. ' + (er as Error).message) }
+    setMengunduh(false)
+  }
+
   return (
     <Halaman judul={kelas ? `${kelas.mapel} ${kelas.rombel}` : 'Kelas'} lead={kelas ? `Pengampu: ${kelas.guru}` : undefined}>
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
@@ -153,6 +168,11 @@ export function DetailKelas() {
         <div className="aksi">
           <button className="tombol tombol-isi" onClick={() => setForm(!form)}>{form ? 'Tutup formulir' : 'Tambah pertemuan'}</button>
           <Link to={`/portal/lms/${kelasId}/rekap`} className="tombol" style={{ color: 'var(--warna-utama)' }}>Rekap kehadiran</Link>
+          <Link to={`/portal/lms/${kelasId}/nilai`} className="tombol" style={{ color: 'var(--warna-utama)' }}>Buku nilai</Link>
+          <Link to={`/portal/lms/${kelasId}/jurnal`} className="tombol" style={{ color: 'var(--warna-utama)' }}>Jurnal mengajar</Link>
+          <button className="tombol" style={{ color: 'var(--warna-utama)' }} disabled={!kelas || mengunduh} onClick={() => void unduhSemua()}>
+            {mengunduh ? 'Menyiapkan berkas...' : 'Unduh rekap (Excel)'}
+          </button>
         </div>
       )}
       {form && (
@@ -200,6 +220,8 @@ export function DetailKelas() {
           </tbody>
         </table>
       </div>
+      {kelas && <DaftarKuis kelasId={kelasId} kelola={kelola} pertemuan={(daftar ?? []).map((p) => ({ id: p.id, nomor: p.nomor, judul: p.judul }))} />}
+      {kelas && <DaftarTugas kelasId={kelasId} kelola={kelola} pertemuan={(daftar ?? []).map((p) => ({ id: p.id, nomor: p.nomor, judul: p.judul }))} />}
       <Kembali ke="/portal/lms" teks="Kembali ke daftar kelas" />
     </Halaman>
   )
@@ -271,9 +293,16 @@ function KontrolAbsen({ p, muat }: { p: Pertemuan; muat: () => Promise<void> }) 
 
 function RekapPertemuan({ pertemuanId, versi }: { pertemuanId: string; versi: number }) {
   const [baris, setBaris] = useState<BarisAbsen[] | null>(null)
+  const [progres, setProgres] = useState<Progres | null>(null)
   const [galat, setGalat] = useState('')
   const muat = useCallback(async () => {
-    try { setBaris((await panggil<{ siswa: BarisAbsen[] }>('lms_rekap_pertemuan', { p_pertemuan: pertemuanId })).siswa) } catch (e) { setGalat((e as Error).message) }
+    try {
+      const [r, g] = await Promise.all([
+        panggil<{ siswa: BarisAbsen[] }>('lms_rekap_pertemuan', { p_pertemuan: pertemuanId }),
+        panggil<Progres>('lms_progres_baca', { p_pertemuan: pertemuanId }),
+      ])
+      setBaris(r.siswa); setProgres(g)
+    } catch (e) { setGalat((e as Error).message) }
   }, [pertemuanId])
   useEffect(() => { void muat() }, [muat, versi])
   async function ubah(pd: string, status: string) {
@@ -288,14 +317,16 @@ function RekapPertemuan({ pertemuanId, versi }: { pertemuanId: string; versi: nu
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
       <div className="tabel-bungkus jarak">
         <table>
-          <thead><tr><th>No</th><th>Nama</th><th>Status</th><th>Ubah</th></tr></thead>
+          <thead><tr><th>No</th><th>Nama</th><th>Status</th><th>Materi selesai</th><th>Kuis</th><th>Ubah</th></tr></thead>
           <tbody>
-            {!baris && <tr><td colSpan={4}>Memuat...</td></tr>}
+            {!baris && <tr><td colSpan={6}>Memuat...</td></tr>}
             {(baris ?? []).map((b, i) => (
               <tr key={b.peserta_didik_id}>
                 <td>{b.no_urut ?? i + 1}</td>
                 <td>{b.nama}<br /><small>{b.nisn ?? ''}</small></td>
                 <td><span className={`status ${kelasStatus[b.status]}`}>{labelStatus[b.status]}</span>{b.sumber === 'guru' ? <small> (guru)</small> : null}</td>
+                <td>{(() => { const g = progres?.siswa.find((x) => x.peserta_didik_id === b.peserta_didik_id); return progres && progres.total_materi > 0 ? `${g?.materi_selesai ?? 0}/${progres.total_materi}` : '-' })()}</td>
+                <td>{(() => { const g = progres?.siswa.find((x) => x.peserta_didik_id === b.peserta_didik_id); return progres && progres.total_kuis > 0 ? `${g?.kuis_selesai ?? 0}/${progres.total_kuis}` : '-' })()}</td>
                 <td>
                   <select aria-label={`Ubah status ${b.nama}`} value="" onChange={(e) => e.target.value && void ubah(b.peserta_didik_id, e.target.value)}>
                     <option value="">Pilih</option>
@@ -311,8 +342,8 @@ function RekapPertemuan({ pertemuanId, versi }: { pertemuanId: string; versi: nu
   )
 }
 
-function FormMateri({ pertemuanId, muat }: { pertemuanId: string; muat: () => Promise<void> }) {
-  const [v, setV] = useState({ jenis: 'teks', judul: '', isi: '', url: '' })
+function FormMateri({ pertemuanId, muat, awal, selesai }: { pertemuanId: string; muat: () => Promise<void>; awal?: Materi | null; selesai?: () => void }) {
+  const [v, setV] = useState<{ jenis: string; judul: string; isi: string; url: string }>({ jenis: awal?.jenis ?? 'teks', judul: awal?.judul ?? '', isi: awal?.isi ?? '', url: awal?.url ?? '' })
   const [galat, setGalat] = useState('')
   const [sibuk, setSibuk] = useState(false)
   async function simpan(e: FormEvent) {
@@ -320,17 +351,18 @@ function FormMateri({ pertemuanId, muat }: { pertemuanId: string; muat: () => Pr
     setSibuk(true); setGalat('')
     try {
       await panggil('lms_simpan_materi', {
-        p_pertemuan: pertemuanId, p_id: null, p_jenis: v.jenis, p_judul: v.judul,
+        p_pertemuan: pertemuanId, p_id: awal?.id ?? null, p_jenis: v.jenis, p_judul: v.judul,
         p_isi: v.jenis === 'teks' ? v.isi : null, p_url: v.jenis === 'teks' ? null : v.url, p_urutan: null,
       })
-      setV({ jenis: v.jenis, judul: '', isi: '', url: '' })
+      if (!awal) setV({ jenis: v.jenis, judul: '', isi: '', url: '' })
       await muat()
+      selesai?.()
     } catch (er) { setGalat((er as Error).message) }
     setSibuk(false)
   }
   return (
     <form className="kartu form jarak" onSubmit={simpan}>
-      <h3>Tambah materi</h3>
+      <h3>{awal ? 'Ubah materi' : 'Tambah materi'}</h3>
       <div className="grid grid-2">
         <label>Jenis
           <select value={v.jenis} onChange={(e) => setV({ ...v, jenis: e.target.value })}>
@@ -344,7 +376,7 @@ function FormMateri({ pertemuanId, muat }: { pertemuanId: string; muat: () => Pr
         ? <label>Isi bacaan<textarea required rows={8} maxLength={20000} value={v.isi} onChange={(e) => setV({ ...v, isi: e.target.value })} /><span className="petunjuk">Teks biasa. Baris kosong memisahkan paragraf.</span></label>
         : <label>Tautan<input required type="url" pattern="https://.*" value={v.url} onChange={(e) => setV({ ...v, url: e.target.value })} placeholder="https://" /><span className="petunjuk">Harus diawali https://.</span></label>}
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
-      <div className="aksi"><button className="tombol tombol-isi" disabled={sibuk}>{sibuk ? 'Menyimpan...' : 'Simpan materi'}</button></div>
+      <div className="aksi"><button className="tombol tombol-isi" disabled={sibuk}>{sibuk ? 'Menyimpan...' : 'Simpan materi'}</button>{awal && <button type="button" className="tombol" style={{ color: 'var(--warna-utama)' }} onClick={() => selesai?.()}>Batal</button>}</div>
     </form>
   )
 }
@@ -361,6 +393,7 @@ export function RuangPertemuan() {
   const [kode, setKode] = useState('')
   const [sibuk, setSibuk] = useState(false)
   const [versi, setVersi] = useState(0)
+  const [ubahMateri, setUbahMateri] = useState<string | null>(null)
 
   const muat = useCallback(async () => {
     try {
@@ -444,12 +477,21 @@ export function RuangPertemuan() {
           {materi.length === 0 && <div className="kartu"><p className="catatan">Belum ada materi pada pertemuan ini.</p></div>}
           {materi.map((m) => (
             <div key={m.id}>
-              <IsiMateri m={m} siswa={!kelola} selesai={selesai} />
-              {kelola && <div className="aksi"><button className="tombol" style={{ color: '#8a1f1f', borderColor: '#8a1f1f' }} onClick={() => void hapus(m.id)}>Hapus materi ini</button></div>}
+              {ubahMateri === m.id
+                ? <FormMateri pertemuanId={id} muat={muat} awal={m} selesai={() => setUbahMateri(null)} />
+                : <IsiMateri m={m} siswa={!kelola} selesai={selesai} />}
+              {kelola && ubahMateri !== m.id && (
+                <div className="aksi">
+                  <button className="tombol" style={{ color: 'var(--warna-utama)' }} onClick={() => setUbahMateri(m.id)}>Ubah materi ini</button>
+                  <button className="tombol" style={{ color: '#8a1f1f', borderColor: '#8a1f1f' }} onClick={() => void hapus(m.id)}>Hapus materi ini</button>
+                </div>
+              )}
             </div>
           ))}
         </>
       )}
+
+      {p && !terkunci && (kelola || p.status === 'terbit') && <Forum pertemuanId={id} kelola={kelola} />}
 
       {kelola && p && (
         <>
@@ -487,6 +529,12 @@ export function RekapKelas() {
             ))}
           </tbody>
         </table>
+      </div>
+      <div className="aksi jarak">
+        <button className="tombol" style={{ color: 'var(--warna-utama)' }} disabled={!data} onClick={() => data && unduhCsv('rekap-kehadiran.csv', [
+          ['Nama', 'NISN', 'Hadir', 'Izin', 'Sakit', 'Alpa', 'Persen hadir'],
+          ...data.siswa.map((s) => [s.nama, s.nisn, s.hadir, s.izin, s.sakit, s.alpa, data.total_sesi > 0 ? Math.round((s.hadir / data.total_sesi) * 100) : null]),
+        ])}>Unduh CSV</button>
       </div>
       <p className="catatan jarak">Pertemuan yang belum dicatat untuk seorang siswa tidak dihitung hadir.</p>
       <Kembali ke={`/portal/lms/${kelasId}`} teks="Kembali ke kelas" />
