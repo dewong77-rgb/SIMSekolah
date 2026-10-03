@@ -323,17 +323,40 @@ function TabTambah({ ptk, jabatan, ta, npsn, opsiLingkup, sibuk, jalankan }: Umu
 
 // ------------------------------------------------------------------ jabatan
 function TabJabatan({ jabatan, izinJabatan, sibuk, jalankan }: Umum & { jabatan: Jabatan[]; izinJabatan: Map<string, string[]> }) {
+  const [saring, setSaring] = useState<'semua' | 'tampil' | 'sembunyi'>('semua')
+  const [cari, setCari] = useState('')
   const ubah = (kode: string, nilai: Partial<Jabatan>) => jalankan(() => supabase.from('jabatan').update(nilai).eq('kode', kode))
+  const nTampil = jabatan.filter((j) => j.tampil_publik).length
+  const k = cari.trim().toLowerCase()
+  const daftar = jabatan.filter((j) =>
+    (saring === 'semua' || (saring === 'tampil') === j.tampil_publik) && (!k || j.nama.toLowerCase().includes(k)))
   return (
     <>
-      <p className="catatan">Atasan menentukan letak jabatan di bagan struktur organisasi publik. Jabatan yang tidak ditandai tampil publik tidak muncul di halaman Struktur Organisasi.</p>
+      <p className="catatan">
+        Sakelar Tampil/Sembunyi menentukan apakah jabatan muncul di halaman publik Struktur Organisasi. Jabatan yang disembunyikan tetap bisa diberi penugasan dan tetap memberi izin. Bawahannya naik ke bawah Kepala Sekolah.
+      </p>
+      <div className="bilah-filter jarak" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        <input type="search" value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari jabatan" aria-label="Cari jabatan" />
+        {([['semua', `Semua (${jabatan.length})`], ['tampil', `Tampil (${nTampil})`], ['sembunyi', `Disembunyikan (${jabatan.length - nTampil})`]] as const).map(([v, t]) => (
+          <button key={v} type="button" className={'tombol' + (saring === v ? ' tombol-isi' : '')} aria-pressed={saring === v} onClick={() => setSaring(v)}>{t}</button>
+        ))}
+      </div>
       <div className="tabel-bungkus jarak">
         <table>
-          <thead><tr><th>Jabatan</th><th>Atasan</th><th>Urutan</th><th>Tampil publik</th><th>Izin</th></tr></thead>
+          <thead><tr><th>Jabatan</th><th>Tampil di publik</th><th>Atasan</th><th>Urutan</th><th>Izin</th></tr></thead>
           <tbody>
-            {jabatan.map((j) => (
-              <tr key={j.kode}>
+            {daftar.length === 0 && <tr><td colSpan={5}>Tidak ada jabatan yang cocok.</td></tr>}
+            {daftar.map((j) => (
+              <tr key={j.kode} style={j.tampil_publik ? undefined : { opacity: 0.65 }}>
                 <td>{j.nama}<br /><small>Lingkup: {j.lingkup}</small></td>
+                <td>
+                  <button type="button" role="switch" aria-checked={j.tampil_publik} disabled={sibuk}
+                    aria-label={`${j.tampil_publik ? 'Sembunyikan' : 'Tampilkan'} ${j.nama} di struktur organisasi publik`}
+                    onClick={() => ubah(j.kode, { tampil_publik: !j.tampil_publik })}
+                    className="tombol" style={{ padding: '4px 12px', minWidth: 120, ...(j.tampil_publik ? { background: 'var(--warna-utama)', color: '#fff' } : {}) }}>
+                    {j.tampil_publik ? 'Tampil' : 'Disembunyikan'}
+                  </button>
+                </td>
                 <td>
                   <select value={j.induk_kode ?? ''} disabled={sibuk} aria-label={`Atasan ${j.nama}`} onChange={(e) => ubah(j.kode, { induk_kode: e.target.value || null })}>
                     <option value="">Puncak bagan</option>
@@ -344,7 +367,6 @@ function TabJabatan({ jabatan, izinJabatan, sibuk, jalankan }: Umum & { jabatan:
                   <input type="number" defaultValue={j.urutan} style={{ width: 70 }} disabled={sibuk} aria-label={`Urutan ${j.nama}`}
                     onBlur={(e) => Number(e.target.value) !== j.urutan && ubah(j.kode, { urutan: Number(e.target.value) })} />
                 </td>
-                <td><input type="checkbox" checked={j.tampil_publik} disabled={sibuk} aria-label={`Tampil publik ${j.nama}`} onChange={(e) => ubah(j.kode, { tampil_publik: e.target.checked })} /></td>
                 <td>{(izinJabatan.get(j.kode) ?? []).map((i) => <Fragment key={i}><code>{i}</code>{' '}</Fragment>)}{!(izinJabatan.get(j.kode) ?? []).length && '-'}</td>
               </tr>
             ))}

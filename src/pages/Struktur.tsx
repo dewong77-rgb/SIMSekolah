@@ -107,6 +107,13 @@ export default function Struktur() {
       const induk = s.induk && peta.get(s.induk)?.bagan ? s.induk : null
       anak.set(induk, [...(anak.get(induk) ?? []), s])
     }
+    // jabatan yang atasannya disembunyikan dipasang di bawah puncak bagan pertama, bukan jadi bagan terpisah
+    const puncak = (anak.get(null) ?? []).filter((x) => !x.induk)
+    const yatim = (anak.get(null) ?? []).filter((x) => x.induk)
+    if (puncak.length && yatim.length) {
+      anak.set(null, puncak)
+      anak.set(puncak[0].kode, [...(anak.get(puncak[0].kode) ?? []), ...yatim].sort((a, b) => a.urutan - b.urutan))
+    }
     const wali = (peta.get('wali_kelas')?.pemegang ?? []).slice().sort((a, b) => (a.label ?? '').localeCompare(b.label ?? '', 'id', { numeric: true }))
     const ekskul = peta.get('pembina_ekskul')?.pemegang ?? []
     return { anak, akar: anak.get(null) ?? [], wali, ekskul, adaIsi: semua.some((s) => s.pemegang.length > 0) }
