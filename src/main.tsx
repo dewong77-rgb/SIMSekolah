@@ -5,13 +5,18 @@ import Layout from './components/Layout'
 import Beranda from './pages/Beranda'
 import {
   Akademik, Alumni, BeritaHalaman, HubunganIndustri, Jurusan, Kontak,
-  Lms, Masuk, Perpustakaan, Ppdb, Profil, TidakAda,
+  Lms, Perpustakaan, Ppdb, Profil, TidakAda,
 } from './pages/Halaman-halaman'
+import Masuk from './pages/Masuk'
+import Portal from './pages/Portal'
+import { AuthProvider } from './auth/AuthContext'
+import RequireRole from './auth/RequireRole'
 import './styles.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
+      <AuthProvider>
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<Beranda />} />
@@ -26,9 +31,18 @@ createRoot(document.getElementById('root')!).render(
           <Route path="berita" element={<BeritaHalaman />} />
           <Route path="kontak" element={<Kontak />} />
           <Route path="masuk" element={<Masuk />} />
+          <Route
+            path="portal"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'siswa', 'orang_tua']}>
+                <Portal />
+              </RequireRole>
+            }
+          />
           <Route path="*" element={<TidakAda />} />
         </Route>
       </Routes>
+      </AuthProvider>
     </BrowserRouter>
   </StrictMode>,
 )

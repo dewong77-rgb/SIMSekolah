@@ -189,7 +189,7 @@ export function Alumni() {
           <button className="tombol tombol-isi" disabled={memuat || nisn.length !== 10 || !lahir}>
             {memuat ? 'Memeriksa...' : 'Periksa data'}
           </button>
-          <p className="catatan">Prototipe: belum tersambung ke basis data.</p>
+          <p className="catatan">Pemeriksaan dibatasi jumlah percobaannya demi keamanan data.</p>
         </form>
 
         <div aria-live="polite">
@@ -254,44 +254,6 @@ export function Kontak() {
           </dl>
         </div>
         <Segera nama="Peta lokasi" />
-      </div>
-    </Halaman>
-  )
-}
-
-export function Masuk() {
-  const [email, setEmail] = useState('')
-  const [terkirim, setTerkirim] = useState(false)
-
-  return (
-    <Halaman judul="Masuk" lead="Masuk dengan tautan yang dikirim ke email terdaftar. Tanpa kata sandi.">
-      <div className="grid grid-2">
-        <form
-          className="kartu form"
-          onSubmit={(e) => {
-            e.preventDefault()
-            setTerkirim(true)
-          }}
-        >
-          <label>
-            Email
-            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-          </label>
-          <button className="tombol tombol-isi">Kirim tautan masuk</button>
-          {terkirim && (
-            <p className="catatan">Prototipe: login belum tersambung. Nanti memakai signInWithOtp Supabase.</p>
-          )}
-        </form>
-        <div className="kartu">
-          <h3>Siapa yang bisa masuk</h3>
-          <ul>
-            <li>Admin TU</li>
-            <li>Guru</li>
-            <li>Siswa</li>
-            <li>Orang tua</li>
-          </ul>
-          <p className="catatan">Akun dibuat oleh admin sekolah.</p>
-        </div>
       </div>
     </Halaman>
   )

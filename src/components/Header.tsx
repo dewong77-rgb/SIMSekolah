@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { menuUtama } from '../data/menu'
 import { sekolah } from '../data/contoh'
+import { useAuth } from '../auth/AuthContext'
 
 export default function Header() {
   const [terbuka, setTerbuka] = useState(false)
   const [sub, setSub] = useState<string | null>(null)
   const lokasi = useLocation()
+  const { session, keluar } = useAuth()
 
   useEffect(() => {
     setTerbuka(false)
@@ -65,9 +67,20 @@ export default function Header() {
                 </li>
               ),
             )}
-            <li className="nav-masuk">
-              <Link to="/masuk" className="tombol tombol-isi">Masuk</Link>
-            </li>
+            {session ? (
+              <>
+                <li>
+                  <NavLink to="/portal" className="nav-tautan">Portal</NavLink>
+                </li>
+                <li className="nav-masuk">
+                  <button className="tombol tombol-isi" onClick={keluar}>Keluar</button>
+                </li>
+              </>
+            ) : (
+              <li className="nav-masuk">
+                <Link to="/masuk" className="tombol tombol-isi">Masuk</Link>
+              </li>
+            )}
           </ul>
         </nav>
       </div>
