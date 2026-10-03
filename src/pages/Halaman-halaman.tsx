@@ -1,6 +1,7 @@
 import Halaman, { Segera } from '../components/Halaman'
-import { berita, jurusan, kalender, koleksiPerpustakaan, mitraIndustri, sekolah } from '../data/contoh'
+import { berita, kalender, koleksiPerpustakaan, mitraIndustri, sekolah } from '../data/contoh'
 import { tanggalPanjang } from '../lib/format'
+import { useJurusan } from '../lib/dataPublik'
 import { Link } from 'react-router-dom'
 import { useState, type FormEvent } from 'react'
 import { cekDataAlumni, type HasilAlumni } from '../lib/alumni'
@@ -39,17 +40,26 @@ export function Profil() {
 }
 
 export function Jurusan() {
+  const { jurusan, galat } = useJurusan()
   return (
     <Halaman judul="Jurusan" lead="Kompetensi keahlian yang tersedia di sekolah.">
+      {galat && <p className="catatan">Data jurusan belum dapat dimuat. Coba muat ulang halaman.</p>}
+      {!jurusan && !galat && <p className="catatan" aria-live="polite">Memuat...</p>}
       <div className="grid grid-3">
-        {jurusan.map((j) => (
+        {jurusan?.map((j) => (
           <article key={j.slug} id={j.slug} className="kartu">
+            <small>{j.bidang}</small>
             <h3>{j.nama}</h3>
-            <p>{j.ringkas}</p>
-            <strong>Prospek</strong>
-            <ul>
-              {j.prospek.map((p) => <li key={p}>{p}</li>)}
-            </ul>
+            <p className="catatan">Program keahlian: {j.program}</p>
+            {j.ringkas && <p>{j.ringkas}</p>}
+            {j.prospek.length > 0 && (
+              <>
+                <strong>Prospek</strong>
+                <ul>
+                  {j.prospek.map((p) => <li key={p}>{p}</li>)}
+                </ul>
+              </>
+            )}
           </article>
         ))}
       </div>

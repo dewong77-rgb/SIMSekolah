@@ -1,8 +1,19 @@
 import { Link } from 'react-router-dom'
-import { berita, jurusan, ringkasan, sekolah } from '../data/contoh'
+import { berita, sekolah } from '../data/contoh'
+import { useJurusan, useStatistik } from '../lib/dataPublik'
 import { tanggalPanjang } from '../lib/format'
 
+const angka = (n: number | undefined) => (n === undefined ? '...' : n.toLocaleString('id-ID'))
+
 export default function Beranda() {
+  const { jurusan } = useJurusan()
+  const st = useStatistik()
+  const ringkasan = [
+    { label: 'Peserta didik aktif', nilai: angka(st?.peserta_didik_aktif) },
+    { label: 'Guru dan tenaga kependidikan', nilai: angka(st?.ptk) },
+    { label: 'Rombongan belajar', nilai: angka(st?.rombel) },
+    { label: 'Alumni tercatat', nilai: angka(st?.alumni) },
+  ]
   return (
     <>
       <section className="hero">
@@ -61,7 +72,7 @@ export default function Beranda() {
           <Link to="/jurusan">Lihat semua</Link>
         </div>
         <div className="grid grid-3">
-          {jurusan.map((j) => (
+          {jurusan?.map((j) => (
             <Link key={j.slug} to={`/jurusan#${j.slug}`} className="kartu tautan">
               <h3>{j.nama}</h3>
               <p>{j.ringkas}</p>

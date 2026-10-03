@@ -11,37 +11,6 @@ export const sekolah = {
   jam: 'Senin sampai Jumat, 07.00 sampai 15.30 WIB',
 }
 
-// Angka berasal dari contoh unduhan Dapodik 30 September 2026.
-export const ringkasan = [
-  { label: 'Peserta didik aktif', nilai: '1.358' },
-  { label: 'Guru dan tenaga kependidikan', nilai: '67' },
-  { label: 'Rombongan belajar', nilai: '34' },
-  { label: 'Alumni tercatat', nilai: '3.354' },
-]
-
-export type Jurusan = { slug: string; nama: string; ringkas: string; prospek: string[] }
-
-export const jurusan: Jurusan[] = [
-  {
-    slug: 'teknik-otomotif',
-    nama: 'Teknik Otomotif',
-    ringkas: 'Perawatan, perbaikan, dan diagnosis kendaraan ringan dan sepeda motor.',
-    prospek: ['Teknisi bengkel resmi', 'Wirausaha bengkel', 'Industri komponen otomotif'],
-  },
-  {
-    slug: 'teknik-pemesinan',
-    nama: 'Teknik Pemesinan',
-    ringkas: 'Pengoperasian mesin bubut, frais, dan dasar CNC untuk pembuatan komponen.',
-    prospek: ['Operator mesin CNC', 'Quality control', 'Industri manufaktur'],
-  },
-  {
-    slug: 'elektronika-industri',
-    nama: 'Elektronika Industri',
-    ringkas: 'Instalasi, kontrol, dan perawatan sistem elektronika dan otomasi industri.',
-    prospek: ['Teknisi otomasi', 'Teknisi instrumentasi', 'Industri elektronik'],
-  },
-]
-
 export type Berita = { slug: string; judul: string; tanggal: string; kategori: string; ringkas: string }
 
 export const berita: Berita[] = [
