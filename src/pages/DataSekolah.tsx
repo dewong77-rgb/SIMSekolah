@@ -5,23 +5,11 @@ import { Link, useParams } from 'react-router-dom'
 import Halaman from '../components/Halaman'
 import { useAuth } from '../auth/AuthContext'
 import { supabase } from '../lib/supabase'
-
-const UKURAN = 50
+import Pager, { efektif } from '../components/Pager'
 const bersih = (q: string) => q.trim().replace(/[,()%*\\]/g, ' ').replace(/\s+/g, ' ')
 const tgl = (t: string | null) => (t ? new Date(t).toLocaleDateString('id-ID', { dateStyle: 'medium' }) : '-')
 const waktu = (t: string | null) => (t ? new Date(t).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : '-')
 const v = (x: unknown) => (x === null || x === undefined || x === '' ? '-' : String(x))
-
-function Pager({ halaman, total, ke }: { halaman: number; total: number; ke: (n: number) => void }) {
-  const maks = Math.max(Math.ceil(total / UKURAN), 1)
-  return (
-    <div className="aksi jarak" style={{ alignItems: 'center' }}>
-      <button className="tombol" disabled={halaman <= 1} onClick={() => ke(halaman - 1)}>Sebelumnya</button>
-      <span className="catatan">Halaman {halaman} dari {maks} ({total.toLocaleString('id-ID')} data)</span>
-      <button className="tombol" disabled={halaman >= maks} onClick={() => ke(halaman + 1)}>Berikutnya</button>
-    </div>
-  )
-}
 
 function Rinci({ data }: { data: [string, unknown][] }) {
   return (
@@ -68,24 +56,34 @@ export function RiwayatUnggah() {
   const [rows, setRows] = useState<Batch[] | null>(null)
   const [total, setTotal] = useState(0)
   const [hal, setHal] = useState(1)
+  const [ukuran, setUkuran] = useState(10)
+  const [cari, setCari] = useState('')
+  const [q, setQ] = useState('')
   const [galat, setGalat] = useState('')
   const [buka, setBuka] = useState<string | null>(null)
 
+  useEffect(() => { const t = setTimeout(() => { setQ(bersih(cari)); setHal(1) }, 300); return () => clearTimeout(t) }, [cari])
+
   useEffect(() => {
-    const dari = (hal - 1) * UKURAN
-    supabase.from('import_batch')
+    const per = efektif(ukuran)
+    const dari = (hal - 1) * per
+    let qb = supabase.from('import_batch')
       .select('id,jenis_berkas,nama_file,diunduh_pada,pengunduh,semester_id,status,ringkasan,dibuat_pada', { count: 'exact' })
-      .order('dibuat_pada', { ascending: false }).range(dari, dari + UKURAN - 1)
+    if (q) qb = qb.or(`nama_file.ilike.%${q}%,jenis_berkas.ilike.%${q}%,pengunduh.ilike.%${q}%`)
+    qb.order('dibuat_pada', { ascending: false }).range(dari, dari + per - 1)
       .then(({ data, count, error }) => {
         if (error) setGalat(error.message)
         else { setRows((data ?? []) as Batch[]); setTotal(count ?? 0); setGalat('') }
       })
-  }, [hal])
+  }, [hal, ukuran, q])
 
   return (
     <Halaman judul="Riwayat unggah" lead="Berkas Dapodik yang pernah diunggah, terbaru di atas.">
-      {galat && <p className="kartu" role="alert">Galat: {galat}</p>}
-      <div className="tabel-bungkus">
+      <div className="aksi">
+        <input type="search" placeholder="Cari nama berkas atau jenis" value={cari} onChange={(e) => setCari(e.target.value)} style={{ minWidth: 260 }} aria-label="Cari" />
+      </div>
+      {galat && <p className="kartu jarak" role="alert">Galat: {galat}</p>}
+      <div className="tabel-bungkus jarak">
         <table>
           <thead><tr><th>Diunggah</th><th>Jenis</th><th>Berkas</th><th>Diunduh dari Dapodik</th><th>Status</th><th>Isu</th></tr></thead>
           <tbody>
@@ -118,7 +116,7 @@ export function RiwayatUnggah() {
           </tbody>
         </table>
       </div>
-      <Pager halaman={hal} total={total} ke={setHal} />
+      <Pager halaman={hal} total={total} ukuran={ukuran} ke={setHal} ubahUkuran={setUkuran} server />
       <p className="catatan jarak"><Link to="/portal/unggah">Unggah berkas baru</Link> · <Link to="/portal">Kembali ke portal</Link></p>
     </Halaman>
   )
@@ -151,6 +149,7 @@ export function PesertaDidik() {
   const [rows, setRows] = useState<Pd[] | null>(null)
   const [total, setTotal] = useState(0)
   const [hal, setHal] = useState(1)
+  const [ukuran, setUkuran] = useState(10)
   const [status, setStatus] = useState('aktif')
   const [kelas, setKelas] = useState('')
   const [cari, setCari] = useState('')
@@ -172,18 +171,19 @@ export function PesertaDidik() {
   }, [tu])
 
   useEffect(() => {
-    const dari = (hal - 1) * UKURAN
+    const per = efektif(ukuran)
+    const dari = (hal - 1) * per
     const kolom = 'id,nisn,nipd,nama,jk,tempat_lahir,tanggal_lahir,status_peserta_didik'
     const embed = kelas ? 'keanggotaan_rombel!inner(rombel(id,nama,jenis_rombel))' : 'keanggotaan_rombel(rombel(id,nama,jenis_rombel))'
     let qb = supabase.from('peserta_didik').select(`${kolom},${embed}`, { count: 'exact' })
     if (status !== 'semua') qb = qb.eq('status_peserta_didik', status)
     if (kelas) qb = qb.eq('keanggotaan_rombel.rombel_id', kelas)
     if (q) qb = qb.or(`nama.ilike.%${q}%,nisn.ilike.%${q}%,nipd.ilike.%${q}%`)
-    qb.order('nama').range(dari, dari + UKURAN - 1).then(({ data, count, error }) => {
+    qb.order('nama').range(dari, dari + per - 1).then(({ data, count, error }) => {
       if (error) setGalat(error.message)
       else { setRows((data ?? []) as unknown as Pd[]); setTotal(count ?? 0); setGalat('') }
     })
-  }, [hal, status, kelas, q])
+  }, [hal, ukuran, status, kelas, q])
 
   const bukaRinci = useCallback(async (id: string) => {
     if (buka === id) { setBuka(null); return }
@@ -248,7 +248,7 @@ export function PesertaDidik() {
           </tbody>
         </table>
       </div>
-      <Pager halaman={hal} total={total} ke={setHal} />
+      <Pager halaman={hal} total={total} ukuran={ukuran} ke={setHal} ubahUkuran={setUkuran} server />
       <Kembali />
     </Halaman>
   )
@@ -267,6 +267,7 @@ export function GuruTendik() {
   const [rows, setRows] = useState<Ptk[] | null>(null)
   const [total, setTotal] = useState(0)
   const [hal, setHal] = useState(1)
+  const [ukuran, setUkuran] = useState(10)
   const [jenis, setJenis] = useState('')
   const [cari, setCari] = useState('')
   const [q, setQ] = useState('')
@@ -277,15 +278,16 @@ export function GuruTendik() {
   useEffect(() => { const t = setTimeout(() => { setQ(bersih(cari)); setHal(1) }, 300); return () => clearTimeout(t) }, [cari])
 
   useEffect(() => {
-    const dari = (hal - 1) * UKURAN
+    const per = efektif(ukuran)
+    const dari = (hal - 1) * per
     let qb = supabase.from('ptk').select('id,nama,nuptk,jk,jenis_ptk,status_kepegawaian,tugas_tambahan,mengajar,jabatan_ptk,total_jjm', { count: 'exact' })
     if (jenis) qb = qb.eq('jenis_ptk', jenis)
     if (q) qb = qb.or(`nama.ilike.%${q}%,nuptk.ilike.%${q}%`)
-    qb.order('nama').range(dari, dari + UKURAN - 1).then(({ data, count, error }) => {
+    qb.order('nama').range(dari, dari + per - 1).then(({ data, count, error }) => {
       if (error) setGalat(error.message)
       else { setRows((data ?? []) as Ptk[]); setTotal(count ?? 0); setGalat('') }
     })
-  }, [hal, jenis, q])
+  }, [hal, ukuran, jenis, q])
 
   async function bukaRinci(id: string) {
     if (buka === id) { setBuka(null); return }
@@ -336,7 +338,7 @@ export function GuruTendik() {
           </tbody>
         </table>
       </div>
-      <Pager halaman={hal} total={total} ke={setHal} />
+      <Pager halaman={hal} total={total} ukuran={ukuran} ke={setHal} ubahUkuran={setUkuran} server />
       <Kembali />
     </Halaman>
   )
@@ -353,9 +355,13 @@ export function DaftarRombel() {
   const [rows, setRows] = useState<Rombel[] | null>(null)
   const [jenis, setJenis] = useState('Kelas Utama')
   const [tingkat, setTingkat] = useState('')
+  const [cari, setCari] = useState('')
+  const [hal, setHal] = useState(1)
+  const [ukuran, setUkuran] = useState(10)
   const [galat, setGalat] = useState('')
 
   useEffect(() => {
+    setHal(1)
     let qb = supabase.from('rombel').select('id,nama,tingkat,jenis_rombel,ruangan,kurikulum,wali_kelas_nama,semester_id,keanggotaan_rombel(count)')
     if (jenis !== 'semua') qb = qb.eq('jenis_rombel', jenis)
     if (tingkat) qb = qb.eq('tingkat', Number(tingkat))
@@ -365,7 +371,13 @@ export function DaftarRombel() {
     })
   }, [jenis, tingkat])
 
-  const jumlah = useMemo(() => (rows ?? []).reduce((a, r) => a + (r.keanggotaan_rombel[0]?.count ?? 0), 0), [rows])
+  const tampil = useMemo(() => {
+    const k = cari.trim().toLowerCase()
+    return (rows ?? []).filter((r) => !k || [r.nama, r.wali_kelas_nama, r.ruangan].some((x) => (x ?? '').toLowerCase().includes(k)))
+  }, [rows, cari])
+  const jumlah = useMemo(() => tampil.reduce((a, r) => a + (r.keanggotaan_rombel[0]?.count ?? 0), 0), [tampil])
+  const per = efektif(ukuran)
+  const irisan = tampil.slice((hal - 1) * per, hal * per)
 
   return (
     <Halaman judul="Rombel" lead="Rombongan belajar semester berjalan. Pilih rombel untuk melihat anggotanya.">
@@ -376,7 +388,8 @@ export function DaftarRombel() {
         <select value={tingkat} onChange={(e) => setTingkat(e.target.value)} aria-label="Tingkat">
           <option value="">Semua tingkat</option><option value="10">Kelas X</option><option value="11">Kelas XI</option><option value="12">Kelas XII</option>
         </select>
-        <span className="catatan">{rows?.length ?? 0} rombel, {jumlah.toLocaleString('id-ID')} keanggotaan</span>
+        <input type="search" placeholder="Cari rombel, wali kelas, atau ruangan" value={cari} onChange={(e) => { setCari(e.target.value); setHal(1) }} style={{ minWidth: 260 }} aria-label="Cari" />
+        <span className="catatan">{tampil.length} rombel, {jumlah.toLocaleString('id-ID')} keanggotaan</span>
       </div>
       {galat && <p className="kartu jarak" role="alert">Galat: {galat}</p>}
       <div className="tabel-bungkus jarak">
@@ -384,8 +397,8 @@ export function DaftarRombel() {
           <thead><tr><th>Rombel</th><th>Tingkat</th><th>Wali kelas</th><th>Ruangan</th><th>Kurikulum</th><th>Anggota</th></tr></thead>
           <tbody>
             {!rows && !galat && <tr><td colSpan={6}>Memuat...</td></tr>}
-            {rows?.length === 0 && <tr><td colSpan={6}>Tidak ada data.</td></tr>}
-            {rows?.map((r) => (
+            {rows && tampil.length === 0 && <tr><td colSpan={6}>Tidak ada data.</td></tr>}
+            {irisan.map((r) => (
               <tr key={r.id}>
                 <td><Link to={`/portal/rombel/${r.id}`}>{r.nama}</Link></td>
                 <td>{v(r.tingkat)}</td><td>{v(r.wali_kelas_nama)}</td><td>{v(r.ruangan)}</td><td>{v(r.kurikulum)}</td>
@@ -395,6 +408,7 @@ export function DaftarRombel() {
           </tbody>
         </table>
       </div>
+      <Pager halaman={hal} total={tampil.length} ukuran={ukuran} ke={setHal} ubahUkuran={setUkuran} />
       <Kembali />
     </Halaman>
   )
@@ -407,6 +421,9 @@ export function DetailRombel() {
   const [rombel, setRombel] = useState<Rombel | null>(null)
   const [anggota, setAnggota] = useState<Anggota[] | null>(null)
   const [galat, setGalat] = useState('')
+  const [cari, setCari] = useState('')
+  const [hal, setHal] = useState(1)
+  const [ukuran, setUkuran] = useState(20)
 
   useEffect(() => {
     if (!id) return
@@ -419,6 +436,11 @@ export function DetailRombel() {
   const l = (anggota ?? []).filter((a) => a.peserta_didik?.jk === 'L').length
   const pr = (anggota ?? []).filter((a) => a.peserta_didik?.jk === 'P').length
 
+  const k = cari.trim().toLowerCase()
+  const tampilA = (anggota ?? []).filter((a) => !k || [a.peserta_didik?.nama, a.peserta_didik?.nisn, a.peserta_didik?.nipd].some((x) => (x ?? '').toLowerCase().includes(k)))
+  const per = efektif(ukuran)
+  const irisanA = tampilA.slice((hal - 1) * per, hal * per)
+
   return (
     <Halaman judul={rombel?.nama ?? 'Rombel'} lead={rombel ? `Wali kelas: ${v(rombel.wali_kelas_nama)}. Semester ${rombel.semester_id}.` : undefined}>
       {galat && <p className="kartu" role="alert">Galat: {galat}</p>}
@@ -430,21 +452,25 @@ export function DetailRombel() {
           <div className="kartu"><small>Ruangan</small><h3>{v(rombel.ruangan)}</h3></div>
         </div>
       )}
+      <div className="aksi jarak">
+        <input type="search" placeholder="Cari nama, NISN, atau NIPD" value={cari} onChange={(e) => { setCari(e.target.value); setHal(1) }} style={{ minWidth: 260 }} aria-label="Cari anggota" />
+      </div>
       <div className="tabel-bungkus jarak">
         <table>
           <thead><tr><th>No</th><th>Nama</th><th>NISN</th><th>NIPD</th><th>JK</th><th>Status</th></tr></thead>
           <tbody>
             {!anggota && !galat && <tr><td colSpan={6}>Memuat...</td></tr>}
-            {anggota?.length === 0 && <tr><td colSpan={6}>Belum ada anggota.</td></tr>}
-            {anggota?.map((a, i) => (
+            {anggota && tampilA.length === 0 && <tr><td colSpan={6}>{anggota.length === 0 ? 'Belum ada anggota.' : 'Tidak ada yang cocok.'}</td></tr>}
+            {irisanA.map((a, i) => (
               <tr key={i}>
-                <td>{a.no_urut ?? i + 1}</td><td>{v(a.peserta_didik?.nama)}</td><td>{v(a.peserta_didik?.nisn)}</td>
+                <td>{a.no_urut ?? (hal - 1) * per + i + 1}</td><td>{v(a.peserta_didik?.nama)}</td><td>{v(a.peserta_didik?.nisn)}</td>
                 <td>{v(a.peserta_didik?.nipd)}</td><td>{v(a.peserta_didik?.jk)}</td><td>{v(a.peserta_didik?.status_peserta_didik)}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      <Pager halaman={hal} total={tampilA.length} ukuran={ukuran} ke={setHal} ubahUkuran={setUkuran} />
       <p className="catatan jarak"><Link to="/portal/rombel">Kembali ke daftar rombel</Link></p>
     </Halaman>
   )

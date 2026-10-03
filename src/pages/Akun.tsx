@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Halaman from '../components/Halaman'
 import { supabase } from '../lib/supabase'
+import Pager, { efektif } from '../components/Pager'
 
 type Ptk = { id: string; nama: string; email: string | null; jenis_ptk: string; status_kepegawaian: string | null }
 type Hasil = { ptk_id: string; nama: string; status: 'dibuat' | 'sudah' | 'dilewati' | 'gagal'; pesan?: string }
@@ -15,6 +16,9 @@ export default function Akun() {
   const [galat, setGalat] = useState('')
   const [sibuk, setSibuk] = useState(false)
   const [hasil, setHasil] = useState<Hasil[]>([])
+  const [cari, setCari] = useState('')
+  const [hal, setHal] = useState(1)
+  const [ukuran, setUkuran] = useState(10)
 
   const muat = useCallback(async () => {
     const [p, a] = await Promise.all([
@@ -27,6 +31,10 @@ export default function Akun() {
   }, [])
   useEffect(() => { void muat() }, [muat])
 
+  const k = cari.trim().toLowerCase()
+  const tampil = (daftar ?? []).filter((p) => !k || [p.nama, p.email, p.jenis_ptk].some((x) => (x ?? '').toLowerCase().includes(k)))
+  const per = efektif(ukuran)
+  const irisan = tampil.slice((hal - 1) * per, hal * per)
   const belum = (daftar ?? []).filter((p) => !terdaftar.has(p.id) && emailSah(p.email))
 
   function tukar(id: string) {
@@ -84,6 +92,9 @@ export default function Akun() {
         </div>
       )}
 
+      <div className="aksi jarak">
+        <input type="search" placeholder="Cari nama atau email" value={cari} onChange={(e) => { setCari(e.target.value); setHal(1) }} style={{ minWidth: 260 }} aria-label="Cari" />
+      </div>
       <div className="tabel-bungkus jarak">
         <table>
           <thead>
@@ -91,7 +102,8 @@ export default function Akun() {
           </thead>
           <tbody>
             {!daftar && <tr><td colSpan={5}>Memuat...</td></tr>}
-            {daftar?.map((p) => {
+            {daftar && tampil.length === 0 && <tr><td colSpan={5}>Tidak ada data.</td></tr>}
+            {irisan.map((p) => {
               const ada = terdaftar.has(p.id)
               const sah = emailSah(p.email)
               return (
@@ -115,6 +127,7 @@ export default function Akun() {
           </tbody>
         </table>
       </div>
+      <Pager halaman={hal} total={tampil.length} ukuran={ukuran} ke={setHal} ubahUkuran={setUkuran} />
       <p className="catatan jarak"><Link to="/portal">Kembali ke portal</Link></p>
     </Halaman>
   )

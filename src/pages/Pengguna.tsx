@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Halaman from '../components/Halaman'
 import { supabase } from '../lib/supabase'
+import Pager, { efektif } from '../components/Pager'
 
 type Pengguna = {
   user_id: string; peran: string; status_pd: string | null; sandi: 'belum' | 'awal' | 'diganti' | null; nama: string | null; nisn: string | null; email: string | null
@@ -9,7 +10,6 @@ type Pengguna = {
 }
 type Ringkasan = { siswa_aktif: number; alumni: number; guru_total: number }
 type Kelompok = 'aktif' | 'alumni'
-const BATAS_TAMPIL = 200
 
 const namaPeran: Record<string, string> = { admin_tu: 'Admin TU', guru: 'Guru', siswa: 'Siswa', orang_tua: 'Orang tua' }
 
@@ -37,7 +37,8 @@ export default function PenggunaHalaman() {
   const [sibuk, setSibuk] = useState(false)
   const [emailBaru, setEmailBaru] = useState('')
   const [peranBaru, setPeranBaru] = useState('admin_tu')
-  const [batasTampil, setBatasTampil] = useState(BATAS_TAMPIL)
+  const [hal, setHal] = useState(1)
+  const [ukuran, setUkuran] = useState(10)
   const [progres, setProgres] = useState('')
 
   const muat = useCallback(async () => {
@@ -183,7 +184,7 @@ export default function PenggunaHalaman() {
       </div>
 
       <div className="aksi jarak">
-        <select value={filter} onChange={(e) => { setFilter(e.target.value); setBatasTampil(BATAS_TAMPIL) }} aria-label="Filter peran">
+        <select value={filter} onChange={(e) => { setFilter(e.target.value); setHal(1) }} aria-label="Filter peran">
           <option value="semua">Semua peran</option>
           <option value="siswa">Siswa aktif</option>
           <option value="alumni">Alumni</option>
@@ -191,8 +192,8 @@ export default function PenggunaHalaman() {
           <option value="admin_tu">Admin TU</option>
           <option value="orang_tua">Orang tua</option>
         </select>
-        <input type="search" placeholder="Cari nama, email, atau NISN" value={cari} onChange={(e) => { setCari(e.target.value); setBatasTampil(BATAS_TAMPIL) }} style={{ minWidth: 260 }} aria-label="Cari" />
-        <span className="catatan">{tampil.length} akun</span>
+        <input type="search" placeholder="Cari nama, email, atau NISN" value={cari} onChange={(e) => { setCari(e.target.value); setHal(1) }} style={{ minWidth: 260 }} aria-label="Cari" />
+        <span className="catatan">{tampil.length.toLocaleString('id-ID')} akun cocok</span>
       </div>
 
       <div className="tabel-bungkus jarak">
@@ -202,7 +203,7 @@ export default function PenggunaHalaman() {
           </thead>
           <tbody>
             {!daftar && !galat && <tr><td colSpan={7}>Memuat...</td></tr>}
-            {tampil.slice(0, batasTampil).map((p) => (
+            {tampil.slice((hal - 1) * efektif(ukuran), hal * efektif(ukuran)).map((p) => (
               <tr key={p.user_id}>
                 <td>{p.nama ?? '-'}{p.super_admin && <small> (super admin)</small>}</td>
                 <td>
@@ -254,13 +255,7 @@ export default function PenggunaHalaman() {
           </tbody>
         </table>
       </div>
-      {tampil.length > batasTampil && (
-        <p className="jarak">
-          <button className="tombol" onClick={() => setBatasTampil((n) => n + BATAS_TAMPIL)}>
-            Tampilkan {Math.min(BATAS_TAMPIL, tampil.length - batasTampil)} lagi (dari {tampil.length - batasTampil} tersisa)
-          </button>
-        </p>
-      )}
+      <Pager halaman={hal} total={tampil.length} ukuran={ukuran} ke={setHal} ubahUkuran={setUkuran} />
       <p className="catatan jarak"><Link to="/portal">Kembali ke portal</Link></p>
     </Halaman>
   )
