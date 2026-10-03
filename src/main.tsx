@@ -16,6 +16,9 @@ const Struktur = lazy(() => import('./pages/Struktur'))
 const Penugasan = lazy(() => import('./pages/Penugasan'))
 const GantiSandi = lazy(() => import('./pages/GantiSandi'))
 const ProfilSaya = lazy(() => import('./pages/ProfilSaya'))
+const ProfilSendiri = lazy(() => import('./pages/ProfilDapodik').then((m) => ({ default: m.ProfilSendiri })))
+const DaftarAnak = lazy(() => import('./pages/ProfilDapodik').then((m) => ({ default: m.DaftarAnak })))
+const ProfilOrang = lazy(() => import('./pages/ProfilDapodik').then((m) => ({ default: m.ProfilOrang })))
 const RiwayatUnggah = lazy(() => import('./pages/DataSekolah').then((m) => ({ default: m.RiwayatUnggah })))
 const PesertaDidik = lazy(() => import('./pages/DataSekolah').then((m) => ({ default: m.PesertaDidik })))
 const GuruTendik = lazy(() => import('./pages/DataSekolah').then((m) => ({ default: m.GuruTendik })))
@@ -97,6 +100,30 @@ createRoot(document.getElementById('root')!).render(
             element={
               <RequireRole peran={['admin_tu', 'guru', 'orang_tua']}>
                 <Suspense fallback={null}><ProfilSaya /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/data-saya"
+            element={
+              <RequireRole peran={['guru', 'siswa']}>
+                <Suspense fallback={null}><ProfilSendiri /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/anak"
+            element={
+              <RequireRole peran={['orang_tua']}>
+                <Suspense fallback={null}><DaftarAnak /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/profil/:jenis/:id"
+            element={
+              <RequireRole peran={['admin_tu', 'orang_tua']}>
+                <Suspense fallback={null}><ProfilOrang /></Suspense>
               </RequireRole>
             }
           />

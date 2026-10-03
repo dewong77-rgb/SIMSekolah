@@ -29,12 +29,15 @@ const menuIzin: { izin: string; nama: string; bidang: string; to?: string }[] = 
 
 const menuPeran: Record<Peran, string[]> = {
   admin_tu: ['Unggah Dapodik', 'Riwayat unggah', 'Peserta didik', 'Guru dan tendik', 'Rombel', 'Pengguna dan akun'],
-  guru: ['Daftar siswa', 'Rombel', 'Data PTK', 'Absensi', 'LMS'],
+  guru: ['Profil saya', 'Daftar siswa', 'Rombel', 'Data PTK', 'Absensi', 'LMS'],
   siswa: ['Data saya', 'Kelas saya', 'LMS'],
   orang_tua: ['Anak saya', 'Kelas anak'],
 }
 
 const tautanMenu: Record<string, [string, string | null, string]> = {
+  'Profil saya': ['/portal/data-saya', null, 'Data pribadi dan kepegawaian seperti di Dapodik'],
+  'Data saya': ['/portal/data-saya', null, 'Identitas, alamat, orang tua, dan kelas Anda'],
+  'Anak saya': ['/portal/anak', null, 'Profil anak yang ditautkan ke akun Anda'],
   'Unggah Dapodik': ['/portal/unggah', null, 'Unggah berkas ekspor Dapodik'],
   'Riwayat unggah': ['/portal/riwayat', null, 'Berkas yang pernah diunggah dan ringkasannya'],
   'Peserta didik': ['/portal/peserta-didik', null, 'Aktif, lulus, dan mutasi, lengkap dengan pencarian'],

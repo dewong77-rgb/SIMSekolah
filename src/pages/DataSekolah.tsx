@@ -241,6 +241,7 @@ export function PesertaDidik() {
                         ['Kebutuhan khusus', rinci.kebutuhan_khusus], ['Tanggal keluar', rinci.tanggal_keluar], ['Alasan keluar', rinci.alasan_keluar],
                       ]} />
                     )}
+                    {rinci && <p className="catatan"><Link to={`/portal/profil/siswa/${p.id}`}>Buka profil lengkap</Link></p>}
                   </td></tr>
                 )}
               </Fragment>
@@ -331,6 +332,7 @@ export function GuruTendik() {
                         ['Alamat', [rinci.alamat_jalan, rinci.kelurahan, rinci.kecamatan, rinci.kode_pos].filter(Boolean).join(', ')], ['HP', rinci.hp], ['Email', rinci.email],
                       ]} />
                     )}
+                    {rinci && <p className="catatan"><Link to={`/portal/profil/ptk/${p.id}`}>Buka profil lengkap</Link></p>}
                   </td></tr>
                 )}
               </Fragment>

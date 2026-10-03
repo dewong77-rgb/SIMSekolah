@@ -162,3 +162,15 @@ tr:last-child td { border-bottom: 0; }
 
 .label-tugas { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 8px 0; padding: 0; }
 .label-tugas li { background: var(--latar-lembut); border: 1px solid var(--garis); border-radius: 999px; padding: 4px 12px; }
+
+/* Profil bergaya formulir Dapodik */
+.kepala-profil { display: flex; gap: 16px; align-items: center; }
+.kepala-profil h2 { margin: 0 0 6px; font-size: 1.35rem; }
+.kepala-profil .inisial { flex: none; width: 56px; height: 56px; border-radius: 50%; background: var(--warna-utama); color: #fff; display: grid; place-items: center; font-size: 1.5rem; font-weight: 700; }
+.lencana-baris { display: flex; flex-wrap: wrap; gap: 6px; }
+.lencana-baris .lencana { margin-bottom: 0; }
+.bagian-profil { align-self: start; }
+.bagian-profil h3 { font-size: .8rem; letter-spacing: .06em; text-transform: uppercase; padding-bottom: 8px; margin-bottom: 12px; border-bottom: 2px solid var(--warna-aksen); display: inline-block; }
+.bagian-profil .daftar { grid-template-columns: 10rem 1fr; overflow-wrap: anywhere; }
+.bagian-profil .kosong { color: var(--teks-lembut); font-style: italic; }
+@media (max-width: 640px) { .bagian-profil .daftar { grid-template-columns: 1fr; } .bagian-profil .daftar dt { margin-top: 6px; font-size: .85rem; } }
