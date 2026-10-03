@@ -54,7 +54,8 @@ ul { padding-left: 1.2rem; margin: 0 0 .8rem; }
   align-items: stretch !important; background: #fff; border: 1px solid var(--garis);
   border-radius: var(--radius); padding: 6px !important; box-shadow: 0 8px 24px rgba(0,0,0,.08);
 }
-.punya-anak:hover .submenu, .punya-anak.aktif .submenu, .punya-anak:focus-within .submenu { display: flex; }
+.submenu::before { content: ''; position: absolute; left: 0; right: 0; top: -8px; height: 8px; } /* jembatan agar menu tidak menutup saat kursor turun */
+.punya-anak:hover .submenu, .punya-anak:has(:focus-visible) .submenu { display: flex; }
 .nav-masuk { margin-left: 8px; }
 
 /* Tombol */
@@ -125,7 +126,8 @@ tr:last-child td { border-bottom: 0; }
   .nav.buka { display: block; }
   .nav ul { flex-direction: column; align-items: stretch; padding: 8px 16px 16px; }
   .submenu { position: static; display: none; box-shadow: none; border: 0; padding-left: 14px !important; }
-  .punya-anak:hover .submenu { display: none; }
+  .punya-anak:hover .submenu, .punya-anak:has(:focus-visible) .submenu { display: none; }
+  .submenu::before { display: none; }
   .punya-anak.aktif .submenu { display: flex; }
   .nav-masuk { margin: 8px 0 0; }
   .nav-masuk .tombol { text-align: center; }

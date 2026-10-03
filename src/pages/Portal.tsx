@@ -18,7 +18,7 @@ const menuPeran: Record<Peran, string[]> = {
 }
 
 export default function Portal() {
-  const { session, profil, keluar } = useAuth()
+  const { session, profil, superAdmin, keluar } = useAuth()
   if (!profil) return null
 
   return (
@@ -26,7 +26,7 @@ export default function Portal() {
       <div className="kartu">
         <dl className="daftar">
           <dt>Email</dt><dd>{session?.user.email}</dd>
-          <dt>Peran</dt><dd>{namaPeran[profil.peran]}</dd>
+          <dt>Peran</dt><dd>{namaPeran[profil.peran]}{superAdmin ? ' (super admin)' : ''}</dd>
           <dt>NPSN</dt><dd>{profil.npsn}</dd>
         </dl>
         <div className="aksi jarak">
@@ -36,6 +36,9 @@ export default function Portal() {
       </div>
       <div className="judul-bagian jarak"><h2>Menu {namaPeran[profil.peran]}</h2></div>
       <div className="grid grid-3">
+        {superAdmin && (
+          <Link to="/portal/pengguna" className="kartu tautan"><h3>Kelola pengguna</h3><small>Lihat akun guru dan siswa, ubah peran, nonaktifkan</small></Link>
+        )}
         {menuPeran[profil.peran].map((m) =>
           m === 'Unggah Dapodik' ? (
             <Link key={m} to="/portal/unggah" className="kartu tautan"><h3>{m}</h3><small>Unggah berkas ekspor Dapodik</small></Link>

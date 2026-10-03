@@ -11,6 +11,7 @@ import Masuk from './pages/Masuk'
 import Portal from './pages/Portal'
 const Unggah = lazy(() => import('./pages/Unggah'))
 const Akun = lazy(() => import('./pages/Akun'))
+const Pengguna = lazy(() => import('./pages/Pengguna'))
 import { AuthProvider } from './auth/AuthContext'
 import RequireRole from './auth/RequireRole'
 import './styles.css'
@@ -54,6 +55,14 @@ createRoot(document.getElementById('root')!).render(
             element={
               <RequireRole peran={['admin_tu']}>
                 <Suspense fallback={null}><Akun /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/pengguna"
+            element={
+              <RequireRole peran={['admin_tu']} superAdmin>
+                <Suspense fallback={null}><Pengguna /></Suspense>
               </RequireRole>
             }
           />

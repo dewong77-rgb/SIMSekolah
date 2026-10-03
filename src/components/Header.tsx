@@ -13,6 +13,8 @@ export default function Header() {
   useEffect(() => {
     setTerbuka(false)
     setSub(null)
+    // lepas fokus agar submenu menutup setelah tautan diklik
+    ;(document.activeElement as HTMLElement | null)?.blur?.()
   }, [lokasi.pathname])
 
   return (
