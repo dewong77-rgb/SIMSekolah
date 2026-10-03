@@ -9,6 +9,30 @@ import { supabase } from '../lib/supabase'
 type Jabatan = {
   kode: string; nama: string; kelompok: string; lingkup: 'sekolah' | 'kompetensi' | 'ruang' | 'rombel' | 'ekskul' | 'siswa'
   induk_kode: string | null; urutan: number; tampil_publik: boolean; satu_pemegang: boolean; bagan: boolean
+  keterangan?: string | null; kedalaman?: number
+}
+
+// Urutan hierarki: jabatan tertinggi dulu, bawahan mengikuti atasannya, saudara menurut kolom urutan.
+function urutkanHierarki(daftar: Jabatan[]): Jabatan[] {
+  const ada = new Set(daftar.map((j) => j.kode))
+  const anak = new Map<string | null, Jabatan[]>()
+  for (const j of daftar) {
+    const i = j.induk_kode && ada.has(j.induk_kode) && j.induk_kode !== j.kode ? j.induk_kode : null
+    anak.set(i, [...(anak.get(i) ?? []), j])
+  }
+  const hasil: Jabatan[] = []
+  const lihat = new Set<string>()
+  const telusur = (i: string | null, d: number) => {
+    for (const j of (anak.get(i) ?? []).sort((a, b) => a.urutan - b.urutan || a.nama.localeCompare(b.nama, 'id'))) {
+      if (lihat.has(j.kode)) continue
+      lihat.add(j.kode)
+      hasil.push({ ...j, kedalaman: d })
+      telusur(j.kode, d + 1)
+    }
+  }
+  telusur(null, 0)
+  for (const j of daftar) if (!lihat.has(j.kode)) hasil.push({ ...j, kedalaman: 0 })
+  return hasil
 }
 type Ptk = { id: string; nama: string; jenis_ptk: string | null }
 type Tugas = {
@@ -61,7 +85,7 @@ export default function PenugasanHalaman() {
     ])
     const e = [j, ji, p, t, r, k, a, tas].find((x) => x.error)
     if (e?.error) { setGalat(e.error.message); return }
-    setJabatan((j.data ?? []) as Jabatan[])
+    setJabatan(urutkanHierarki((j.data ?? []) as Jabatan[]))
     const m = new Map<string, string[]>()
     for (const x of (ji.data ?? []) as { jabatan_kode: string; izin_kode: string }[]) m.set(x.jabatan_kode, [...(m.get(x.jabatan_kode) ?? []), x.izin_kode])
     setIzinJabatan(m)
@@ -326,6 +350,7 @@ function TabJabatan({ jabatan, izinJabatan, sibuk, jalankan }: Umum & { jabatan:
   const [saring, setSaring] = useState<'semua' | 'tampil' | 'sembunyi'>('semua')
   const [cari, setCari] = useState('')
   const ubah = (kode: string, nilai: Partial<Jabatan>) => jalankan(() => supabase.from('jabatan').update(nilai).eq('kode', kode))
+  const [bukaForm, setBukaForm] = useState(false)
   const nTampil = jabatan.filter((j) => j.tampil_publik).length
   const k = cari.trim().toLowerCase()
   const daftar = jabatan.filter((j) =>
@@ -335,6 +360,10 @@ function TabJabatan({ jabatan, izinJabatan, sibuk, jalankan }: Umum & { jabatan:
       <p className="catatan">
         Sakelar Tampil/Sembunyi menentukan apakah jabatan muncul di halaman publik Struktur Organisasi. Jabatan yang disembunyikan tetap bisa diberi penugasan dan tetap memberi izin. Bawahannya naik ke bawah Kepala Sekolah.
       </p>
+      <div className="jarak">
+        <button type="button" className="tombol tombol-isi" aria-expanded={bukaForm} onClick={() => setBukaForm(!bukaForm)}>{bukaForm ? 'Tutup formulir' : 'Tambah jabatan baru'}</button>
+      </div>
+      {bukaForm && <FormJabatan jabatan={jabatan} sibuk={sibuk} jalankan={jalankan} selesai={() => setBukaForm(false)} />}
       <div className="bilah-filter jarak" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         <input type="search" value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari jabatan" aria-label="Cari jabatan" />
         {([['semua', `Semua (${jabatan.length})`], ['tampil', `Tampil (${nTampil})`], ['sembunyi', `Disembunyikan (${jabatan.length - nTampil})`]] as const).map(([v, t]) => (
@@ -348,7 +377,13 @@ function TabJabatan({ jabatan, izinJabatan, sibuk, jalankan }: Umum & { jabatan:
             {daftar.length === 0 && <tr><td colSpan={5}>Tidak ada jabatan yang cocok.</td></tr>}
             {daftar.map((j) => (
               <tr key={j.kode} style={j.tampil_publik ? undefined : { opacity: 0.65 }}>
-                <td>{j.nama}<br /><small>Lingkup: {j.lingkup}</small></td>
+                <td style={{ paddingLeft: 12 + (saring === 'semua' && !k ? (j.kedalaman ?? 0) * 18 : 0) }}>
+                  {j.nama}<br /><small>{j.kelompok} · Lingkup: {j.lingkup}</small>
+                  {j.keterangan === 'manual' && (
+                    <><br /><button type="button" className="tombol" style={{ padding: '2px 8px', color: '#a11', marginTop: 4 }} disabled={sibuk}
+                      onClick={() => window.confirm(`Hapus jabatan "${j.nama}"? Hanya bisa jika belum dipakai.`) && jalankan(() => supabase.from('jabatan').delete().eq('kode', j.kode), 'Jabatan dihapus.')}>Hapus jabatan</button></>
+                  )}
+                </td>
                 <td>
                   <button type="button" role="switch" aria-checked={j.tampil_publik} disabled={sibuk}
                     aria-label={`${j.tampil_publik ? 'Sembunyikan' : 'Tampilkan'} ${j.nama} di struktur organisasi publik`}
@@ -374,6 +409,64 @@ function TabJabatan({ jabatan, izinJabatan, sibuk, jalankan }: Umum & { jabatan:
         </table>
       </div>
     </>
+  )
+}
+
+// ------------------------------------------------------------------ jabatan baru
+const slug = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40)
+
+function FormJabatan({ jabatan, sibuk, jalankan, selesai }: Umum & { jabatan: Jabatan[]; selesai: () => void }) {
+  const [nama, setNama] = useState('')
+  const [kelompok, setKelompok] = useState('')
+  const [induk, setInduk] = useState('')
+  const [lingkup, setLingkup] = useState<Jabatan['lingkup']>('sekolah')
+  const [satu, setSatu] = useState(false)
+  const [publik, setPublik] = useState(true)
+  const kelompokAda = [...new Set(jabatan.map((j) => j.kelompok))]
+  const kodeDasar = slug(nama)
+  const kode = !kodeDasar ? '' : jabatan.some((j) => j.kode === kodeDasar) ? `${kodeDasar}_${jabatan.length + 1}` : kodeDasar
+  const kembar = jabatan.some((j) => j.nama.trim().toLowerCase() === nama.trim().toLowerCase())
+
+  async function simpan() {
+    const saudara = jabatan.filter((j) => (j.induk_kode ?? '') === induk)
+    const urutan = (saudara.length ? Math.max(...saudara.map((j) => j.urutan)) : (jabatan.find((j) => j.kode === induk)?.urutan ?? 0)) + 1
+    await jalankan(() => supabase.from('jabatan').insert({
+      kode, nama: nama.trim(), kelompok: kelompok.trim(), lingkup, induk_kode: induk || null, urutan,
+      tampil_publik: publik, satu_pemegang: satu, bagan: true, keterangan: 'manual',
+    }), 'Jabatan ditambahkan. Pilih jabatan ini di tab Tambah untuk menugaskan orangnya.')
+    setNama('')
+    selesai()
+  }
+
+  return (
+    <div className="kartu form jarak" style={{ maxWidth: 560 }}>
+      <h3>Jabatan baru</h3>
+      <label>Nama jabatan<input value={nama} maxLength={80} onChange={(e) => setNama(e.target.value)} placeholder="Contoh: Koordinator BK" /></label>
+      {kembar && <p className="catatan" role="alert">Nama ini sudah ada di daftar.</p>}
+      <label>Kelompok
+        <input list="daftar-kelompok" value={kelompok} onChange={(e) => setKelompok(e.target.value)} placeholder="Pilih atau ketik kelompok baru" />
+        <datalist id="daftar-kelompok">{kelompokAda.map((x) => <option key={x} value={x} />)}</datalist>
+      </label>
+      <label>Atasan di bagan
+        <select value={induk} onChange={(e) => setInduk(e.target.value)}>
+          <option value="">Puncak bagan</option>
+          {jabatan.map((x) => <option key={x.kode} value={x.kode}>{'\u00a0\u00a0'.repeat(x.kedalaman ?? 0)}{x.nama}</option>)}
+        </select>
+      </label>
+      <label>Lingkup penugasan
+        <select value={lingkup} onChange={(e) => setLingkup(e.target.value as Jabatan['lingkup'])}>
+          <option value="sekolah">Seluruh sekolah</option>
+          <option value="kompetensi">Per kompetensi keahlian</option>
+          <option value="rombel">Per rombel</option>
+          <option value="ruang">Per bengkel atau laboratorium</option>
+          <option value="ekskul">Per ekstrakurikuler</option>
+        </select>
+      </label>
+      <label style={{ display: "flex", gap: 8, alignItems: "center" }}><input type="checkbox" checked={satu} onChange={(e) => setSatu(e.target.checked)} /> Hanya satu pemegang{lingkup !== 'sekolah' ? ' untuk setiap lingkup' : ''}</label>
+      <label style={{ display: "flex", gap: 8, alignItems: "center" }}><input type="checkbox" checked={publik} onChange={(e) => setPublik(e.target.checked)} /> Tampil di struktur organisasi publik</label>
+      <p className="catatan">Jabatan baru belum memberi izin apa pun. Izin akses tetap diatur terpisah oleh pengelola sistem.</p>
+      <button className="tombol tombol-isi" disabled={sibuk || !kode || !nama.trim() || !kelompok.trim() || kembar} onClick={simpan}>Simpan jabatan</button>
+    </div>
   )
 }
 
