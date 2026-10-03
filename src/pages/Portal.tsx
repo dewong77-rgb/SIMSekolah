@@ -38,10 +38,10 @@ const menuIzin: { izin: string; nama: string; bidang: string; to?: string }[] = 
 ]
 
 const menuPeran: Record<Peran, string[]> = {
-  admin_tu: ['Ajuan perbaikan', 'Persuratan', 'LMS', 'Administrasi guru', 'Unggah Dapodik', 'Riwayat unggah', 'Peserta didik', 'Guru dan tendik', 'Rombel', 'Pengguna dan akun'],
+  admin_tu: ['Ajuan perbaikan', 'Persuratan', 'LMS', 'Administrasi guru', 'Tautan orang tua', 'Unggah Dapodik', 'Riwayat unggah', 'Peserta didik', 'Guru dan tendik', 'Rombel', 'Pengguna dan akun'],
   guru: ['Profil saya', 'Ajuan saya', 'Disposisi saya', 'Daftar siswa', 'Rombel', 'Data PTK', 'Absensi', 'LMS', 'Administrasi guru'],
   staf: ['Profil saya', 'Ajuan saya', 'Disposisi saya'],
-  siswa: ['Data saya', 'Ajuan saya', 'Kelas saya', 'LMS'],
+  siswa: ['Data saya', 'Ajuan saya', 'Kelas saya', 'LMS', 'Progres saya'],
   orang_tua: ['Anak saya', 'Ajuan saya', 'Kelas anak', 'Belajar anak'],
 }
 
@@ -62,6 +62,8 @@ const tautanMenu: Record<string, [string, string | null, string]> = {
   'Disposisi saya': ['/portal/disposisi', null, 'Instruksi dari pimpinan untuk Anda'],
   'Persuratan': ['/portal/surat', null, 'Register surat masuk dan keluar, disposisi'],
   'Administrasi guru': ['/portal/lms/administrasi', null, 'ATP, modul ajar, program, dan perangkat ajar lainnya'],
+  'Progres saya': ['/portal/progres-lms', null, 'Kehadiran, materi, nilai kuis, dan tugas semua mapel'],
+  'Tautan orang tua': ['/portal/tautan-ortu', null, 'Hubungkan akun orang tua ke anak'],
   'Belajar anak': ['/portal/anak-lms', null, 'Kehadiran, nilai kuis, dan status tugas anak'],
   'LMS': ['/portal/lms', 'Ruang belajar (LMS)', 'Kelas, materi, absensi per pertemuan'],
 }

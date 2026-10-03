@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react
 import { Link, useParams } from 'react-router-dom'
 import Halaman from '../components/Halaman'
 import { useAuth } from '../auth/AuthContext'
-import { panggil, tgl, tglJam } from '../lib/rpc'
+import { panggil, tgl } from '../lib/rpc'
 import { biru, merah, nilaiTeks, unduhCsv } from './lmsUtil'
+import { KartuKelas, type KelasRingkas } from './LmsProgres'
 
 // Administrasi guru (perangkat ajar, jurnal), buku nilai, dan ringkasan untuk orang tua.
 
@@ -340,48 +341,23 @@ export function BukuNilai() {
   )
 }
 
-type Anak = {
-  peserta_didik_id: string; nama: string
-  kelas: {
-    mapel: string; rombel: string; guru: string; sesi: number; hadir: number; izin: number; sakit: number; alpa: number
-    kuis: { judul: string; jenis: string; nilai: number | null }[]
-    tugas: { judul: string; tenggat: string | null; nilai_maks: number; status: string; nilai: number | null }[]
-  }[]
-}
-const labelTugas: Record<string, string> = { belum: 'Belum', terkumpul: 'Terkumpul', terlambat: 'Terlambat', dinilai: 'Dinilai' }
+type Anak = { peserta_didik_id: string; nama: string; kelas: KelasRingkas[] }
 
-/** Ringkasan belajar anak untuk orang tua: kehadiran, nilai kuis dan ulangan, status tugas. Hanya baca. */
+/** Ringkasan belajar anak untuk orang tua: kehadiran, materi, nilai kuis dan ulangan, status tugas. Hanya baca. */
 export function LmsAnak() {
   const [data, setData] = useState<Anak[] | null>(null)
   const [galat, setGalat] = useState('')
   useEffect(() => { panggil<Anak[]>('lms_anak_ringkasan').then(setData).catch((e: Error) => setGalat(e.message)) }, [])
   return (
-    <Halaman judul="Belajar anak" lead="Kehadiran, nilai kuis dan ulangan, serta status tugas di ruang belajar.">
+    <Halaman judul="Belajar anak" lead="Kehadiran, materi, nilai kuis dan ulangan, serta status tugas di ruang belajar.">
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
       {!data && !galat && <p className="catatan">Memuat...</p>}
-      {data && data.length === 0 && <div className="kartu"><p>Belum ada anak yang ditautkan ke akun Anda.</p></div>}
+      {data && data.length === 0 && <div className="kartu"><p>Belum ada anak yang ditautkan ke akun Anda. Minta admin TU sekolah menautkannya.</p></div>}
       {(data ?? []).map((a) => (
         <div key={a.peserta_didik_id} className="jarak">
           <div className="judul-bagian"><h2>{a.nama}</h2></div>
           {a.kelas.length === 0 && <div className="kartu"><p className="catatan">Belum ada kelas ajar.</p></div>}
-          {a.kelas.map((k, i) => (
-            <div key={i} className="kartu" style={{ marginTop: 8 }}>
-              <h3 style={{ marginTop: 0 }}>{k.mapel} <small>{k.rombel}, {k.guru}</small></h3>
-              <p>Kehadiran: {k.hadir} hadir, {k.izin} izin, {k.sakit} sakit, {k.alpa} alpa, dari {k.sesi} pertemuan yang absennya dibuka.</p>
-              {k.kuis.length > 0 && (
-                <div className="tabel-bungkus"><table>
-                  <thead><tr><th>Kuis dan ulangan</th><th>Nilai terbaik</th></tr></thead>
-                  <tbody>{k.kuis.map((q, n) => <tr key={n}><td>{q.judul}</td><td>{q.nilai === null ? 'Belum dikerjakan' : nilaiTeks(q.nilai)}</td></tr>)}</tbody>
-                </table></div>
-              )}
-              {k.tugas.length > 0 && (
-                <div className="tabel-bungkus jarak"><table>
-                  <thead><tr><th>Tugas</th><th>Tenggat</th><th>Status</th><th>Nilai</th></tr></thead>
-                  <tbody>{k.tugas.map((t, n) => <tr key={n}><td>{t.judul}</td><td>{t.tenggat ? tglJam(t.tenggat) : '-'}</td><td>{labelTugas[t.status]}</td><td>{t.nilai === null ? '-' : `${nilaiTeks(t.nilai)}/${t.nilai_maks}`}</td></tr>)}</tbody>
-                </table></div>
-              )}
-            </div>
-          ))}
+          {a.kelas.map((k) => <KartuKelas key={k.kelas_id} k={k} tautan={false} />)}
         </div>
       ))}
       <p className="catatan jarak"><Link to="/portal">Kembali ke portal</Link></p>
