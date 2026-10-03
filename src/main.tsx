@@ -1,4 +1,4 @@
-import { StrictMode } from 'react'
+import { lazy, StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
@@ -9,6 +9,7 @@ import {
 } from './pages/Halaman-halaman'
 import Masuk from './pages/Masuk'
 import Portal from './pages/Portal'
+const Unggah = lazy(() => import('./pages/Unggah'))
 import { AuthProvider } from './auth/AuthContext'
 import RequireRole from './auth/RequireRole'
 import './styles.css'
@@ -36,6 +37,14 @@ createRoot(document.getElementById('root')!).render(
             element={
               <RequireRole peran={['admin_tu', 'guru', 'siswa', 'orang_tua']}>
                 <Portal />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/unggah"
+            element={
+              <RequireRole peran={['admin_tu']}>
+                <Suspense fallback={null}><Unggah /></Suspense>
               </RequireRole>
             }
           />

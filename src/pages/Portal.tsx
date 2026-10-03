@@ -36,7 +36,10 @@ export default function Portal() {
       </div>
       <div className="judul-bagian jarak"><h2>Menu {namaPeran[profil.peran]}</h2></div>
       <div className="grid grid-3">
-        {menuPeran[profil.peran].map((m) => <Segera key={m} nama={m} />)}
+        {menuPeran[profil.peran].map((m) =>
+          m === 'Unggah Dapodik' ? (
+            <Link key={m} to="/portal/unggah" className="kartu tautan"><h3>{m}</h3><small>Pratinjau berkas Dapodik</small></Link>
+          ) : <Segera key={m} nama={m} />)}
       </div>
     </Halaman>
   )
