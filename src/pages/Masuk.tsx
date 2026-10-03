@@ -10,6 +10,9 @@ export default function Masuk() {
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<'diam' | 'kirim' | 'terkirim' | 'galat'>('diam')
   const [pesan, setPesan] = useState('')
+  const [nisn, setNisn] = useState('')
+  const [lahir, setLahir] = useState('')
+  const [statusSiswa, setStatusSiswa] = useState<'diam' | 'kirim' | 'galat' | 'dibatasi'>('diam')
 
   if (session) return <Navigate to="/portal" replace />
 
@@ -34,8 +37,26 @@ export default function Masuk() {
     setStatus('terkirim')
   }
 
+  async function masukSiswa(e: FormEvent) {
+    e.preventDefault()
+    setStatusSiswa('kirim')
+    const { data, error } = await supabase.functions.invoke('masuk-siswa', {
+      body: { nisn: nisn.trim(), tanggal_lahir: lahir },
+    })
+    // Pada status 429 supabase-js mengembalikan error; badan jawabannya ada di error.context.
+    let hasil = data as { ok?: boolean; token_hash?: string; dibatasi?: boolean } | null
+    if (error && 'context' in error) {
+      try { hasil = await (error as { context: Response }).context.json() } catch { hasil = null }
+    }
+    if (hasil?.ok && hasil.token_hash) {
+      const { error: ev } = await supabase.auth.verifyOtp({ token_hash: hasil.token_hash, type: 'magiclink' })
+      if (!ev) return // sesi terbentuk, halaman berpindah sendiri ke /portal
+    }
+    setStatusSiswa(hasil?.dibatasi ? 'dibatasi' : 'galat')
+  }
+
   return (
-    <Halaman judul="Masuk" lead="Masuk dengan tautan yang dikirim ke email terdaftar. Tanpa kata sandi.">
+    <Halaman judul="Masuk" lead="Guru dan staf masuk dengan tautan email. Siswa masuk dengan NISN dan tanggal lahir.">
       <div className="grid grid-2">
         <form className="kartu form" onSubmit={kirim}>
           <label>
@@ -62,16 +83,33 @@ export default function Masuk() {
             {status === 'galat' && <p className="catatan">{pesan}</p>}
           </div>
         </form>
-        <div className="kartu">
-          <h3>Siapa yang bisa masuk</h3>
-          <ul>
-            <li>Admin TU</li>
-            <li>Guru</li>
-            <li>Siswa</li>
-            <li>Orang tua</li>
-          </ul>
-          <p className="catatan">Akun didaftarkan oleh admin sekolah. Email yang belum didaftarkan tidak akan menerima tautan.</p>
-        </div>
+        <form className="kartu form" onSubmit={masukSiswa}>
+          <h3>Masuk siswa</h3>
+          <label>
+            NISN
+            <input
+              inputMode="numeric"
+              pattern="\d{10}"
+              maxLength={10}
+              required
+              autoComplete="off"
+              value={nisn}
+              onChange={(e) => setNisn(e.target.value.replace(/\D/g, ''))}
+              disabled={statusSiswa === 'kirim'}
+            />
+          </label>
+          <label>
+            Tanggal lahir
+            <input type="date" required value={lahir} onChange={(e) => setLahir(e.target.value)} disabled={statusSiswa === 'kirim'} />
+          </label>
+          <button className="tombol tombol-isi" disabled={statusSiswa === 'kirim' || nisn.length !== 10 || !lahir}>
+            {statusSiswa === 'kirim' ? 'Memeriksa...' : 'Masuk'}
+          </button>
+          <div aria-live="polite">
+            {statusSiswa === 'galat' && <p className="catatan">NISN atau tanggal lahir tidak cocok. Hubungi wali kelas bila masih gagal.</p>}
+            {statusSiswa === 'dibatasi' && <p className="catatan">Terlalu banyak percobaan. Coba lagi dalam 15 menit.</p>}
+          </div>
+        </form>
       </div>
     </Halaman>
   )
