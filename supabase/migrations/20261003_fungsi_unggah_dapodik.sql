@@ -24,8 +24,8 @@ begin
   end loop;
   if v_upd = '' then v_upd := ',' || quote_ident(v_fk) || '=excluded.' || quote_ident(v_fk); end if;
   execute format(
-    'insert into public.%1$I (%2$I%3$s) select p.id%4$s from jsonb_array_elements($1) e, '
-    'lateral jsonb_populate_record(null::public.%1$I, e) r '
+    'insert into public.%1$I (%2$I%3$s) select p.id%4$s from jsonb_array_elements($1) e '
+    'cross join lateral jsonb_populate_record(null::public.%1$I, e) r '
     'join public.%5$I p on p.npsn = $2 and p.kunci_identitas = e->>''kunci_identitas'' '
     'on conflict (%6$s) do update set %7$s',
     p_tabel, v_fk, v_ins, v_sel, v_parent, v_conf, substr(v_upd, 2))
