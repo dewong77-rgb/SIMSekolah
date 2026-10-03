@@ -51,36 +51,91 @@ Deno.serve(async (req) => {
     return peta
   }
 
+  type Baris = {
+    user_id: string; peran: string; dibuat_pada: string
+    ptk: { nama: string } | null
+    peserta_didik: { nama: string; nisn: string | null; status_peserta_didik: string } | null
+  }
+  // PostgREST membatasi 1000 baris per permintaan, jadi dibaca berhalaman.
+  async function semuaProfil(): Promise<Baris[]> {
+    const out: Baris[] = []
+    for (let dari = 0; dari < 20000; dari += 1000) {
+      const { data, error } = await db.from('profil_pengguna')
+        .select('user_id,peran,dibuat_pada,ptk(nama),peserta_didik(nama,nisn,status_peserta_didik)')
+        .eq('npsn', me.npsn).order('user_id').range(dari, dari + 999)
+      if (error) throw new Error(error.message)
+      out.push(...((data ?? []) as unknown as Baris[]))
+      if (!data || data.length < 1000) break
+    }
+    return out
+  }
+
   if (aksi === 'daftar') {
-    const { data: prof, error } = await db.from('profil_pengguna').select('user_id,peran,ptk_id,peserta_didik_id,dibuat_pada').eq('npsn', me.npsn).limit(5000)
-    if (error) return json({ galat: error.message }, 500)
-    const rows = prof ?? []
-    const ptkIds = rows.map((r) => r.ptk_id).filter(Boolean) as string[]
-    const pdIds = rows.map((r) => r.peserta_didik_id).filter(Boolean) as string[]
-    const nama = new Map<string, { nama: string; nisn?: string | null }>()
-    for (let i = 0; i < ptkIds.length; i += 200) {
-      const { data } = await db.from('ptk').select('id,nama').in('id', ptkIds.slice(i, i + 200))
-      for (const p of data ?? []) nama.set(p.id, { nama: p.nama })
-    }
-    for (let i = 0; i < pdIds.length; i += 200) {
-      const { data } = await db.from('peserta_didik').select('id,nama,nisn').in('id', pdIds.slice(i, i + 200))
-      for (const p of data ?? []) nama.set(p.id, { nama: p.nama, nisn: p.nisn })
-    }
+    let rows: Baris[]
+    try { rows = await semuaProfil() } catch (e) { return json({ galat: (e as Error).message }, 500) }
     const au = await semuaPengguna()
     const { data: sas } = await db.from('super_admin').select('user_id')
-    const superSet = new Set((sas ?? []).map((s) => s.user_id as string))
+    const superSet = new Set((sas ?? []).map((x) => x.user_id as string))
     const pengguna = rows.map((r) => {
-      const n = nama.get((r.ptk_id ?? r.peserta_didik_id) as string)
       const a = au.get(r.user_id)
+      const pd = r.peserta_didik
       return {
-        user_id: r.user_id, peran: r.peran, nama: n?.nama ?? null, nisn: n?.nisn ?? null,
+        user_id: r.user_id, peran: r.peran, status_pd: pd?.status_peserta_didik ?? null,
+        nama: r.ptk?.nama ?? pd?.nama ?? null, nisn: pd?.nisn ?? null,
         email: a?.email ?? null, terakhir_masuk: a?.terakhir_masuk ?? null, nonaktif: a?.nonaktif ?? false,
         super_admin: superSet.has(r.user_id), dibuat_pada: r.dibuat_pada,
       }
     })
-    const { count: aktif } = await db.from('peserta_didik').select('*', { count: 'exact', head: true }).eq('npsn', me.npsn).eq('status_peserta_didik', 'aktif')
+    const hitung = async (status: string) => {
+      const { count } = await db.from('peserta_didik').select('*', { count: 'exact', head: true }).eq('npsn', me.npsn).eq('status_peserta_didik', status)
+      return count ?? 0
+    }
     const { count: guru } = await db.from('ptk').select('*', { count: 'exact', head: true }).eq('npsn', me.npsn).in('jenis_ptk', ['Guru', 'Kepala Sekolah'])
-    return json({ pengguna, ringkasan: { siswa_aktif: aktif ?? 0, guru_total: guru ?? 0 } })
+    return json({ pengguna, ringkasan: { siswa_aktif: await hitung('aktif'), alumni: await hitung('lulus'), guru_total: guru ?? 0 } })
+  }
+
+  if (aksi === 'buat_massal') {
+    // Membuat akun siswa (aktif) atau alumni (lulus) dari data peserta didik yang belum punya akun.
+    // Dipanggil berulang dari peramban sampai sisa 0. Aman diulang.
+    const status = b.kelompok === 'alumni' ? 'lulus' : 'aktif'
+    const batas = Math.min(Math.max(Number(b.batas) || 100, 1), 150)
+    const sudahPd = new Set<string>()
+    for (let dari = 0; dari < 20000; dari += 1000) {
+      const { data } = await db.from('profil_pengguna').select('peserta_didik_id').eq('npsn', me.npsn).not('peserta_didik_id', 'is', null).order('user_id').range(dari, dari + 999)
+      for (const r of data ?? []) sudahPd.add(r.peserta_didik_id as string)
+      if (!data || data.length < 1000) break
+    }
+    const belum: { id: string; nisn: string }[] = []
+    let tanpaNisn = 0
+    for (let dari = 0; dari < 20000; dari += 1000) {
+      const { data } = await db.from('peserta_didik').select('id,nisn').eq('npsn', me.npsn).eq('status_peserta_didik', status).order('id').range(dari, dari + 999)
+      for (const p of data ?? []) {
+        if (sudahPd.has(p.id)) continue
+        if (!/^\d{10}$/.test(p.nisn ?? '')) { tanpaNisn++; continue }
+        belum.push({ id: p.id, nisn: p.nisn })
+      }
+      if (!data || data.length < 1000) break
+    }
+    const kerja = belum.slice(0, batas)
+    const dibuat: { user_id: string; pd: string }[] = []
+    const gagal: string[] = []
+    for (let i = 0; i < kerja.length; i += 10) {
+      await Promise.all(kerja.slice(i, i + 10).map(async (p) => {
+        const { data: c, error } = await db.auth.admin.createUser({ email: `${p.nisn}@siswa.invalid`, email_confirm: true })
+        if (c?.user) dibuat.push({ user_id: c.user.id, pd: p.id })
+        else gagal.push(`${p.nisn}: ${error?.message ?? 'gagal'}`)
+      }))
+    }
+    if (dibuat.length) {
+      const { error } = await db.from('profil_pengguna').insert(dibuat.map((d) => ({ user_id: d.user_id, npsn: me.npsn, peran: 'siswa', peserta_didik_id: d.pd })))
+      if (error) {
+        for (const d of dibuat) await db.auth.admin.deleteUser(d.user_id)
+        return json({ galat: error.message }, 500)
+      }
+    }
+    // peserta didik yang gagal dibuat (mis. NISN kembar) tidak dihitung sebagai sisa agar putaran tidak berulang tanpa akhir
+    const sisa = belum.length - kerja.length
+    return json({ dibuat: dibuat.length, gagal, sisa, tanpa_nisn: tanpaNisn })
   }
 
   if (aksi === 'ubah_peran') {

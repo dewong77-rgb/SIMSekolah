@@ -1,5 +1,5 @@
 // Masuk siswa dengan NISN dan tanggal lahir. Dipanggil tanpa sesi (verify_jwt mati), jadi seluruh
-// pengamanan ada di sini: batas percobaan per NISN dan per IP, hanya siswa aktif, jawaban gagal seragam.
+// pengamanan ada di sini: batas percobaan per NISN dan per IP, siswa aktif dan alumni, jawaban gagal seragam.
 // Hasil sukses: token_hash sekali pakai yang ditukar peramban menjadi sesi lewat auth.verifyOtp.
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
   const { data: sk } = await db.from('sekolah').select('npsn').limit(1).maybeSingle()
   if (!sk) { await catatGagal(); return json(GAGAL) }
   const { data: pds } = await db.from('peserta_didik').select('id,tanggal_lahir,status_peserta_didik')
-    .eq('npsn', sk.npsn).eq('nisn', nisn).eq('status_peserta_didik', 'aktif')
+    .eq('npsn', sk.npsn).eq('nisn', nisn).in('status_peserta_didik', ['aktif', 'lulus'])
   const pd = (pds ?? []).filter((p) => p.tanggal_lahir === lahir)
   if (pd.length !== 1) { await catatGagal(); return json(GAGAL) }
   const pdId = pd[0].id as string
@@ -71,6 +71,8 @@ Deno.serve(async (req) => {
     }
   }
   const { data: u } = await db.auth.admin.getUserById(userId!)
+  const bu = u?.user?.banned_until
+  if (bu && new Date(bu) > new Date()) return json({ ok: false, nonaktif: true })
   const { data: link, error: el } = await db.auth.admin.generateLink({ type: 'magiclink', email: u?.user?.email ?? email })
   if (el || !link?.properties?.hashed_token) { console.error('tautan:', el?.message); return json({ ok: false, galat: 'sesi tidak dapat dibuat' }, 500) }
 

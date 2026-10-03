@@ -12,7 +12,7 @@ export default function Masuk() {
   const [pesan, setPesan] = useState('')
   const [nisn, setNisn] = useState('')
   const [lahir, setLahir] = useState('')
-  const [statusSiswa, setStatusSiswa] = useState<'diam' | 'kirim' | 'galat' | 'dibatasi'>('diam')
+  const [statusSiswa, setStatusSiswa] = useState<'diam' | 'kirim' | 'galat' | 'dibatasi' | 'nonaktif'>('diam')
 
   if (session) return <Navigate to="/portal" replace />
 
@@ -44,7 +44,7 @@ export default function Masuk() {
       body: { nisn: nisn.trim(), tanggal_lahir: lahir },
     })
     // Pada status 429 supabase-js mengembalikan error; badan jawabannya ada di error.context.
-    let hasil = data as { ok?: boolean; token_hash?: string; dibatasi?: boolean } | null
+    let hasil = data as { ok?: boolean; token_hash?: string; dibatasi?: boolean; nonaktif?: boolean } | null
     if (error && 'context' in error) {
       try { hasil = await (error as { context: Response }).context.json() } catch { hasil = null }
     }
@@ -52,7 +52,7 @@ export default function Masuk() {
       const { error: ev } = await supabase.auth.verifyOtp({ token_hash: hasil.token_hash, type: 'magiclink' })
       if (!ev) return // sesi terbentuk, halaman berpindah sendiri ke /portal
     }
-    setStatusSiswa(hasil?.dibatasi ? 'dibatasi' : 'galat')
+    setStatusSiswa(hasil?.dibatasi ? 'dibatasi' : hasil?.nonaktif ? 'nonaktif' : 'galat')
   }
 
   return (
@@ -107,6 +107,7 @@ export default function Masuk() {
           </button>
           <div aria-live="polite">
             {statusSiswa === 'galat' && <p className="catatan">NISN atau tanggal lahir tidak cocok. Hubungi wali kelas bila masih gagal.</p>}
+            {statusSiswa === 'nonaktif' && <p className="catatan">Akun ini dinonaktifkan. Hubungi admin sekolah.</p>}
             {statusSiswa === 'dibatasi' && <p className="catatan">Terlalu banyak percobaan. Coba lagi dalam 15 menit.</p>}
           </div>
         </form>
