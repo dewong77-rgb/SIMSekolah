@@ -2,6 +2,7 @@ import { lazy, StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
+import PortalLayout from './components/PortalLayout'
 import Beranda from './pages/Beranda'
 import {
   Akademik, Alumni, BeritaHalaman, HubunganIndustri, Jurusan, Kontak,
@@ -65,6 +66,9 @@ createRoot(document.getElementById('root')!).render(
           <Route path="berita" element={<BeritaHalaman />} />
           <Route path="kontak" element={<Kontak />} />
           <Route path="masuk" element={<Masuk />} />
+          <Route path="*" element={<TidakAda />} />
+        </Route>
+        <Route element={<PortalLayout />}>
           <Route
             path="portal"
             element={
@@ -224,7 +228,6 @@ createRoot(document.getElementById('root')!).render(
           <Route path="portal/progres-lms" element={<RequireRole peran={['siswa']}><Suspense fallback={null}><ProgresSaya /></Suspense></RequireRole>} />
           <Route path="portal/tautan-ortu" element={<RequireRole peran={['admin_tu']}><Suspense fallback={null}><TautanOrtu /></Suspense></RequireRole>} />
           <Route path="portal/anak-lms" element={<RequireRole peran={['orang_tua']}><Suspense fallback={null}><LmsAnak /></Suspense></RequireRole>} />
-          <Route path="*" element={<TidakAda />} />
         </Route>
       </Routes>
       </AuthProvider>
