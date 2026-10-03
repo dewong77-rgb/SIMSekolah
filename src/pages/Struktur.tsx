@@ -16,28 +16,66 @@ const tahunAjaran = () => {
   return n.getMonth() >= 6 ? `${y}/${y + 1}` : `${y - 1}/${y}`
 }
 
-function Cabang({ simpul, anak }: { simpul: Simpul; anak: Map<string | null, Simpul[]> }) {
-  const turunan = anak.get(simpul.kode) ?? []
+const inisial = (n: string) => {
+  const k = n.replace(/,.*$/, '').trim().split(/\s+/).filter((x) => /^[A-Za-z]/.test(x) && !/\.$/.test(x))
+  return ((k[0]?.[0] ?? '') + (k.length > 1 ? k[1][0] : '')).toUpperCase() || '?'
+}
+
+type Peta = Map<string | null, Simpul[]>
+
+function Kartu({ simpul, tingkat }: { simpul: Simpul; tingkat: number }) {
+  const kosong = simpul.pemegang.length === 0
   return (
-    <li>
-      <div className={'simpul' + (simpul.pemegang.length === 0 ? ' kosong' : '')}>
-        <strong>{simpul.nama}</strong>
-        {simpul.pemegang.length === 0 ? (
-          <span className="catatan">Belum ditetapkan</span>
-        ) : (
-          <ul className="pemegang">
-            {simpul.pemegang.map((p, i) => (
-              <li key={i}>{p.label && simpul.lingkup !== 'sekolah' ? <small>{p.label}: </small> : null}{p.nama}</li>
-            ))}
-          </ul>
-        )}
-      </div>
-      {turunan.length > 0 && (
-        <ul className="pohon">
-          {turunan.map((t) => <Cabang key={t.kode} simpul={t} anak={anak} />)}
+    <div className={`kartu-org t${Math.min(tingkat, 2)}` + (kosong ? ' kosong' : '')}>
+      <span className="jabatan">{simpul.nama}</span>
+      {kosong ? (
+        <span className="catatan">Belum ditetapkan</span>
+      ) : (
+        <ul className="pemegang">
+          {simpul.pemegang.map((p, i) => (
+            <li key={i}>
+              <span className="avatar" aria-hidden="true">{inisial(p.nama)}</span>
+              <span>{p.label && simpul.lingkup !== 'sekolah' ? <small>{p.label}</small> : null}<strong>{p.nama}</strong></span>
+            </li>
+          ))}
         </ul>
       )}
+    </div>
+  )
+}
+
+function Turunan({ simpul, anak, tingkat }: { simpul: Simpul; anak: Peta; tingkat: number }) {
+  const t = anak.get(simpul.kode) ?? []
+  return (
+    <li>
+      <Kartu simpul={simpul} tingkat={tingkat} />
+      {t.length > 0 && (
+        <ul className="rantai">{t.map((x) => <Turunan key={x.kode} simpul={x} anak={anak} tingkat={tingkat + 1} />)}</ul>
+      )}
     </li>
+  )
+}
+
+function Bagan({ simpul, anak }: { simpul: Simpul; anak: Peta }) {
+  const t = anak.get(simpul.kode) ?? []
+  return (
+    <div className="bagan-org">
+      <div className="bagan-puncak"><Kartu simpul={simpul} tingkat={0} /></div>
+      {t.length > 0 && (
+        <ul className="bagan-baris" style={{ ['--n' as string]: Math.min(t.length, 6) }}>
+          {t.map((x) => (
+            <li key={x.kode} className="bagan-kolom">
+              <Kartu simpul={x} tingkat={1} />
+              {(anak.get(x.kode) ?? []).length > 0 && (
+                <ul className="rantai">
+                  {(anak.get(x.kode) ?? []).map((y) => <Turunan key={y.kode} simpul={y} anak={anak} tingkat={2} />)}
+                </ul>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   )
 }
 
@@ -89,9 +127,9 @@ export default function Struktur() {
       {rows && !adaIsi && <p className="kartu">Struktur akan tampil setelah penugasan ditetapkan oleh sekolah.</p>}
       {rows && adaIsi && (
         <>
-          <ul className="pohon akar" aria-label="Bagan struktur organisasi">
-            {akar.map((s) => <Cabang key={s.kode} simpul={s} anak={anak} />)}
-          </ul>
+          <div aria-label="Bagan struktur organisasi" role="group">
+            {akar.map((s) => <Bagan key={s.kode} simpul={s} anak={anak} />)}
+          </div>
 
           {waliPerTingkat.length > 0 && (
             <>
@@ -101,7 +139,7 @@ export default function Struktur() {
                   <h3>Kelas {t}</h3>
                   <div className="grid grid-3">
                     {daftar.map((w, i) => (
-                      <div className="kartu" key={i}><small>{w.label}</small><p style={{ margin: '4px 0 0' }}><strong>{w.nama}</strong></p></div>
+                      <div className="kartu-org t2" key={i}><span className="jabatan">{w.label}</span><ul className="pemegang"><li><span className="avatar" aria-hidden="true">{inisial(w.nama)}</span><strong>{w.nama}</strong></li></ul></div>
                     ))}
                   </div>
                 </section>
@@ -114,7 +152,7 @@ export default function Struktur() {
               <div className="judul-bagian jarak"><h2>Pembina ekstrakurikuler</h2></div>
               <div className="grid grid-3">
                 {ekskul.map((p, i) => (
-                  <div className="kartu" key={i}><small>{p.label}</small><p style={{ margin: '4px 0 0' }}><strong>{p.nama}</strong></p></div>
+                  <div className="kartu-org t2" key={i}><span className="jabatan">{p.label}</span><ul className="pemegang"><li><span className="avatar" aria-hidden="true">{inisial(p.nama)}</span><strong>{p.nama}</strong></li></ul></div>
                 ))}
               </div>
             </>
