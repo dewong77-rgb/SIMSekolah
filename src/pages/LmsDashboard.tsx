@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import Halaman from '../components/Halaman'
 import { panggil, tgl, tglJam } from '../lib/rpc'
 
@@ -27,8 +27,40 @@ function Sel({ a, b, ada = true }: { a: number; b: number; ada?: boolean }) {
   )
 }
 
+type KelasSaya = { id: string; mapel: string; rombel: string; peran: string }
+
 export default function DashboardPembelajaran() {
   const [sp, setSp] = useSearchParams()
+  const nav = useNavigate()
+  const [baru, setBaru] = useState(false)
+  const [kelasSaya, setKelasSaya] = useState<KelasSaya[]>([])
+  const [fb, setFb] = useState({ kelas: '', judul: '', tanggal: '', tujuan: '', wajib: true })
+  useEffect(() => {
+    panggil<KelasSaya[]>('lms_kelas_saya').then((k) => {
+      const mine = k.filter((x) => x.peran === 'pengelola')
+      setKelasSaya(mine); setFb((f) => ({ ...f, kelas: f.kelas || mine[0]?.id || '' }))
+    }).catch(() => undefined)
+  }, [])
+  async function buatBaru(e: React.FormEvent) {
+    e.preventDefault()
+    setSibuk(true); setGalat('')
+    try {
+      const id = await panggil<string>('lms_simpan_pertemuan', { p_kelas: fb.kelas, p_id: null, p_judul: fb.judul, p_tanggal: fb.tanggal || null, p_tujuan: fb.tujuan || null, p_wajib_absen: fb.wajib, p_terbit: false })
+      nav(`/portal/lms/${fb.kelas}/pertemuan/${id}`)
+    } catch (er) { setGalat((er as Error).message) }
+    setSibuk(false)
+  }
+  async function terbitSemua() {
+    if (!pilih) return
+    if (!window.confirm('Terbitkan pertemuan ini di semua kelas Anda sekarang? Siswa langsung bisa membukanya.')) return
+    setSibuk(true); setGalat(''); setPesan('')
+    try {
+      const r = await panggil<{ dibagikan: number; diterbitkan: number; dilewati_tanpa_materi: number }>('lms_terbitkan_serentak', { p_pertemuan: pilih })
+      setPesan(`Terbit di semua kelas. ${r.dibagikan ? `${r.dibagikan} kelas dibuatkan salinan. ` : ''}${r.dilewati_tanpa_materi ? `${r.dilewati_tanpa_materi} kelas dilewati karena belum punya materi.` : ''}`)
+      await muat()
+    } catch (er) { setGalat((er as Error).message) }
+    setSibuk(false)
+  }
   const [daftar, setDaftar] = useState<Grup[] | null>(null)
   const [d, setD] = useState<Data | null>(null)
   const [galat, setGalat] = useState('')
@@ -88,6 +120,27 @@ export default function DashboardPembelajaran() {
   return (
     <Halaman judul="Dashboard pembelajaran" lead="Satu pertemuan, semua kelas yang Anda ampu. Absen dibuka sekaligus dengan satu kode, kemajuan siswa dipantau langsung.">
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
+      <div className="aksi">
+        <button type="button" className="tombol tombol-isi" onClick={() => setBaru(!baru)}>{baru ? 'Tutup formulir' : 'Pertemuan baru'}</button>
+      </div>
+      {baru && (
+        <form className="kartu form jarak" onSubmit={buatBaru}>
+          <h3>Pertemuan baru</h3>
+          <div className="grid grid-2">
+            <label>Judul pertemuan<input required maxLength={200} value={fb.judul} onChange={(e) => setFb({ ...fb, judul: e.target.value })} /></label>
+            <label>Tanggal<input type="date" value={fb.tanggal} onChange={(e) => setFb({ ...fb, tanggal: e.target.value })} /><span className="petunjuk">Kosong berarti hari ini.</span></label>
+          </div>
+          <label>Isi di kelas
+            <select value={fb.kelas} onChange={(e) => setFb({ ...fb, kelas: e.target.value })}>
+              {kelasSaya.map((x) => <option key={x.id} value={x.id}>{x.mapel} {x.rombel}</option>)}
+            </select>
+            <span className="petunjuk">Materi, latihan, dan forum diisi sekali di sini. Saat diterbitkan, otomatis berlaku untuk semua kelas lain.</span>
+          </label>
+          <label>Tujuan pembelajaran (opsional)<textarea rows={2} maxLength={1000} value={fb.tujuan} onChange={(e) => setFb({ ...fb, tujuan: e.target.value })} /></label>
+          <label className="baris-centang"><input type="checkbox" checked={fb.wajib} onChange={(e) => setFb({ ...fb, wajib: e.target.checked })} /> Siswa wajib absen sebelum membuka materi</label>
+          <div className="aksi"><button className="tombol tombol-isi" disabled={sibuk || !fb.kelas}>{sibuk ? 'Membuat...' : 'Buat dan isi pertemuan'}</button></div>
+        </form>
+      )}
       {daftar && daftar.length === 0 && <div className="kartu"><p>Belum ada pertemuan. Buat pertemuan di Ruang belajar, lalu bagikan ke semua kelas.</p><p><Link to="/portal/lms">Ke Ruang belajar</Link></p></div>}
       {daftar && daftar.length > 0 && (
         <div className="kartu form">
@@ -101,6 +154,13 @@ export default function DashboardPembelajaran() {
 
       {d && (
         <>
+          {k.some((x) => x.status === 'draf') && (
+            <div className="kartu jarak" style={{ borderLeft: '4px solid #e8a020' }}>
+              <p style={{ margin: 0 }}><strong>{k.filter((x) => x.status === 'draf').length} dari {k.length} kelas masih draf.</strong> Siswa di kelas itu belum bisa membuka pertemuan dan absen belum bisa dibuka.</p>
+              <div className="aksi"><button className="tombol tombol-isi" disabled={sibuk} onClick={() => void terbitSemua()}>Terbitkan di semua kelas</button></div>
+            </div>
+          )}
+          {k.length > 0 && <div className="aksi jarak"><Link className="tombol" style={{ color: 'var(--warna-utama)' }} to={`/portal/lms/${(k.find((x) => x.pertemuan_id === pilih) ?? k[0]).kelas_id}/pertemuan/${pilih ?? k[0].pertemuan_id}`}>Atur isi pertemuan ini (materi, latihan, forum)</Link></div>}
           <div className="kartu jarak">
             <h3>Absen semua kelas</h3>
             {terbuka.length > 0 ? (
