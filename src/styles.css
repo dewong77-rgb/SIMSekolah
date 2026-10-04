@@ -479,3 +479,4 @@ input[type="search"] { font: inherit; padding: 8px 12px; border: 1px solid #b9c1
 .aktifkan-panel{border-left:4px solid var(--warna-utama,#1a3e6f)}
 .kartu-pertemuan{display:grid;gap:.35rem;margin-bottom:.6rem;text-decoration:none;color:inherit}
 .kartu-pertemuan h3{margin:0}
+.langkah-opsi{border-style:dashed}

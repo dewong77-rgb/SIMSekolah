@@ -171,10 +171,10 @@ export function LatihanPertemuan({ kelasId, pertemuanId, judul, kelola, perbarui
   }
   return (
     <div className="kartu jarak" id="latihan">
-      <h3>Latihan soal</h3>
+      <h3>Kuis atau latihan soal <small>(opsional, nilai tambah)</small></h3>
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
       {!daftar && <p className="catatan">Memuat...</p>}
-      {daftar && daftar.length === 0 && <p className="catatan">{kelola ? 'Belum ada latihan soal untuk pertemuan ini. Wajib ada minimal satu dengan minimal satu soal.' : 'Belum ada latihan soal.'}</p>}
+      {daftar && daftar.length === 0 && <p className="catatan">{kelola ? 'Belum ada kuis. Opsional: kuis atau latihan soal memberi nilai tambah bagi siswa.' : 'Belum ada latihan soal.'}</p>}
       {(daftar ?? []).map((a) => (
         <p key={a.id} style={{ margin: '6px 0' }}>
           <Link to={`/portal/lms/${kelasId}/kuis/${a.id}`}>{a.judul}</Link>{' '}
