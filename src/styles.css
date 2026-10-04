@@ -462,3 +462,5 @@ input[type="search"] { font: inherit; padding: 8px 12px; border: 1px solid #b9c1
   .pengingat .perhatian-item { align-items: flex-start; }
   .tabel-bungkus { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 }
+.pilih-kelas{border:1px solid var(--garis,#ccc);border-radius:8px;padding:.6rem .9rem;margin:0 0 .8rem;display:grid;gap:.35rem}
+.pilih-kelas legend{font-weight:600;padding:0 .3rem}
