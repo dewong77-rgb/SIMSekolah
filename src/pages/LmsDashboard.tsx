@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import KelolaPertemuan from './LmsKelola'
 import Halaman from '../components/Halaman'
 import { panggil, tgl, tglJam } from '../lib/rpc'
 
@@ -189,6 +190,7 @@ export default function DashboardPembelajaran() {
               {pesan && <p className="catatan" role="status"><strong>{pesan}</strong></p>}
             </div>
           )}
+          {k.length > 0 && pilih && <KelolaPertemuan key={pilih} kelasId={(k.find((x) => x.pertemuan_id === pilih) ?? k[0]).kelas_id} pertemuanId={pilih} setelahUbah={async () => { const g = await panggil<Grup[]>('lms_dashboard_daftar'); setDaftar(g); await muat() }} setelahHapus={async () => { const g = await panggil<Grup[]>('lms_dashboard_daftar'); setDaftar(g); setD(null); setSp(g.length > 0 ? { p: g[0].pertemuan_id } : {}, { replace: true }) }} />}
           {k.length > 0 && <div className="aksi jarak"><Link className="tombol" style={{ color: 'var(--warna-utama)' }} to={`/portal/lms/${(k.find((x) => x.pertemuan_id === pilih) ?? k[0]).kelas_id}/pertemuan/${pilih ?? k[0].pertemuan_id}`}>Atur isi pertemuan ini (materi, latihan, forum)</Link></div>}
           <div className="kartu jarak">
             <h3>Absen semua kelas</h3>

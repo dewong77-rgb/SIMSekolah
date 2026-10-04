@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import Halaman from '../components/Halaman'
 import { useAuth } from '../auth/AuthContext'
 import { panggil, tgl, tglJam } from '../lib/rpc'
@@ -11,6 +11,7 @@ import { nilaiTeks, unduhCsv } from './lmsUtil'
 import PengingatLms from './LmsPengingat'
 import { wordKeHtml, judulDariNama, BATAS_HTML } from '../lib/dokumen'
 import { unduhRekapKelas } from './lmsXlsx'
+import KelolaPertemuan from './LmsKelola'
 import { BerandaBelajar, IsiMateri, PertemuanSiswa, type Materi } from './LmsBelajar'
 
 // Semua data lewat fungsi basis data lms_*. Tabel LMS tidak punya policy, jadi tidak dibaca langsung.
@@ -166,7 +167,7 @@ export function DetailKelas() {
     if (!ubahId) return
     setSibuk(true); setGalat('')
     try {
-      await panggil('lms_simpan_pertemuan', { p_kelas: kelasId, p_id: ubahId, p_judul: ev.judul, p_tanggal: ev.tanggal || null, p_tujuan: ev.tujuan || null, p_wajib_absen: ev.wajib, p_terbit: null })
+      await panggil('lms_pertemuan_ubah_serentak', { p_pertemuan: ubahId, p_judul: ev.judul, p_tanggal: ev.tanggal || null, p_tujuan: ev.tujuan || null, p_wajib_absen: ev.wajib })
       setUbahId(null); await muat()
     } catch (er) { setGalat((er as Error).message) }
     setSibuk(false)
@@ -256,6 +257,7 @@ export function DetailKelas() {
                       <button className="tombol tombol-isi" disabled={sibuk}>{sibuk ? 'Menyimpan...' : 'Simpan perubahan'}</button>
                       <button type="button" className="tombol" onClick={() => setUbahId(null)}>Batal</button>
                     </div>
+                    <p className="catatan">Perubahan berlaku juga di kelas lain yang berbagi pertemuan ini.</p>
                   </form>
                 </td>
               </tr>
@@ -707,6 +709,7 @@ export function RuangPertemuan() {
 
   const kelola = kelas?.peran === 'pengelola'
   const { profil } = useAuth()
+  const nav = useNavigate()
 
   async function absen(e: FormEvent) {
     e.preventDefault()
@@ -762,6 +765,7 @@ export function RuangPertemuan() {
             <span className={`status ${p.status === 'terbit' ? 'status-selesai' : 'status-menunggu'}`}>{p.status === 'terbit' ? 'Terbit' : 'Draf'}</span>
             <button className="tombol" style={{ color: 'var(--warna-utama)' }} disabled={p.status !== 'terbit' && !p.kelengkapan?.lengkap} onClick={() => void terbitkan(p.status !== 'terbit')}>{p.status === 'terbit' ? 'Tarik jadi draf' : 'Terbitkan'}</button>
           </div>
+          <KelolaPertemuan kelasId={kelasId} pertemuanId={id} setelahUbah={muat} setelahHapus={() => nav(`/portal/lms/${kelasId}`)} />
           <PanelKelengkapan k={p.kelengkapan} />
           {p.status !== 'terbit' && <div className="aksi"><label className="baris-centang"><input type="checkbox" checked={sekalianBagi} onChange={(e) => setSekalianBagi(e.target.checked)} /> Saat diterbitkan, sekalian bagikan dan terbitkan di semua kelas lain yang Anda ampu</label></div>}
           {p.status !== 'terbit' && p.kelengkapan && !p.kelengkapan.lengkap && (
