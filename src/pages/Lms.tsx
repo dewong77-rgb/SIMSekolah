@@ -8,6 +8,7 @@ import { DaftarKuis, LatihanPertemuan } from './LmsKuis'
 import { DaftarTugas } from './LmsTugas'
 import { Forum } from './LmsForum'
 import { nilaiTeks, unduhCsv } from './lmsUtil'
+import { LembarSiswa } from './LmsLembar'
 import { htmlAman, wordKeHtml, judulDariNama, BATAS_HTML } from '../lib/dokumen'
 import { unduhRekapKelas } from './lmsXlsx'
 
@@ -24,14 +25,15 @@ type Pertemuan = {
   kelengkapan: Kelengkapan | null
 }
 type Kelengkapan = { materi: number; latihan: number; forum: number; lengkap: boolean; kurang: string[] }
-type Materi = { id: string; urutan: number; jenis: 'teks' | 'video' | 'tautan' | 'berkas'; judul: string; isi: string | null; url: string | null; selesai: boolean; format: 'teks' | 'html'; untuk: 'siswa' | 'guru' }
+type Materi = { id: string; urutan: number; jenis: 'teks' | 'video' | 'tautan' | 'berkas'; judul: string; isi: string | null; url: string | null; selesai: boolean; format: 'teks' | 'html'; untuk: 'siswa' | 'guru'; tugas_id?: string | null }
 type BarisAbsen = { peserta_didik_id: string; nama: string; nisn: string | null; no_urut: number | null; status: string; sumber: string | null; catatan: string | null }
 type BarisTerpadu = {
   peserta_didik_id: string; nama: string; nisn: string | null; no_urut: number | null; absen: string
   materi_selesai: number; latihan_selesai: number; latihan_nilai: number | null
+  lembar_status?: 'terkumpul' | 'dinilai' | null; lembar_nilai?: number | null
   forum_topik: number; forum_balasan: number; forum_total: number
 }
-type Terpadu = { total_materi: number; total_latihan: number; total_topik: number; siswa: BarisTerpadu[] }
+type Terpadu = { total_lembar?: number; total_materi: number; total_latihan: number; total_topik: number; siswa: BarisTerpadu[] }
 type BarisRekap = { peserta_didik_id: string; nama: string; nisn: string | null; hadir: number; izin: number; sakit: number; alpa: number }
 
 const labelStatus: Record<string, string> = { hadir: 'Hadir', izin: 'Izin', sakit: 'Sakit', alpa: 'Alpa', belum: 'Belum dicatat' }
@@ -240,12 +242,14 @@ export function DetailKelas() {
 }
 
 function IsiMateri({ m, siswa, selesai }: { m: Materi; siswa: boolean; selesai: (id: string) => Promise<void> }) {
+  if (siswa && m.tugas_id && m.format === 'html') return <LembarSiswa tugasId={m.tugas_id} html={m.isi ?? ''} judul={m.judul} />
   const yt = m.jenis === 'video' && m.url ? idYoutube(m.url) : null
   return (
     <div className="kartu jarak">
       <div className="lencana-baris">
         <span className="lencana">{m.jenis === 'teks' && m.format === 'html' ? 'Dokumen' : labelJenis[m.jenis]}</span>
         {m.untuk === 'guru' && <span className="status status-menunggu">Khusus guru, siswa tidak melihat</span>}
+        {m.tugas_id && !siswa && <span className="status status-selesai">Lembar kerja, siswa mengisi di sini</span>}
         {m.selesai && <span className="status status-selesai">Selesai dibaca</span>}
       </div>
       <h3>{m.judul}</h3>
@@ -337,8 +341,8 @@ function RekapPertemuan({ pertemuanId, nomor, versi }: { pertemuanId: string; no
   function unduh() {
     if (!t) return
     unduhCsv(`rekap-pertemuan-${nomor}.csv`, [
-      ['No', 'Nama', 'NISN', 'Kehadiran', 'Materi selesai', 'Total materi', 'Latihan selesai', 'Total latihan', 'Nilai latihan', 'Topik forum', 'Balasan forum', 'Total kiriman forum'],
-      ...t.siswa.map((x, i) => [x.no_urut ?? i + 1, x.nama, x.nisn, labelStatus[x.absen] ?? x.absen, x.materi_selesai, t.total_materi, x.latihan_selesai, t.total_latihan, x.latihan_nilai, x.forum_topik, x.forum_balasan, x.forum_total]),
+      ['No', 'Nama', 'NISN', 'Kehadiran', 'Materi selesai', 'Total materi', 'Latihan selesai', 'Total latihan', 'Nilai latihan', 'Lembar kerja', 'Nilai lembar', 'Topik forum', 'Balasan forum', 'Total kiriman forum'],
+      ...t.siswa.map((x, i) => [x.no_urut ?? i + 1, x.nama, x.nisn, labelStatus[x.absen] ?? x.absen, x.materi_selesai, t.total_materi, x.latihan_selesai, t.total_latihan, x.latihan_nilai, (t.total_lembar ?? 0) > 0 ? (x.lembar_status ?? 'belum') : '', x.lembar_nilai ?? '', x.forum_topik, x.forum_balasan, x.forum_total]),
     ])
   }
   return (
@@ -356,9 +360,9 @@ function RekapPertemuan({ pertemuanId, nomor, versi }: { pertemuanId: string; no
       <div className="aksi jarak"><button className="tombol" style={{ color: 'var(--warna-utama)' }} disabled={!t} onClick={unduh}>Unduh CSV</button></div>
       <div className="tabel-bungkus jarak">
         <table>
-          <thead><tr><th>No</th><th>Nama</th><th>Kehadiran</th><th>Materi</th><th>Latihan</th><th>Forum</th><th>Ubah absen</th></tr></thead>
+          <thead><tr><th>No</th><th>Nama</th><th>Kehadiran</th><th>Materi</th><th>Latihan</th>{(t?.total_lembar ?? 0) > 0 && <th>Lembar kerja</th>}<th>Forum</th><th>Ubah absen</th></tr></thead>
           <tbody>
-            {!t && <tr><td colSpan={7}>Memuat...</td></tr>}
+            {!t && <tr><td colSpan={8}>Memuat...</td></tr>}
             {(t?.siswa ?? []).map((x, i) => (
               <tr key={x.peserta_didik_id}>
                 <td>{x.no_urut ?? i + 1}</td>
@@ -366,6 +370,7 @@ function RekapPertemuan({ pertemuanId, nomor, versi }: { pertemuanId: string; no
                 <td><span className={`status ${kelasStatus[x.absen]}`}>{labelStatus[x.absen]}</span>{sumber(x.peserta_didik_id) === 'guru' ? <small> (guru)</small> : null}</td>
                 <td>{t && t.total_materi > 0 ? `${x.materi_selesai}/${t.total_materi}` : '-'}</td>
                 <td>{t && t.total_latihan > 0 ? <>{x.latihan_selesai}/{t.total_latihan}{x.latihan_nilai !== null ? <><br /><small>nilai {nilaiTeks(x.latihan_nilai)}</small></> : null}</> : '-'}</td>
+                {(t?.total_lembar ?? 0) > 0 && <td>{x.lembar_status ? <>{x.lembar_status === 'dinilai' ? 'Dinilai' : 'Terkumpul'}{x.lembar_nilai != null ? <><br /><small>nilai {nilaiTeks(x.lembar_nilai)}</small></> : null}</> : <small>Belum</small>}</td>}
                 <td>{x.forum_total > 0 ? <>{x.forum_total} kiriman<br /><small>{x.forum_topik} topik, {x.forum_balasan} balasan</small></> : <small>Belum ikut</small>}</td>
                 <td>
                   <select aria-label={`Ubah status ${x.nama}`} value="" onChange={(e) => e.target.value && void ubah(x.peserta_didik_id, e.target.value)}>
@@ -463,6 +468,12 @@ function FormMateri({ pertemuanId, muat, awal, selesai }: { pertemuanId: string;
   const [galat, setGalat] = useState('')
   const [sibuk, setSibuk] = useState(false)
   const dokumen = awal?.format === 'html'
+  async function ubahLembar(aktif: boolean) {
+    if (!awal) return
+    setSibuk(true); setGalat('')
+    try { await panggil('lms_materi_lembar', { p_materi: awal.id, p_aktif: aktif }); await muat(); selesai?.() } catch (er) { setGalat((er as Error).message) }
+    setSibuk(false)
+  }
   async function simpan(e: FormEvent) {
     e.preventDefault()
     setSibuk(true); setGalat('')
@@ -495,6 +506,9 @@ function FormMateri({ pertemuanId, muat, awal, selesai }: { pertemuanId: string;
           <option value="siswa">Siswa dan guru</option><option value="guru">Guru saja</option>
         </select>
       </label>
+      {dokumen && awal && (
+        <label className="baris-centang"><input type="checkbox" checked={!!awal.tugas_id} disabled={sibuk || v.untuk !== 'siswa'} onChange={(e) => void ubahLembar(e.target.checked)} /> Lembar kerja: siswa mengisi langsung di aplikasi dan melampirkan foto</label>
+      )}
       {dokumen
         ? <p className="catatan">Isi dokumen tidak diubah di sini. Untuk mengganti isinya, impor ulang dari Word lalu hapus yang lama.</p>
         : v.jenis === 'teks'
@@ -506,10 +520,10 @@ function FormMateri({ pertemuanId, muat, awal, selesai }: { pertemuanId: string;
   )
 }
 
-type BarisImpor = { nama: string; judul: string; untuk: 'siswa' | 'guru'; html: string; ukuran: number; galat: string }
+type BarisImpor = { nama: string; judul: string; untuk: 'siswa' | 'guru' | 'lembar'; html: string; ukuran: number; galat: string }
 
 /** Perkiraan tujuan dari nama berkas: file pertemuan, modul, RPP, ATP untuk guru. Lainnya untuk siswa. */
-const tebakUntuk = (nama: string): 'siswa' | 'guru' => (/pertemuan|modul|rpp|atp|kktp|rubrik|kunci/i.test(nama) ? 'guru' : 'siswa')
+const tebakUntuk = (nama: string): 'siswa' | 'guru' | 'lembar' => (/pertemuan|modul|rpp|atp|kktp|rubrik|kunci/i.test(nama) ? 'guru' : /lembar|lks|worksheet|kerja/i.test(nama) ? 'lembar' : 'siswa')
 const urutanImpor = (nama: string) => (/bacaan|materi/i.test(nama) ? 0 : /lembar|kerja|tutorial|latihan/i.test(nama) ? 1 : tebakUntuk(nama) === 'guru' ? 3 : 2)
 
 /** Impor satu atau beberapa dokumen Word sebagai materi. Yang untuk siswa langsung tampil di halaman siswa. */
@@ -538,7 +552,8 @@ function ImporDokumen({ pertemuanId, muat }: { pertemuanId: string; muat: () => 
     let n = 0
     try {
       for (const b of siap) {
-        await panggil('lms_materi_tulis', { p_pertemuan: pertemuanId, p_id: null, p_jenis: 'teks', p_judul: b.judul, p_isi: b.html, p_url: null, p_format: 'html', p_untuk: b.untuk })
+        const idM = await panggil<string>('lms_materi_tulis', { p_pertemuan: pertemuanId, p_id: null, p_jenis: 'teks', p_judul: b.judul, p_isi: b.html, p_url: null, p_format: 'html', p_untuk: b.untuk === 'guru' ? 'guru' : 'siswa' })
+        if (b.untuk === 'lembar') await panggil('lms_materi_lembar', { p_materi: idM, p_aktif: true })
         n++
       }
       setHasil(`${n} dokumen diimpor.`); setBaris([])
@@ -549,7 +564,7 @@ function ImporDokumen({ pertemuanId, muat }: { pertemuanId: string; muat: () => 
   return (
     <div className="kartu form jarak">
       <h3>Impor dari Word</h3>
-      <p className="catatan">Pilih satu atau beberapa berkas .docx sekaligus. Isinya langsung tampil di halaman siswa sebagai bacaan, tabel dan tautan ikut terbawa. Berkas untuk guru (misalnya File Pertemuan) ditandai Guru saja, tidak terlihat siswa.</p>
+      <p className="catatan">Pilih satu atau beberapa berkas .docx sekaligus. Isinya langsung tampil di halaman siswa sebagai bacaan, tabel dan tautan ikut terbawa. Pilih Lembar kerja bila siswa harus mengisinya langsung: sel kosong, garis isian, dan kotak centang menjadi kolom yang bisa diisi, lengkap dengan lampiran foto. Berkas untuk guru (misalnya File Pertemuan) ditandai Guru saja, tidak terlihat siswa.</p>
       <label>Berkas Word (.docx)<input type="file" multiple accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(e) => { void pilih(e.target.files); e.target.value = '' }} /></label>
       {membaca && <p className="catatan">Membaca dokumen...</p>}
       {baris.length > 0 && (
@@ -562,8 +577,8 @@ function ImporDokumen({ pertemuanId, muat }: { pertemuanId: string; muat: () => 
                   <td>{b.nama}{b.galat ? <><br /><small className="galat">{b.galat}</small></> : <><br /><small>{Math.round(b.ukuran / 1000)} KB</small></>}</td>
                   <td><input aria-label={`Judul ${b.nama}`} maxLength={200} value={b.judul} disabled={!!b.galat} onChange={(e) => setBaris(baris.map((x, j) => (j === i ? { ...x, judul: e.target.value } : x)))} /></td>
                   <td>
-                    <select aria-label={`Tujuan ${b.nama}`} value={b.untuk} disabled={!!b.galat} onChange={(e) => setBaris(baris.map((x, j) => (j === i ? { ...x, untuk: e.target.value as 'siswa' | 'guru' } : x)))}>
-                      <option value="siswa">Siswa dan guru</option><option value="guru">Guru saja</option>
+                    <select aria-label={`Tujuan ${b.nama}`} value={b.untuk} disabled={!!b.galat} onChange={(e) => setBaris(baris.map((x, j) => (j === i ? { ...x, untuk: e.target.value as 'siswa' | 'guru' | 'lembar' } : x)))}>
+                      <option value="siswa">Bacaan siswa</option><option value="lembar">Lembar kerja (siswa mengisi)</option><option value="guru">Guru saja</option>
                     </select>
                   </td>
                 </tr>

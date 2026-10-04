@@ -4,6 +4,7 @@ import Halaman from '../components/Halaman'
 import { panggil, tglJam } from '../lib/rpc'
 import { biru, dariInputLokal, keInputLokal, merah, nilaiTeks, unduhCsv } from './lmsUtil'
 import type { PertemuanRingkas } from './LmsKuis'
+import { LembarJawabanGuru } from './LmsLembar'
 
 // Tugas dan pengumpulan. Pengumpulan berupa teks dan atau tautan https (Drive, GitHub, dan sebagainya).
 
@@ -11,12 +12,13 @@ type Saya = { teks: string | null; url: string | null; dikumpul_pada: string; te
 type Tugas = {
   id: string; judul: string; instruksi: string | null; tenggat: string | null; terima_telat: boolean; nilai_maks: number
   status: 'draf' | 'terbit'; pertemuan_id: string | null; pertemuan_nomor: number | null
-  dikumpul: number | null; dinilai: number | null; total_siswa: number | null; saya: Saya | null
+  dikumpul: number | null; dinilai: number | null; total_siswa: number | null; saya: Saya | null; lembar?: boolean
 }
 type BarisTugas = {
   peserta_didik_id: string; nama: string; nisn: string | null; no_urut: number | null
   status: 'belum' | 'terkumpul' | 'terlambat' | 'dinilai'; teks: string | null; url: string | null
   dikumpul_pada: string | null; nilai: number | null; umpan_balik: string | null
+  ada_isian?: boolean; jumlah_lampiran?: number
 }
 
 const labelStatus: Record<string, string> = { belum: 'Belum', terkumpul: 'Terkumpul', terlambat: 'Terlambat', dinilai: 'Dinilai' }
@@ -122,6 +124,7 @@ function BarisNilai({ b, tugasId, maks, muat }: { b: BarisTugas; tugasId: string
   const [galat, setGalat] = useState('')
   const [sibuk, setSibuk] = useState(false)
   const [buka, setBuka] = useState(false)
+  const [lembar, setLembar] = useState(false)
   async function simpan() {
     setSibuk(true); setGalat('')
     try { await panggil('lms_tugas_nilai', { p_tugas: tugasId, p_pd: b.peserta_didik_id, p_nilai: Number(nilai), p_umpan: umpan || null }); await muat() } catch (e) { setGalat((e as Error).message) }
@@ -137,8 +140,10 @@ function BarisNilai({ b, tugasId, maks, muat }: { b: BarisTugas; tugasId: string
         {ada ? (
           <>
             {b.url && <a href={b.url} target="_blank" rel="noopener noreferrer">Buka tautan</a>}
+            {b.ada_isian && <><br /><button type="button" className="tombol" style={biru} onClick={() => setLembar(!lembar)}>{lembar ? 'Sembunyikan lembar' : 'Lihat lembar'}</button>{b.jumlah_lampiran ? <small> {b.jumlah_lampiran} lampiran</small> : null}</>}
             {b.teks && <><br /><button type="button" className="tombol" style={biru} onClick={() => setBuka(!buka)}>{buka ? 'Sembunyikan jawaban' : 'Lihat jawaban'}</button></>}
             {buka && b.teks && <p style={{ whiteSpace: 'pre-wrap' }}>{b.teks}</p>}
+            {lembar && <LembarJawabanGuru tugasId={tugasId} pdId={b.peserta_didik_id} />}
           </>
         ) : <small>-</small>}
       </td>
@@ -219,7 +224,7 @@ function TugasGuru({ kelasId, t, pertemuan, muat }: { kelasId: string; t: Tugas;
   )
 }
 
-function TugasSiswa({ t, muat }: { t: Tugas; muat: () => Promise<void> }) {
+function TugasSiswa({ t, muat, kelasId }: { t: Tugas; muat: () => Promise<void>; kelasId: string }) {
   const [teks, setTeks] = useState(t.saya?.teks ?? '')
   const [url, setUrl] = useState(t.saya?.url ?? '')
   const [galat, setGalat] = useState('')
@@ -252,7 +257,8 @@ function TugasSiswa({ t, muat }: { t: Tugas; muat: () => Promise<void> }) {
         </div>
       )}
       {pesan && <div className="kartu hasil jarak"><strong>{pesan}</strong></div>}
-      {!dinilai && (tutup
+      {t.lembar && !dinilai && <div className="kartu jarak"><p style={{ margin: 0 }}>Tugas ini berupa lembar kerja. Isi dan kumpulkan langsung di halaman pertemuan{t.pertemuan_nomor ? ` ${t.pertemuan_nomor}` : ''}.</p>{t.pertemuan_id && <p><Link to={`/portal/lms/${kelasId}/pertemuan/${t.pertemuan_id}`}>Buka lembar kerja</Link></p>}</div>}
+      {!t.lembar && !dinilai && (tutup
         ? <p className="catatan">Tenggat sudah lewat dan pengumpulan ditutup.</p>
         : (
           <form className="kartu form jarak" onSubmit={kirim}>
@@ -296,7 +302,7 @@ export function RuangTugas() {
       {galat && <p className="catatan galat" role="alert">{galat}</p>}
       {t && kelola !== null && (kelola
         ? <TugasGuru kelasId={kelasId} t={t} pertemuan={pertemuan} muat={muat} />
-        : <TugasSiswa key={t.saya?.dikumpul_pada ?? 'baru'} t={t} muat={muat} />)}
+        : <TugasSiswa key={t.saya?.dikumpul_pada ?? 'baru'} t={t} muat={muat} kelasId={kelasId} />)}
       <p className="catatan jarak"><Link to={`/portal/lms/${kelasId}`}>Kembali ke kelas</Link></p>
     </Halaman>
   )
