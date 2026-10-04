@@ -25,7 +25,8 @@ type Pertemuan = {
   kode_absen: string | null; jumlah_materi: number; jumlah_latihan: number; hadir: number | null; status_saya: string | null
   kelengkapan: Kelengkapan | null
 }
-type Kelengkapan = { materi: number; latihan: number; forum: number; lengkap: boolean; kurang: string[] }
+type Kelengkapan = { materi: number; lembar?: number; latihan: number; forum: number; lengkap: boolean; kurang: string[] }
+type NilaiPert = { peserta_didik_id: string; nilai: { tuntas: boolean; nilai: number | null; bonus: number; lembar_dinilai: number; lembar_total: number } }
 type BarisAbsen = { peserta_didik_id: string; nama: string; nisn: string | null; no_urut: number | null; status: string; sumber: string | null; catatan: string | null }
 type BarisTerpadu = {
   peserta_didik_id: string; nama: string; nisn: string | null; no_urut: number | null; absen: string
@@ -349,9 +350,11 @@ function KontrolAbsen({ p, muat }: { p: Pertemuan; muat: () => Promise<void> }) 
 function RekapPertemuan({ pertemuanId, nomor, versi }: { pertemuanId: string; nomor: number; versi: number }) {
   const [baris, setBaris] = useState<BarisAbsen[] | null>(null)
   const [t, setT] = useState<Terpadu | null>(null)
+  const [nl, setNl] = useState<Record<string, NilaiPert['nilai']>>({})
   const [galat, setGalat] = useState('')
   const muat = useCallback(async () => {
     try {
+      void panggil<NilaiPert[]>('lms_nilai_pertemuan', { p_pertemuan: pertemuanId }).then((d) => setNl(Object.fromEntries(d.map((x) => [x.peserta_didik_id, x.nilai])))).catch(() => undefined)
       const [r, g] = await Promise.all([
         panggil<{ siswa: BarisAbsen[] }>('lms_rekap_pertemuan', { p_pertemuan: pertemuanId }),
         panggil<Terpadu>('lms_pertemuan_rekap_terpadu', { p_pertemuan: pertemuanId }),
@@ -382,8 +385,8 @@ function RekapPertemuan({ pertemuanId, nomor, versi }: { pertemuanId: string; no
   function unduh() {
     if (!t) return
     unduhCsv(`rekap-pertemuan-${nomor}.csv`, [
-      ['No', 'Nama', 'NISN', 'Kehadiran', 'Materi selesai', 'Total materi', 'Latihan selesai', 'Total latihan', 'Nilai latihan', 'Lembar kerja', 'Nilai lembar', 'Topik forum', 'Balasan forum', 'Total kiriman forum'],
-      ...t.siswa.map((x, i) => [x.no_urut ?? i + 1, x.nama, x.nisn, labelStatus[x.absen] ?? x.absen, x.materi_selesai, t.total_materi, x.latihan_selesai, t.total_latihan, x.latihan_nilai, (t.total_lembar ?? 0) > 0 ? (x.lembar_status ?? 'belum') : '', x.lembar_nilai ?? '', x.forum_topik, x.forum_balasan, x.forum_total]),
+      ['No', 'Nama', 'NISN', 'Kehadiran', 'Materi selesai', 'Total materi', 'Latihan selesai', 'Total latihan', 'Nilai latihan', 'Lembar kerja', 'Nilai lembar', 'Topik forum', 'Balasan forum', 'Total kiriman forum', 'Nilai pertemuan'],
+      ...t.siswa.map((x, i) => [x.no_urut ?? i + 1, x.nama, x.nisn, labelStatus[x.absen] ?? x.absen, x.materi_selesai, t.total_materi, x.latihan_selesai, t.total_latihan, x.latihan_nilai, (t.total_lembar ?? 0) > 0 ? (x.lembar_status ?? 'belum') : '', x.lembar_nilai ?? '', x.forum_topik, x.forum_balasan, x.forum_total, nl[x.peserta_didik_id]?.nilai ?? '']),
     ])
   }
   return (
@@ -411,9 +414,9 @@ function RekapPertemuan({ pertemuanId, nomor, versi }: { pertemuanId: string; no
       </div>
       <div className="tabel-bungkus jarak">
         <table>
-          <thead><tr><th>No</th><th>Nama</th><th>Kehadiran</th><th>Materi</th><th>Latihan</th>{(t?.total_lembar ?? 0) > 0 && <th>Lembar kerja</th>}<th>Forum</th><th>Ubah absen</th></tr></thead>
+          <thead><tr><th>No</th><th>Nama</th><th>Kehadiran</th><th>Materi</th><th>Latihan</th>{(t?.total_lembar ?? 0) > 0 && <th>Lembar kerja</th>}<th>Forum</th><th>Nilai pertemuan</th><th>Ubah absen</th></tr></thead>
           <tbody>
-            {!t && <tr><td colSpan={8}>Memuat...</td></tr>}
+            {!t && <tr><td colSpan={9}>Memuat...</td></tr>}
             {(t?.siswa ?? []).filter((x) => saring === 'semua' || (saring === 'belum_absen' && x.absen === 'belum') || (saring === 'belum_lembar' && !x.lembar_status) || (saring === 'belum_latihan' && t!.total_latihan > 0 && x.latihan_selesai < t!.total_latihan) || (saring === 'belum_forum' && x.forum_total === 0)).map((x, i) => (
               <tr key={x.peserta_didik_id}>
                 <td>{x.no_urut ?? i + 1}</td>
@@ -423,6 +426,7 @@ function RekapPertemuan({ pertemuanId, nomor, versi }: { pertemuanId: string; no
                 <td>{t && t.total_latihan > 0 ? <>{x.latihan_selesai}/{t.total_latihan}{x.latihan_nilai !== null ? <><br /><small>nilai {nilaiTeks(x.latihan_nilai)}</small></> : null}</> : '-'}</td>
                 {(t?.total_lembar ?? 0) > 0 && <td>{x.lembar_status ? <>{x.lembar_status === 'dinilai' ? 'Dinilai' : 'Terkumpul'}{x.lembar_nilai != null ? <><br /><small>nilai {nilaiTeks(x.lembar_nilai)}</small></> : null}</> : <small>Belum</small>}</td>}
                 <td>{x.forum_total > 0 ? <>{x.forum_total} kiriman<br /><small>{x.forum_topik} topik, {x.forum_balasan} balasan</small></> : <small>Belum ikut</small>}</td>
+                <td>{nl[x.peserta_didik_id]?.nilai != null ? <strong>{nl[x.peserta_didik_id].nilai}</strong> : nl[x.peserta_didik_id]?.tuntas ? <small>Tuntas, menunggu nilai lembar</small> : <small>Belum tuntas</small>}</td>
                 <td>
                   <select aria-label={`Ubah status ${x.nama}`} value="" onChange={(e) => e.target.value && void ubah(x.peserta_didik_id, e.target.value)}>
                     <option value="">Pilih</option>
@@ -512,23 +516,25 @@ function SalinPertemuan({ pertemuanId, versi, terbit }: { pertemuanId: string; v
 /** Tiga isian wajib satu pertemuan. Pertemuan baru bisa diterbitkan setelah ketiganya ada. */
 function PanelKelengkapan({ k }: { k: Kelengkapan | null }) {
   if (!k) return null
-  const baris: [string, number, string, string][] = [
-    ['Materi', k.materi, '#materi', k.materi > 0 ? `${k.materi} materi` : 'Belum ada materi'],
-    ['Latihan soal', k.latihan, '#latihan', k.latihan > 0 ? `${k.latihan} latihan dengan soal` : 'Belum ada latihan dengan soal'],
-    ['Forum diskusi', k.forum, '#forum', k.forum > 0 ? `${k.forum} topik` : 'Belum ada topik diskusi'],
+  const lembar = k.lembar ?? 0
+  const wajib: [string, number, string, string][] = [
+    ['Bahan bacaan', k.materi, '#materi', k.materi > 0 ? `${k.materi} bacaan` : 'Belum ada. Impor dari Word atau tulis di bawah'],
+    ['Lembar kerja', lembar, '#materi', lembar > 0 ? `${lembar} lembar kerja` : 'Belum ada. Impor Word sebagai Lembar kerja'],
   ]
   return (
     <div className="kartu jarak">
       <h3>Kelengkapan pertemuan</h3>
       <ul style={{ margin: '4px 0', paddingLeft: 18 }}>
-        {baris.map(([nama, jml, tuju, teks]) => (
+        {wajib.map(([nama, jml, tuju, teks]) => (
           <li key={nama}>
-            <span className={`status ${jml > 0 ? 'status-selesai' : 'status-ditolak'}`}>{jml > 0 ? 'Lengkap' : 'Belum'}</span>{' '}
-            <a href={tuju}><strong>{nama}</strong></a>: {teks}
+            <span className={`status ${jml > 0 ? 'status-selesai' : 'status-ditolak'}`}>{jml > 0 ? 'Ada' : 'Belum'}</span>{' '}
+            <a href={tuju}><strong>{nama}</strong></a> <small>(wajib)</small>: {teks}
           </li>
         ))}
+        <li><span className="status status-selesai">Otomatis</span> <a href="#forum"><strong>Forum diskusi</strong></a>: dibuat saat diterbitkan{k.forum > 0 ? ` (${k.forum} topik)` : ''}</li>
+        <li><span className={`status ${k.latihan > 0 ? 'status-selesai' : 'status-dibatalkan'}`}>{k.latihan > 0 ? 'Aktif' : 'Opsional'}</span> <a href="#latihan"><strong>Kuis atau latihan soal</strong></a>: {k.latihan > 0 ? `${k.latihan} latihan, jadi nilai tambah` : 'bila ingin nilai tambah'}</li>
       </ul>
-      <p className="catatan">{k.lengkap ? 'Ketiganya sudah ada. Pertemuan siap diterbitkan.' : `Lengkapi dulu ${k.kurang.join(', ')} sebelum menerbitkan.`}</p>
+      <p className="catatan">{k.lengkap ? 'Bahan bacaan dan lembar kerja sudah ada. Pertemuan siap diterbitkan.' : `Lengkapi dulu ${k.kurang.join(' dan ')} sebelum menerbitkan.`} Nilai pertemuan: hadir, baca bahan bacaan, kumpulkan lembar kerja, lalu Anda menilai lembar kerja.</p>
     </div>
   )
 }

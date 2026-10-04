@@ -60,10 +60,11 @@ type Langkah = {
   lembar: { total: number; terkumpul: number }
   latihan: { total: number; selesai: number }
   forum: { topik: number; ikut: boolean }
+  nilai?: { tuntas: boolean; nilai: number | null; bonus: number; lembar_dinilai: number; lembar_total: number }
 }
 type KelasRingkas = { id: string; mapel: string; rombel: string; guru: string }
 type PertemuanRingkas = { id: string; nomor: number; judul: string; tanggal: string; tujuan: string | null; status: string }
-type Kunci = 'absen' | 'materi' | 'lembar' | 'latihan' | 'forum'
+type Kunci = 'absen' | 'materi' | 'lembar' | 'forum' | 'latihan'
 
 /** Tampilan siswa untuk satu pertemuan: lima langkah berurutan, satu langkah per layar. */
 export function PertemuanSiswa({ kelasId, id }: { kelasId: string; id: string }) {
@@ -100,16 +101,19 @@ export function PertemuanSiswa({ kelasId, id }: { kelasId: string; id: string })
   }, [kelasId, id])
   useEffect(() => { void muat() }, [muat])
 
-  type ItemLangkah = { k: Kunci; nama: string; ket: string; selesai: boolean; ada: boolean }
+  type ItemLangkah = { k: Kunci; nama: string; ket: string; selesai: boolean; ada: boolean; wajib: boolean }
+  const bacaSelesai = !!l && l.materi.selesai >= l.materi.total
   const langkah: ItemLangkah[] = l ? ([
-    { k: 'absen', nama: 'Absen', ada: l.absen.perlu, selesai: !!l.absen.status, ket: l.absen.status ? 'Sudah hadir' : l.absen.terbuka ? 'Dibuka, absen sekarang' : 'Belum dibuka' },
-    { k: 'materi', nama: 'Baca materi', ada: l.materi.total > 0, selesai: l.materi.total > 0 && l.materi.selesai >= l.materi.total, ket: `${l.materi.selesai} dari ${l.materi.total} dibaca` },
-    { k: 'lembar', nama: 'Lembar kerja', ada: l.lembar.total > 0, selesai: l.lembar.total > 0 && l.lembar.terkumpul >= l.lembar.total, ket: `${l.lembar.terkumpul} dari ${l.lembar.total} terkumpul` },
-    { k: 'latihan', nama: 'Latihan soal', ada: l.latihan.total > 0, selesai: l.latihan.total > 0 && l.latihan.selesai >= l.latihan.total, ket: `${l.latihan.selesai} dari ${l.latihan.total} selesai` },
-    { k: 'forum', nama: 'Diskusi', ada: l.forum.topik > 0, selesai: l.forum.ikut, ket: l.forum.ikut ? 'Sudah ikut' : 'Belum ikut' },
+    { k: 'absen', nama: 'Absen', wajib: true, ada: l.absen.perlu, selesai: !!l.absen.status, ket: l.absen.status ? 'Sudah hadir' : l.absen.terbuka ? 'Dibuka, absen sekarang' : 'Belum dibuka' },
+    { k: 'materi', nama: 'Bahan bacaan', wajib: true, ada: l.materi.total > 0, selesai: l.materi.total > 0 && bacaSelesai, ket: `${l.materi.selesai} dari ${l.materi.total} dibaca` },
+    { k: 'lembar', nama: 'Lembar kerja', wajib: true, ada: l.lembar.total > 0, selesai: l.lembar.total > 0 && l.lembar.terkumpul >= l.lembar.total, ket: bacaSelesai ? `${l.lembar.terkumpul} dari ${l.lembar.total} terkumpul` : 'Baca bahan bacaan dulu' },
+    { k: 'forum', nama: 'Diskusi', wajib: false, ada: l.forum.topik > 0, selesai: l.forum.ikut, ket: l.forum.ikut ? 'Sudah ikut' : 'Tanya atau komentar' },
+    { k: 'latihan', nama: 'Kuis (opsional)', wajib: false, ada: l.latihan.total > 0, selesai: l.latihan.total > 0 && l.latihan.selesai >= l.latihan.total, ket: l.latihan.selesai > 0 ? 'Sudah dikerjakan' : 'Nilai tambah' },
   ] as ItemLangkah[]).filter((x) => x.ada) : []
-  const nomorSaatIni = aktif ?? langkah.find((x) => !x.selesai)?.k ?? langkah[0]?.k ?? null
-  const selesaiSemua = langkah.length > 0 && langkah.every((x) => x.selesai)
+  const wajibItem = langkah.filter((x) => x.wajib)
+  const nomorSaatIni = aktif ?? wajibItem.find((x) => !x.selesai)?.k ?? langkah.find((x) => !x.selesai)?.k ?? langkah[0]?.k ?? null
+  const selesaiSemua = wajibItem.length > 0 && wajibItem.every((x) => x.selesai)
+  const nl = l?.nilai
 
   async function absen(e: FormEvent) {
     e.preventDefault()
@@ -132,12 +136,18 @@ export function PertemuanSiswa({ kelasId, id }: { kelasId: string; id: string })
     <Halaman judul={p?.judul ?? 'Pertemuan'} lead={kelas && p ? `${kelas.mapel} ${kelas.rombel}, ${tgl(p.tanggal)}` : undefined}>
       {galat && <p className="catatan galat" role="alert">{galat}</p>}
       {pesan && <div className="kartu hasil"><strong>{pesan}</strong></div>}
-      {selesaiSemua && <div className="kartu hasil"><strong>Semua langkah pertemuan ini sudah selesai.</strong></div>}
+      {selesaiSemua && (
+        <div className="kartu hasil">
+          <strong>Tiga tahap wajib selesai.</strong>{' '}
+          {nl?.nilai != null ? <>Nilai pertemuan: <strong>{nl.nilai}</strong>{nl.bonus > 0 ? ` (termasuk bonus kuis ${nl.bonus})` : ''}.</> : 'Nilai keluar setelah guru menilai lembar kerja.'}
+          {' '}Silakan lanjut ke diskusi{langkah.some((x) => x.k === 'latihan') ? ' atau kuis untuk nilai tambah' : ''}.
+        </div>
+      )}
       {p?.tujuan && <div className="kartu"><small>Tujuan belajar</small><p style={{ marginBottom: 0 }}>{p.tujuan}</p></div>}
 
       <nav className="langkah-bar" aria-label="Langkah belajar">
         {langkah.map((x, i) => (
-          <button key={x.k} type="button" className={`langkah${nomorSaatIni === x.k ? ' langkah-aktif' : ''}${x.selesai ? ' langkah-selesai' : ''}`} onClick={() => setAktif(x.k)}>
+          <button key={x.k} type="button" className={`langkah${nomorSaatIni === x.k ? ' langkah-aktif' : ''}${x.selesai ? ' langkah-selesai' : ''}${!x.wajib ? ' langkah-opsi' : ''}`} onClick={() => setAktif(x.k)}>
             <span className="langkah-no">{x.selesai ? '✓' : i + 1}</span>
             <span className="langkah-teks"><strong>{x.nama}</strong><small>{x.ket}</small></span>
           </button>
@@ -169,16 +179,25 @@ export function PertemuanSiswa({ kelasId, id }: { kelasId: string; id: string })
         <>
           {bacaan.length === 0 && <div className="kartu"><p className="catatan">Belum ada bacaan.</p></div>}
           {bacaan.map((m) => <IsiMateri key={m.id} m={m} siswa selesai={selesai} />)}
-          {bacaan.length > 0 && <div className="aksi"><button type="button" className="tombol" style={{ color: 'var(--warna-utama)' }} onClick={() => setAktif(langkah[langkah.findIndex((x) => x.k === 'materi') + 1]?.k ?? 'materi')}>Lanjut ke langkah berikutnya</button></div>}
+          {bacaan.length > 0 && <div className="aksi"><button type="button" className="tombol" style={{ color: 'var(--warna-utama)' }} onClick={() => setAktif(langkah[langkah.findIndex((x) => x.k === 'materi') + 1]?.k ?? 'materi')}>Lanjut ke lembar kerja</button></div>}
         </>
       )}
-      {!butuhAbsen && nomorSaatIni === 'lembar' && (
+      {!butuhAbsen && nomorSaatIni === 'lembar' && !bacaSelesai && (
+        <div className="kartu jarak">
+          <h3>Baca dulu</h3>
+          <p>Lembar kerja terbuka setelah semua bahan bacaan Anda tandai selesai dibaca.</p>
+          <div className="aksi"><button type="button" className="tombol tombol-isi" onClick={() => setAktif('materi')}>Ke bahan bacaan</button></div>
+        </div>
+      )}
+      {!butuhAbsen && nomorSaatIni === 'lembar' && bacaSelesai && (
         <>
           <p className="catatan">Isi langsung di bawah. Jawaban tersimpan otomatis. Tekan Kumpulkan bila sudah selesai.</p>
           {lembar.map((m) => <IsiMateri key={m.id} m={m} siswa selesai={selesai} />)}
         </>
       )}
+      {!butuhAbsen && nomorSaatIni === 'latihan' && <p className="catatan">Kuis ini opsional. Nilainya menjadi tambahan di nilai pertemuan.</p>}
       {!butuhAbsen && nomorSaatIni === 'latihan' && <LatihanPertemuan kelasId={kelasId} pertemuanId={id} judul={p?.judul ?? ''} kelola={false} perbarui={() => void muat()} versi={versi} />}
+      {!butuhAbsen && nomorSaatIni === 'forum' && <p className="catatan">Tanyakan atau komentari bahan bacaan dan lembar kerja di sini.</p>}
       {!butuhAbsen && nomorSaatIni === 'forum' && <Forum pertemuanId={id} kelola={false} />}
 
       <p className="catatan jarak"><Link to={`/portal/lms/${kelasId}`}>Semua pertemuan {kelas?.mapel ?? ''}</Link></p>
