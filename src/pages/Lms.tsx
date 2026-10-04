@@ -140,6 +140,8 @@ export function DetailKelas() {
   const [form, setForm] = useState(false)
   const [sibuk, setSibuk] = useState(false)
   const [v, setV] = useState({ judul: '', tanggal: '', tujuan: '', wajib: true })
+  const [ubahId, setUbahId] = useState<string | null>(null)
+  const [ev, setEv] = useState({ judul: '', tanggal: '', tujuan: '', wajib: true })
 
   const muat = useCallback(async () => {
     try {
@@ -164,6 +166,30 @@ export function DetailKelas() {
       await muat()
     } catch (er) { setGalat((er as Error).message) }
     setSibuk(false)
+  }
+
+  function mulaiUbah(p: Pertemuan) {
+    setUbahId(p.id); setEv({ judul: p.judul, tanggal: p.tanggal, tujuan: p.tujuan ?? '', wajib: p.wajib_absen })
+  }
+  async function simpanUbah(e: FormEvent) {
+    e.preventDefault()
+    if (!ubahId) return
+    setSibuk(true); setGalat('')
+    try {
+      await panggil('lms_simpan_pertemuan', { p_kelas: kelasId, p_id: ubahId, p_judul: ev.judul, p_tanggal: ev.tanggal || null, p_tujuan: ev.tujuan || null, p_wajib_absen: ev.wajib, p_terbit: null })
+      setUbahId(null); await muat()
+    } catch (er) { setGalat((er as Error).message) }
+    setSibuk(false)
+  }
+  async function hapusPertemuan(p: Pertemuan) {
+    if (!window.confirm(`Hapus pertemuan ${p.nomor}: ${p.judul}? Materi, latihan soal, dan forum di dalamnya ikut dihapus.`)) return
+    setGalat('')
+    try { await panggil('lms_pertemuan_hapus', { p_pertemuan: p.id, p_paksa: false }); await muat(); return } catch (er) {
+      const m = (er as Error).message
+      if (!m.startsWith('Pertemuan ini sudah punya aktivitas')) { setGalat(m); return }
+      if (!window.confirm(`${m}\n\nTetap hapus?`)) return
+    }
+    try { await panggil('lms_pertemuan_hapus', { p_pertemuan: p.id, p_paksa: true }); await muat() } catch (er) { setGalat((er as Error).message) }
   }
 
   const [mengunduh, setMengunduh] = useState(false)
@@ -209,7 +235,25 @@ export function DetailKelas() {
           <tbody>
             {!daftar && <tr><td colSpan={5}>Memuat...</td></tr>}
             {daftar && daftar.length === 0 && <tr><td colSpan={5}>Belum ada pertemuan.</td></tr>}
-            {(daftar ?? []).map((p) => (
+            {(daftar ?? []).map((p) => ubahId === p.id ? (
+              <tr key={p.id}>
+                <td colSpan={5}>
+                  <form className="form" onSubmit={simpanUbah}>
+                    <h3>Ubah pertemuan {p.nomor}</h3>
+                    <div className="grid grid-2">
+                      <label>Judul pertemuan<input required maxLength={200} value={ev.judul} onChange={(e) => setEv({ ...ev, judul: e.target.value })} /></label>
+                      <label>Tanggal<input type="date" required value={ev.tanggal} onChange={(e) => setEv({ ...ev, tanggal: e.target.value })} /></label>
+                    </div>
+                    <label>Tujuan pembelajaran (opsional)<textarea rows={2} maxLength={1000} value={ev.tujuan} onChange={(e) => setEv({ ...ev, tujuan: e.target.value })} /></label>
+                    <label className="baris-centang"><input type="checkbox" checked={ev.wajib} onChange={(e) => setEv({ ...ev, wajib: e.target.checked })} /> Siswa wajib absen sebelum membuka materi</label>
+                    <div className="aksi">
+                      <button className="tombol tombol-isi" disabled={sibuk}>{sibuk ? 'Menyimpan...' : 'Simpan perubahan'}</button>
+                      <button type="button" className="tombol" onClick={() => setUbahId(null)}>Batal</button>
+                    </div>
+                  </form>
+                </td>
+              </tr>
+            ) : (
               <tr key={p.id}>
                 <td>{p.nomor}</td>
                 <td>
@@ -231,7 +275,15 @@ export function DetailKelas() {
                       ? <span className="status status-menunggu">Absen dibuka</span>
                       : <span className={`status ${kelasStatus[p.status_saya ?? 'belum']}`}>{labelStatus[p.status_saya ?? 'belum']}</span>}
                 </td>
-                <td><Link to={`/portal/lms/${kelasId}/pertemuan/${p.id}`}>Buka</Link></td>
+                <td>
+                  <Link to={`/portal/lms/${kelasId}/pertemuan/${p.id}`}>Buka</Link>
+                  {kelola && (
+                    <div className="aksi" style={{ marginTop: 6 }}>
+                      <button type="button" className="tombol" style={{ color: 'var(--warna-utama)' }} onClick={() => mulaiUbah(p)}>Ubah</button>
+                      <button type="button" className="tombol" style={{ color: '#8a1f1f', borderColor: '#8a1f1f' }} onClick={() => void hapusPertemuan(p)}>Hapus</button>
+                    </div>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
