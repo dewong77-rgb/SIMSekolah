@@ -12,7 +12,7 @@ import PengingatLms from './LmsPengingat'
 import { wordKeHtml, judulDariNama, BATAS_HTML } from '../lib/dokumen'
 import { unduhRekapKelas } from './lmsXlsx'
 import KelolaPertemuan from './LmsKelola'
-import { BerandaBelajar, IsiMateri, PertemuanSiswa, type Materi } from './LmsBelajar'
+import { BerandaBelajar, IsiMateri, KartuKriteria, PertemuanSiswa, type Materi } from './LmsBelajar'
 
 // Semua data lewat fungsi basis data lms_*. Tabel LMS tidak punya policy, jadi tidak dibaca langsung.
 
@@ -757,7 +757,8 @@ export function RuangPertemuan() {
     <Halaman judul={p ? `Pertemuan ${p.nomor}: ${p.judul}` : 'Pertemuan'} lead={kelas ? `${kelas.mapel} ${kelas.rombel}${p ? `, ${tgl(p.tanggal)}` : ''}` : undefined}>
       {galat && <p className="catatan galat" role="alert">{galat}</p>}
       {pesan && <div className="kartu hasil"><strong>{pesan}</strong></div>}
-      {p?.tujuan && <div className="kartu"><small>Tujuan pembelajaran</small><p style={{ marginBottom: 0 }}>{p.tujuan}</p></div>}
+      {p?.tujuan && <div className="kartu"><small>Tujuan pembelajaran</small><p style={{ marginBottom: 0, whiteSpace: 'pre-line' }}>{p.tujuan}</p></div>}
+      {id && <KartuKriteria pertemuanId={id} />}
 
       {kelola && p && (
         <>

@@ -14,6 +14,7 @@ type Kelas = {
   total_materi: number; materi_mulai: number; materi_tuntas: number
   total_latihan: number; latihan_selesai: number; total_lembar: number; lembar_kumpul: number; forum_aktif: number
 }
+type MingguRencana = { id: string; nomor: number; semester: number | null; tanggal_mulai: string | null; materi_pokok: string | null; tp_kode: string | null; tujuan: string | null; terpakai: boolean }
 type Data = { judul: string; kelas: Kelas[] }
 
 const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : 0)
@@ -45,11 +46,25 @@ export default function DashboardPembelajaran() {
       setFb((f) => ({ ...f, mapel: f.mapel || m0, kelas: f.kelas.length ? f.kelas : mine.filter((x) => x.mapel === m0).map((x) => x.id) }))
     }).catch(() => undefined)
   }, [])
+  const [rencana, setRencana] = useState<MingguRencana[]>([])
+  const [minggu, setMinggu] = useState('')
+  const kelasPertama = fb.kelas[0] ?? ''
+  useEffect(() => {
+    setMinggu(''); setRencana([])
+    if (!baru || !kelasPertama) return
+    panggil<MingguRencana[]>('lms_rencana_untuk_kelas', { p_kelas: kelasPertama }).then(setRencana).catch(() => setRencana([]))
+  }, [baru, kelasPertama])
+  function pilihMinggu(id: string) {
+    setMinggu(id)
+    const m = rencana.find((x) => x.id === id)
+    if (!m) return
+    setFb((f) => ({ ...f, judul: `M${m.nomor}: ${m.materi_pokok ?? ''}`.slice(0, 200), tanggal: m.tanggal_mulai ?? f.tanggal, tujuan: (m.tujuan ?? '').slice(0, 1000) }))
+  }
   async function buatBaru(e: React.FormEvent) {
     e.preventDefault()
     setSibuk(true); setGalat('')
     try {
-      const r = await panggil<{ pertama: { kelas_id: string; id: string } }>('lms_pertemuan_baru_banyak', { p_kelas: fb.kelas, p_judul: fb.judul, p_tanggal: fb.tanggal || null, p_tujuan: fb.tujuan || null, p_wajib_absen: fb.wajib })
+      const r = await panggil<{ pertama: { kelas_id: string; id: string } }>(minggu ? 'lms_pertemuan_baru_rencana' : 'lms_pertemuan_baru_banyak', { ...(minggu ? { p_minggu: minggu } : {}), p_kelas: fb.kelas, p_judul: fb.judul, p_tanggal: fb.tanggal || null, p_tujuan: fb.tujuan || null, p_wajib_absen: fb.wajib })
       nav(`/portal/lms/${r.pertama.kelas_id}/pertemuan/${r.pertama.id}`)
     } catch (er) { setGalat((er as Error).message) }
     setSibuk(false)
@@ -133,6 +148,18 @@ export default function DashboardPembelajaran() {
       {baru && (
         <form className="kartu form jarak" onSubmit={buatBaru}>
           <h3>Pertemuan baru</h3>
+          {rencana.length > 0 && (
+            <label>Ambil dari rencana mengajar (opsional)
+              <select value={minggu} onChange={(e) => pilihMinggu(e.target.value)}>
+                <option value="">Tulis sendiri</option>
+                {[...rencana].sort((a, b) => Number(a.terpakai) - Number(b.terpakai) || a.nomor - b.nomor).map((m) => (
+                  <option key={m.id} value={m.id}>{m.terpakai ? '✓ ' : ''}M{m.nomor}: {(m.materi_pokok ?? '').slice(0, 70)}{m.tp_kode ? ` (${m.tp_kode})` : ''}</option>
+                ))}
+              </select>
+              <span className="petunjuk">Judul, tanggal, dan tujuan terisi otomatis. Tanda ✓ berarti sudah dibuat di kelas ini.</span>
+            </label>
+          )}
+          {rencana.length === 0 && <p className="catatan">Belum ada rencana mengajar. <Link to="/portal/lms/rencana">Isi dari template Excel</Link> agar pertemuan terhubung ke ATP dan KKTP.</p>}
           <div className="grid grid-2">
             <label>Judul pertemuan<input required maxLength={200} value={fb.judul} onChange={(e) => setFb({ ...fb, judul: e.target.value })} /></label>
             <label>Tanggal<input type="date" value={fb.tanggal} onChange={(e) => setFb({ ...fb, tanggal: e.target.value })} /><span className="petunjuk">Kosong berarti hari ini.</span></label>
