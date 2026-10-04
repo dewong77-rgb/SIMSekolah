@@ -24,6 +24,7 @@ const jalur: Record<string, string> = {
   panah: 'M9 6l6 6-6 6',
   luar: 'M14 4h6v6M20 4l-9 9M18 14v6H4V6h6',
   lonceng: 'M6 17V11a6 6 0 0 1 12 0v6l2 2H4l2-2zM10 21h4',
+  chat: 'M4 5h16v11H9l-5 4V5zM8 9h8M8 12.5h5',
   uang: 'M3 7h18v10H3zM12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
 }
 

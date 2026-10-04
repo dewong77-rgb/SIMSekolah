@@ -7,7 +7,7 @@ export type ItemPortal = {
   /** Satu kalimat untuk kartu di halaman utama portal. */
   ket?: string
   /** Kunci lencana (angka di samping menu), lihat PortalLayout. */
-  lencana?: 'ajuan_masuk' | 'ajuan_saya' | 'disposisi' | 'surat'
+  lencana?: 'ajuan_masuk' | 'ajuan_saya' | 'disposisi' | 'surat' | 'chat'
 }
 export type KelompokPortal = { judul: string; item: ItemPortal[] }
 
@@ -20,6 +20,7 @@ export const namaPeran: Record<Peran, string> = {
 }
 
 const ajuanSaya: ItemPortal = { to: '/portal/ajuan', label: 'Ajuan saya', ikon: 'kotak', ket: 'Perbaikan data yang diajukan dan keputusannya', lencana: 'ajuan_saya' }
+const chat: ItemPortal = { to: '/portal/chat', label: 'Chat', ikon: 'chat', ket: 'Percakapan kelas, tanya guru, dan ruang guru', lencana: 'chat' }
 const disposisi: ItemPortal = { to: '/portal/disposisi', label: 'Disposisi saya', ikon: 'surat', ket: 'Instruksi dari pimpinan untuk Anda', lencana: 'disposisi' }
 
 const menuPeran: Record<Peran, KelompokPortal[]> = {
@@ -29,6 +30,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
       item: [
         { to: '/portal/lms', label: 'Kelas saya', ikon: 'buku', ket: 'Materi, absen per pertemuan, kuis, dan tugas' },
         { to: '/portal/progres-lms', label: 'Progres belajar', ikon: 'grafik', ket: 'Kehadiran, materi, nilai kuis, dan tugas semua mapel' },
+        chat,
       ],
     },
     {
@@ -46,6 +48,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
         { to: '/portal/lms', label: 'Ruang belajar', ikon: 'buku', ket: 'Kelas, materi, absensi per pertemuan, kuis, tugas' },
         { to: '/portal/absensi', label: 'Absensi', ikon: 'centang', ket: 'Jumlah siswa yang diajar dan rekap kehadiran per kelas' },
         { to: '/portal/lms/administrasi', label: 'Administrasi guru', ikon: 'dokumen', ket: 'ATP, modul ajar, program, dan perangkat ajar lain' },
+        chat,
       ],
     },
     {
@@ -66,6 +69,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
     },
   ],
   staf: [
+    { judul: 'Komunikasi', item: [chat] },
     { judul: 'Persuratan', item: [disposisi] },
     {
       judul: 'Data diri',
@@ -108,6 +112,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
         { to: '/portal/lms', label: 'Ruang belajar', ikon: 'buku', ket: 'Kelas, materi, absensi per pertemuan' },
         { to: '/portal/absensi', label: 'Absensi', ikon: 'centang', ket: 'Jumlah siswa yang diajar dan rekap kehadiran per kelas' },
         { to: '/portal/lms/administrasi', label: 'Administrasi guru', ikon: 'dokumen', ket: 'Perangkat ajar dan supervisi' },
+        chat,
       ],
     },
     {

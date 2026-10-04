@@ -44,6 +44,8 @@ const AdministrasiGuru = lazy(() => import('./pages/LmsGuru').then((m) => ({ def
 const JurnalKelas = lazy(() => import('./pages/LmsGuru').then((m) => ({ default: m.JurnalKelas })))
 const BukuNilai = lazy(() => import('./pages/LmsGuru').then((m) => ({ default: m.BukuNilai })))
 const LmsAnak = lazy(() => import('./pages/LmsGuru').then((m) => ({ default: m.LmsAnak })))
+const Chat = lazy(() => import('./pages/Chat'))
+const ChatLaporan = lazy(() => import('./pages/Chat').then((m) => ({ default: m.ChatLaporan })))
 const PanduanLms = lazy(() => import('./pages/PanduanLms'))
 const ProgresSaya = lazy(() => import('./pages/LmsProgres').then((m) => ({ default: m.ProgresSaya })))
 const AbsensiGuru = lazy(() => import('./pages/LmsAbsensi'))
@@ -83,6 +85,30 @@ createRoot(document.getElementById('root')!).render(
             element={
               <RequireRole peran={['admin_tu', 'guru', 'staf', 'siswa', 'orang_tua']}>
                 <Portal />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/chat"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf', 'siswa']}>
+                <Suspense fallback={null}><Chat /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/chat/laporan"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf']}>
+                <Suspense fallback={null}><ChatLaporan /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/chat/:ruangId"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf', 'siswa']}>
+                <Suspense fallback={null}><Chat /></Suspense>
               </RequireRole>
             }
           />
