@@ -27,6 +27,7 @@ function Sel({ a, b, ada = true }: { a: number; b: number; ada?: boolean }) {
   )
 }
 
+type Menunggu = { topik_id: string; pertemuan_id: string; kelas_id: string; mapel: string; rombel: string; pertemuan: string; topik: string; dari: string; cuplikan: string; waktu: string }
 type KelasSaya = { id: string; mapel: string; rombel: string; peran: string }
 
 export default function DashboardPembelajaran() {
@@ -52,14 +53,14 @@ export default function DashboardPembelajaran() {
     } catch (er) { setGalat((er as Error).message) }
     setSibuk(false)
   }
-  async function terbitSemua() {
+  async function aktifkanSemua() {
     if (!pilih) return
-    if (!window.confirm('Terbitkan pertemuan ini di semua kelas Anda sekarang? Siswa langsung bisa membukanya.')) return
+    if (!window.confirm('Aktifkan semuanya sekarang? Pertemuan diterbitkan di semua kelas (materi, lembar kerja, latihan, forum) dan absen langsung dibuka.')) return
     setSibuk(true); setGalat(''); setPesan('')
     try {
-      const r = await panggil<{ dibagikan: number; diterbitkan: number; dilewati_tanpa_materi: number }>('lms_terbitkan_serentak', { p_pertemuan: pilih })
-      setPesan(`Terbit di semua kelas. ${r.dibagikan ? `${r.dibagikan} kelas dibuatkan salinan. ` : ''}${r.dilewati_tanpa_materi ? `${r.dilewati_tanpa_materi} kelas dilewati karena belum punya materi.` : ''}`)
-      await muat()
+      const r = await panggil<{ kode: string | null; kelas_dibuka: number; dibagikan: number; dilewati_tanpa_materi: number }>('lms_aktifkan_semua', { p_pertemuan: pilih, p_menit: menit, p_pakai_kode: kode })
+      setPesan(`Aktif di ${r.kelas_dibuka} kelas.${r.kode ? ` Kode absen ${r.kode}.` : ''}${r.dilewati_tanpa_materi ? ` ${r.dilewati_tanpa_materi} kelas dilewati karena belum punya materi.` : ''}`)
+      await muat(); await muatForum()
     } catch (er) { setGalat((er as Error).message) }
     setSibuk(false)
   }
@@ -72,6 +73,9 @@ export default function DashboardPembelajaran() {
   const [kode, setKode] = useState(true)
   const [langsung, setLangsung] = useState(true)
   const pilih = sp.get('p')
+  const [forum, setForum] = useState<Menunggu[]>([])
+  const muatForum = useCallback(async () => { try { setForum(await panggil<Menunggu[]>('lms_forum_menunggu')) } catch { /* abaikan */ } }, [])
+  useEffect(() => { void muatForum() }, [muatForum])
 
   useEffect(() => {
     panggil<Grup[]>('lms_dashboard_daftar').then((g) => {
@@ -173,10 +177,16 @@ export default function DashboardPembelajaran() {
 
       {d && (
         <>
-          {k.some((x) => x.status === 'draf') && (
-            <div className="kartu jarak" style={{ borderLeft: '4px solid #e8a020' }}>
-              <p style={{ margin: 0 }}><strong>{k.filter((x) => x.status === 'draf').length} dari {k.length} kelas masih draf.</strong> Siswa di kelas itu belum bisa membuka pertemuan dan absen belum bisa dibuka.</p>
-              <div className="aksi"><button className="tombol tombol-isi" disabled={sibuk} onClick={() => void terbitSemua()}>Terbitkan di semua kelas</button></div>
+          {(k.some((x) => x.status === 'draf') || terbuka.length === 0) && (
+            <div className="kartu jarak aktifkan-panel">
+              <h3 style={{ marginTop: 0 }}>Aktifkan untuk semua kelas</h3>
+              <p>Satu klik: terbit di {k.length} kelas, forum dan latihan aktif, absen dibuka dengan satu kode.</p>
+              <div className="grid grid-2">
+                <label>Absen dibuka selama (menit)<input type="number" min={1} max={240} value={menit} onChange={(e) => setMenit(Number(e.target.value))} /></label>
+                <label className="baris-centang" style={{ alignSelf: 'end' }}><input type="checkbox" checked={kode} onChange={(e) => setKode(e.target.checked)} /> Pakai kode 4 digit</label>
+              </div>
+              <div className="aksi"><button className="tombol tombol-isi tombol-besar" disabled={sibuk} onClick={() => void aktifkanSemua()}>{sibuk ? 'Mengaktifkan...' : 'Aktifkan semua kelas'}</button></div>
+              {pesan && <p className="catatan" role="status"><strong>{pesan}</strong></p>}
             </div>
           )}
           {k.length > 0 && <div className="aksi jarak"><Link className="tombol" style={{ color: 'var(--warna-utama)' }} to={`/portal/lms/${(k.find((x) => x.pertemuan_id === pilih) ?? k[0]).kelas_id}/pertemuan/${pilih ?? k[0].pertemuan_id}`}>Atur isi pertemuan ini (materi, latihan, forum)</Link></div>}
@@ -230,6 +240,26 @@ export default function DashboardPembelajaran() {
           <p className="catatan">Kelas dengan judul pertemuan yang sama dihitung satu kelompok. Klik nama kelas untuk melihat siswa satu per satu.</p>
         </>
       )}
+      <div className="kartu jarak">
+        <h3 style={{ marginTop: 0 }}>Forum menunggu balasan guru ({forum.length})</h3>
+        {forum.length === 0 ? <p className="catatan">Semua kiriman siswa sudah dibalas.</p> : (
+          <div className="tabel-bungkus">
+            <table>
+              <thead><tr><th>Kelas</th><th>Kiriman terakhir</th><th>Waktu</th><th></th></tr></thead>
+              <tbody>
+                {forum.map((f) => (
+                  <tr key={f.topik_id}>
+                    <td>{f.rombel}<br /><small>{f.pertemuan}</small></td>
+                    <td><strong>{f.dari}</strong>: {f.cuplikan}</td>
+                    <td><small>{tglJam(f.waktu)}</small></td>
+                    <td><Link to={`/portal/lms/${f.kelas_id}/pertemuan/${f.pertemuan_id}#forum`}>Balas</Link></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </Halaman>
   )
 }
