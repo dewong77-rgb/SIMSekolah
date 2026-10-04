@@ -96,6 +96,7 @@ export function DaftarKelas() {
       {bolehBuat && (
         <div className="aksi">
           <button className="tombol tombol-isi" onClick={() => setForm(!form)}>{form ? 'Tutup formulir' : 'Buat kelas ajar'}</button>
+          <Link to="/portal/lms/dashboard" className="tombol" style={{ color: 'var(--warna-utama)' }}>Dashboard pembelajaran</Link>
           <Link to="/portal/lms/administrasi" className="tombol" style={{ color: 'var(--warna-utama)' }}>Administrasi guru</Link>
         </div>
       )}
@@ -700,6 +701,7 @@ export function RuangPertemuan() {
   const [versi, setVersi] = useState(0)
   const [ubahMateri, setUbahMateri] = useState<string | null>(null)
   const [pratinjau, setPratinjau] = useState(false)
+  const [sekalianBagi, setSekalianBagi] = useState(true)
 
   const muat = useCallback(async () => {
     try {
@@ -741,12 +743,23 @@ export function RuangPertemuan() {
   }
   async function terbitPaksa() {
     if (!window.confirm('Pertemuan belum lengkap. Tetap diterbitkan sekarang? Siswa langsung bisa membukanya.')) return
-    try { await panggil('lms_terbitkan_paksa', { p_pertemuan: id }); await muat() } catch (e) { setGalat((e as Error).message) }
+    try { await panggil('lms_terbitkan_paksa', { p_pertemuan: id }); await bagiBila(); await muat() } catch (e) { setGalat((e as Error).message) }
+  }
+  async function bagiBila() {
+    if (!sekalianBagi) return
+    try {
+      const r = await panggil<{ disalin: number }>('lms_bagikan_pertemuan', { p_pertemuan: id })
+      setPesan(`Terbit dan dibagikan ke ${r.disalin} kelas lain.`)
+    } catch (e) {
+      const m = (e as Error).message
+      if (!m.startsWith('Tidak ada kelas lain')) setGalat(m)
+    }
   }
   async function terbitkan(terbit: boolean) {
     if (!p) return
     try {
       await panggil('lms_simpan_pertemuan', { p_kelas: kelasId, p_id: id, p_judul: p.judul, p_tanggal: null, p_tujuan: p.tujuan, p_wajib_absen: p.wajib_absen, p_terbit: terbit })
+      if (terbit) await bagiBila()
       await muat()
     } catch (e) { setGalat((e as Error).message) }
   }
@@ -764,6 +777,7 @@ export function RuangPertemuan() {
             <button className="tombol" style={{ color: 'var(--warna-utama)' }} disabled={p.status !== 'terbit' && !p.kelengkapan?.lengkap} onClick={() => void terbitkan(p.status !== 'terbit')}>{p.status === 'terbit' ? 'Tarik jadi draf' : 'Terbitkan'}</button>
           </div>
           <PanelKelengkapan k={p.kelengkapan} />
+          {p.status !== 'terbit' && <div className="aksi"><label className="baris-centang"><input type="checkbox" checked={sekalianBagi} onChange={(e) => setSekalianBagi(e.target.checked)} /> Saat diterbitkan, sekalian bagikan dan terbitkan di semua kelas lain yang Anda ampu</label></div>}
           {p.status !== 'terbit' && p.kelengkapan && !p.kelengkapan.lengkap && (
             <div className="aksi"><button type="button" className="tombol" onClick={() => void terbitPaksa()}>Terbitkan sekarang walau belum lengkap</button></div>
           )}
