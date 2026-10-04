@@ -8,10 +8,10 @@ import { DaftarKuis, LatihanPertemuan } from './LmsKuis'
 import { DaftarTugas } from './LmsTugas'
 import { Forum } from './LmsForum'
 import { nilaiTeks, unduhCsv } from './lmsUtil'
-import { LembarPratinjau, LembarSiswa } from './LmsLembar'
 import PengingatLms from './LmsPengingat'
-import { htmlAman, wordKeHtml, judulDariNama, BATAS_HTML } from '../lib/dokumen'
+import { wordKeHtml, judulDariNama, BATAS_HTML } from '../lib/dokumen'
 import { unduhRekapKelas } from './lmsXlsx'
+import { BerandaBelajar, IsiMateri, PertemuanSiswa, type Materi } from './LmsBelajar'
 
 // Semua data lewat fungsi basis data lms_*. Tabel LMS tidak punya policy, jadi tidak dibaca langsung.
 
@@ -26,7 +26,6 @@ type Pertemuan = {
   kelengkapan: Kelengkapan | null
 }
 type Kelengkapan = { materi: number; latihan: number; forum: number; lengkap: boolean; kurang: string[] }
-type Materi = { id: string; urutan: number; jenis: 'teks' | 'video' | 'tautan' | 'berkas'; judul: string; isi: string | null; url: string | null; selesai: boolean; format: 'teks' | 'html'; untuk: 'siswa' | 'guru'; tugas_id?: string | null }
 type BarisAbsen = { peserta_didik_id: string; nama: string; nisn: string | null; no_urut: number | null; status: string; sumber: string | null; catatan: string | null }
 type BarisTerpadu = {
   peserta_didik_id: string; nama: string; nisn: string | null; no_urut: number | null; absen: string
@@ -39,21 +38,9 @@ type BarisRekap = { peserta_didik_id: string; nama: string; nisn: string | null;
 
 const labelStatus: Record<string, string> = { hadir: 'Hadir', izin: 'Izin', sakit: 'Sakit', alpa: 'Alpa', belum: 'Belum dicatat' }
 const kelasStatus: Record<string, string> = { hadir: 'status-selesai', izin: 'status-diteruskan', sakit: 'status-diteruskan', alpa: 'status-ditolak', belum: 'status-dibatalkan' }
-const labelJenis: Record<string, string> = { teks: 'Bacaan', video: 'Video', tautan: 'Tautan', berkas: 'Berkas' }
 
 function Kembali({ ke, teks }: { ke: string; teks: string }) {
   return <p className="catatan jarak"><Link to={ke}>{teks}</Link></p>
-}
-
-/** Mengambil id video YouTube dari tautan biasa. Hanya pola 11 karakter yang diterima. */
-function idYoutube(url: string): string | null {
-  try {
-    const u = new URL(url)
-    let id: string | null = null
-    if (u.hostname === 'youtu.be') id = u.pathname.slice(1)
-    else if (u.hostname.endsWith('youtube.com')) id = u.searchParams.get('v') ?? (u.pathname.startsWith('/embed/') ? u.pathname.slice(7) : null)
-    return id && /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null
-  } catch { return null }
 }
 
 /** Daftar kelas ajar milik pengguna. Guru dan admin TU bisa membuat kelas ajar baru. */
@@ -90,6 +77,7 @@ export function DaftarKelas() {
 
   return (
     <Halaman judul="Ruang belajar" lead={profil?.peran === 'siswa' ? 'Kelas yang Anda ikuti semester ini.' : 'Kelas yang Anda ajar semester ini.'}>
+      {profil?.peran === 'siswa' && <BerandaBelajar />}
       <PengingatLms maks={4} />
       <p className="catatan"><Link to="/portal/panduan-lms">Panduan singkat ruang belajar</Link></p>
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
@@ -294,37 +282,6 @@ export function DetailKelas() {
       {kelas && <DaftarTugas kelasId={kelasId} kelola={kelola} pertemuan={(daftar ?? []).map((p) => ({ id: p.id, nomor: p.nomor, judul: p.judul }))} />}
       <Kembali ke="/portal/lms" teks="Kembali ke daftar kelas" />
     </Halaman>
-  )
-}
-
-function IsiMateri({ m, siswa, selesai, pratinjau }: { m: Materi; siswa: boolean; selesai: (id: string) => Promise<void>; pratinjau?: boolean }) {
-  if (pratinjau && m.tugas_id && m.format === 'html') return <LembarPratinjau html={m.isi ?? ''} judul={m.judul} />
-  if (siswa && m.tugas_id && m.format === 'html') return <LembarSiswa tugasId={m.tugas_id} html={m.isi ?? ''} judul={m.judul} />
-  const yt = m.jenis === 'video' && m.url ? idYoutube(m.url) : null
-  return (
-    <div className="kartu jarak">
-      <div className="lencana-baris">
-        <span className="lencana">{m.jenis === 'teks' && m.format === 'html' ? 'Dokumen' : labelJenis[m.jenis]}</span>
-        {m.untuk === 'guru' && <span className="status status-menunggu">Khusus guru, siswa tidak melihat</span>}
-        {m.tugas_id && !siswa && <span className="status status-selesai">Lembar kerja, siswa mengisi di sini</span>}
-        {m.selesai && <span className="status status-selesai">Selesai dibaca</span>}
-      </div>
-      <h3>{m.judul}</h3>
-      {m.jenis === 'teks' && m.format === 'html' && <div className="dokumen" dangerouslySetInnerHTML={{ __html: htmlAman(m.isi ?? '') }} />}
-      {m.jenis === 'teks' && m.format !== 'html' && <div style={{ whiteSpace: 'pre-wrap' }}>{m.isi}</div>}
-      {yt && (
-        <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
-          <iframe
-            title={m.judul}
-            src={`https://www.youtube-nocookie.com/embed/${yt}`}
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0, borderRadius: 8 }}
-            allow="encrypted-media; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin"
-          />
-        </div>
-      )}
-      {m.jenis !== 'teks' && m.url && (!yt || m.jenis !== 'video') && <p><a href={m.url} target="_blank" rel="noopener noreferrer">Buka {m.jenis === 'video' ? 'video' : m.jenis === 'berkas' ? 'berkas' : 'tautan'}</a></p>}
-      {siswa && !pratinjau && !m.selesai && <div className="aksi"><button className="tombol" style={{ color: 'var(--warna-utama)' }} onClick={() => void selesai(m.id)}>Tandai sudah selesai</button></div>}
-    </div>
   )
 }
 
@@ -723,6 +680,7 @@ export function RuangPertemuan() {
   useEffect(() => { void muat() }, [muat])
 
   const kelola = kelas?.peran === 'pengelola'
+  const { profil } = useAuth()
 
   async function absen(e: FormEvent) {
     e.preventDefault()
@@ -763,6 +721,8 @@ export function RuangPertemuan() {
       await muat()
     } catch (e) { setGalat((e as Error).message) }
   }
+
+  if (profil?.peran === 'siswa') return <PertemuanSiswa kelasId={kelasId} id={id} />
 
   return (
     <Halaman judul={p ? `Pertemuan ${p.nomor}: ${p.judul}` : 'Pertemuan'} lead={kelas ? `${kelas.mapel} ${kelas.rombel}${p ? `, ${tgl(p.tanggal)}` : ''}` : undefined}>

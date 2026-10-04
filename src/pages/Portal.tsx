@@ -7,6 +7,7 @@ import { namaPeran } from '../data/menuPortal'
 import AgendaTerdekat from '../components/AgendaTerdekat'
 import JamSistem from '../components/JamSistem'
 import PengingatLms from './LmsPengingat'
+import { BerandaBelajar } from './LmsBelajar'
 
 const kalimatPeran = {
   admin_tu: 'Kelola data induk, unggahan Dapodik, ajuan perbaikan, dan akun pengguna.',
@@ -40,6 +41,7 @@ export default function Portal() {
         </ul>
       )}
 
+      {profil.peran === 'siswa' && <BerandaBelajar />}
       {(profil.peran === 'siswa' || profil.peran === 'guru') && <PengingatLms />}
 
       {perhatian.length > 0 && (
