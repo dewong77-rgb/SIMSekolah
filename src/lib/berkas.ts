@@ -98,8 +98,8 @@ export async function unggahBerkas(
   return { id: sesi.berkas_id, nama: file.name, ukuran: file.size }
 }
 
-/** Mengunduh berkas ke perangkat. Izin diperiksa server, bukan tautan publik. */
-export async function unduhBerkas(id: string, nama: string) {
+/** Mengambil isi berkas sebagai Blob. Izin diperiksa server, bukan tautan publik. */
+export async function ambilBlobBerkas(id: string): Promise<Blob> {
   const { data } = await supabase.auth.getSession()
   const r = await fetch(`${SUPABASE_URL}/functions/v1/drive`, {
     method: 'POST',
@@ -111,7 +111,12 @@ export async function unduhBerkas(id: string, nama: string) {
     try { const j = await r.json(); if (j?.error) pesan = j.error } catch { /* abaikan */ }
     throw new Error(pesan)
   }
-  const url = URL.createObjectURL(await r.blob())
+  return r.blob()
+}
+
+/** Mengunduh berkas ke perangkat. */
+export async function unduhBerkas(id: string, nama: string) {
+  const url = URL.createObjectURL(await ambilBlobBerkas(id))
   const a = document.createElement('a')
   a.href = url
   a.download = nama
@@ -119,4 +124,20 @@ export async function unduhBerkas(id: string, nama: string) {
   a.click()
   a.remove()
   setTimeout(() => URL.revokeObjectURL(url), 10_000)
+}
+
+/** Memperkecil foto kamera (sisi terpanjang 1600 px, JPEG). Berkas non-gambar dikembalikan apa adanya. */
+export async function perkecilFoto(f: File): Promise<File> {
+  if (!/^image\/(jpeg|png|webp)$/.test(f.type) || f.size < 300 * 1024) return f
+  try {
+    const bmp = await createImageBitmap(f)
+    const skala = Math.min(1, 1600 / Math.max(bmp.width, bmp.height))
+    const c = document.createElement('canvas')
+    c.width = Math.round(bmp.width * skala); c.height = Math.round(bmp.height * skala)
+    c.getContext('2d')!.drawImage(bmp, 0, 0, c.width, c.height)
+    bmp.close()
+    const blob = await new Promise<Blob | null>((ok) => c.toBlob(ok, 'image/jpeg', 0.8))
+    if (!blob || blob.size >= f.size) return f
+    return new File([blob], f.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' })
+  } catch { return f }
 }
