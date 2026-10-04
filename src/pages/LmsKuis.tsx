@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import Halaman from '../components/Halaman'
 import { panggil, tglJam } from '../lib/rpc'
+import { bacaSoalXlsx, unduhTemplateSoal, type SoalImpor } from './lmsSoalXlsx'
 import { biru, dariInputLokal, dua, keInputLokal, merah, nilaiTeks, unduhCsv } from './lmsUtil'
 
 // Kuis dan ulangan: pilihan ganda, isian singkat, esai dengan rubrik. Semua data lewat fungsi basis data lms_*.
@@ -609,8 +610,48 @@ function KuisGuru({ kelasId, a, pertemuan, muat }: { kelasId: string; a: Asesmen
         <FormSoal key={edit === 'baru' ? 'baru' : edit.id} asesmenId={a.id} awal={edit === 'baru' ? null : edit}
           selesai={async () => { setEdit(null); await muatSoal(); await muat() }} batal={() => setEdit(null)} />
       )}
+      {!a.terkunci && <ImporSoal asesmenId={a.id} selesai={async () => { await muatSoal(); await muat() }} />}
       <RekapKuis asesmenId={a.id} kkm={a.kkm} versi={versi} />
     </>
+  )
+}
+
+function ImporSoal({ asesmenId, selesai }: { asesmenId: string; selesai: () => Promise<void> }) {
+  const [sibuk, setSibuk] = useState(false)
+  const [galat, setGalat] = useState<string[]>([])
+  const [pesan, setPesan] = useState('')
+  async function unggah(f: File | undefined) {
+    if (!f) return
+    setSibuk(true); setGalat([]); setPesan('')
+    try {
+      const { soal, galat: g } = await bacaSoalXlsx(f)
+      if (g.length) { setGalat(g); setSibuk(false); return }
+      let n = 0
+      for (const s of soal as SoalImpor[]) {
+        try {
+          await panggil('lms_soal_tulis', { p_asesmen: asesmenId, p_id: null, p_tipe: s.tipe, p_pertanyaan: s.pertanyaan, p_opsi: s.opsi, p_kunci: s.kunci, p_kunci_isian: s.kunci_isian, p_rubrik: s.rubrik, p_bobot: s.bobot, p_pembahasan: s.pembahasan })
+          n++
+        } catch (e) { setGalat([`Soal ke-${n + 1} gagal: ${(e as Error).message}`, n > 0 ? `${n} soal sebelumnya sudah masuk.` : '']); break }
+      }
+      if (n === soal.length) setPesan(`${n} soal berhasil dimasukkan.`)
+      await selesai()
+    } catch (e) { setGalat(['Berkas tidak bisa dibaca. Gunakan template Excel (.xlsx). ' + (e as Error).message]) }
+    setSibuk(false)
+  }
+  return (
+    <div className="kartu jarak">
+      <h3>Unggah soal dari Excel</h3>
+      <p className="catatan">Unduh template, isi soal, lalu unggah. Pilihan ganda dan isian singkat dinilai otomatis.</p>
+      <div className="aksi">
+        <button type="button" className="tombol" style={biru} onClick={() => void unduhTemplateSoal()}>Unduh template Excel</button>
+        <label className="tombol tombol-isi" style={{ cursor: 'pointer' }}>
+          {sibuk ? 'Memproses...' : 'Unggah soal (.xlsx)'}
+          <input type="file" accept=".xlsx" hidden disabled={sibuk} onChange={(e) => { void unggah(e.target.files?.[0]); e.target.value = '' }} />
+        </label>
+      </div>
+      {pesan && <div className="kartu hasil"><strong>{pesan}</strong></div>}
+      {galat.filter(Boolean).length > 0 && <ul className="catatan galat" role="alert">{galat.filter(Boolean).map((g, i) => <li key={i}>{g}</li>)}</ul>}
+    </div>
   )
 }
 
