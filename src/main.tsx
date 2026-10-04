@@ -10,6 +10,7 @@ import {
 } from './pages/Halaman-halaman'
 import Masuk from './pages/Masuk'
 import Portal from './pages/Portal'
+const Privasi = lazy(() => import('./pages/Privasi'))
 const Unggah = lazy(() => import('./pages/Unggah'))
 const Akun = lazy(() => import('./pages/Akun'))
 const Pengguna = lazy(() => import('./pages/Pengguna'))
@@ -71,6 +72,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="berita" element={<BeritaHalaman />} />
           <Route path="kontak" element={<Kontak />} />
           <Route path="masuk" element={<Masuk />} />
+          <Route path="privasi" element={<Suspense fallback={null}><Privasi /></Suspense>} />
           <Route path="*" element={<TidakAda />} />
         </Route>
         <Route element={<PortalLayout />}>

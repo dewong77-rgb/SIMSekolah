@@ -41,7 +41,7 @@ export default function Footer() {
         </div>
       </div>
       <div className="wadah footer-bawah">
-        <small>© {new Date().getFullYear()} {sekolah.nama}</small>
+        <small>© {new Date().getFullYear()} {sekolah.nama} · <Link to="/privasi">Kebijakan Privasi</Link></small>
       </div>
     </footer>
   )
