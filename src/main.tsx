@@ -24,6 +24,8 @@ const ProfilSekolah = lazy(() => import('./pages/ProfilSekolah'))
 const RegisterSurat = lazy(() => import('./pages/Persuratan').then((m) => ({ default: m.RegisterSurat })))
 const DetailSurat = lazy(() => import('./pages/Persuratan').then((m) => ({ default: m.DetailSurat })))
 const KotakDisposisi = lazy(() => import('./pages/Persuratan').then((m) => ({ default: m.KotakDisposisi })))
+const BukuTamu = lazy(() => import('./pages/BukuTamu'))
+const BukuTamuPortal = lazy(() => import('./pages/BukuTamuPortal'))
 const GantiSandi = lazy(() => import('./pages/GantiSandi'))
 const ProfilSaya = lazy(() => import('./pages/ProfilSaya'))
 const ProfilSendiri = lazy(() => import('./pages/ProfilDapodik').then((m) => ({ default: m.ProfilSendiri })))
@@ -75,6 +77,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="alumni" element={<Alumni />} />
           <Route path="berita" element={<BeritaHalaman />} />
           <Route path="kontak" element={<Kontak />} />
+          <Route path="buku-tamu" element={<Suspense fallback={null}><BukuTamu /></Suspense>} />
           <Route path="masuk" element={<Masuk />} />
           <Route path="privasi" element={<Suspense fallback={null}><Privasi /></Suspense>} />
           <Route path="*" element={<TidakAda />} />
@@ -256,6 +259,7 @@ createRoot(document.getElementById('root')!).render(
               </RequireRole>
             }
           />
+          <Route path="portal/buku-tamu" element={<RequireRole peran={['admin_tu', 'guru', 'staf']}><Suspense fallback={null}><BukuTamuPortal /></Suspense></RequireRole>} />
           <Route path="portal/surat" element={<RequireRole peran={['admin_tu', 'guru', 'staf']}><Suspense fallback={null}><RegisterSurat /></Suspense></RequireRole>} />
           <Route path="portal/surat/:id" element={<RequireRole peran={['admin_tu', 'guru', 'staf']}><Suspense fallback={null}><DetailSurat /></Suspense></RequireRole>} />
           <Route path="portal/disposisi" element={<RequireRole peran={['admin_tu', 'guru', 'staf']}><Suspense fallback={null}><KotakDisposisi /></Suspense></RequireRole>} />
