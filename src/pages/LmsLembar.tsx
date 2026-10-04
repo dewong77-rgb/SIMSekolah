@@ -229,3 +229,20 @@ export function LembarJawabanGuru({ tugasId, pdId }: { tugasId: string; pdId: st
     </div>
   )
 }
+
+/** Pratinjau untuk guru: lembar tampil seperti di siswa, isian hanya di layar, tidak ada yang tersimpan. */
+export function LembarPratinjau({ html, judul }: { html: string; judul: string }) {
+  const [isian] = useState<Isian>({})
+  return (
+    <div className="kartu jarak lembar">
+      <div className="lencana-baris"><span className="lencana">Lembar kerja</span><span className="status status-menunggu">Pratinjau, tidak tersimpan</span></div>
+      <h3>{judul}</h3>
+      <DokumenIsian html={html} isian={isian} terkunci={false} />
+      <div className="form jarak">
+        <label>Catatan tambahan (opsional)<textarea rows={3} /></label>
+        <label>Foto atau berkas bukti<input type="file" disabled /></label>
+      </div>
+      <div className="aksi"><button type="button" className="tombol tombol-isi" disabled>Kumpulkan</button></div>
+    </div>
+  )
+}

@@ -8,7 +8,8 @@ import { DaftarKuis, LatihanPertemuan } from './LmsKuis'
 import { DaftarTugas } from './LmsTugas'
 import { Forum } from './LmsForum'
 import { nilaiTeks, unduhCsv } from './lmsUtil'
-import { LembarSiswa } from './LmsLembar'
+import { LembarPratinjau, LembarSiswa } from './LmsLembar'
+import PengingatLms from './LmsPengingat'
 import { htmlAman, wordKeHtml, judulDariNama, BATAS_HTML } from '../lib/dokumen'
 import { unduhRekapKelas } from './lmsXlsx'
 
@@ -89,6 +90,8 @@ export function DaftarKelas() {
 
   return (
     <Halaman judul="Ruang belajar" lead={profil?.peran === 'siswa' ? 'Kelas yang Anda ikuti semester ini.' : 'Kelas yang Anda ajar semester ini.'}>
+      <PengingatLms maks={4} />
+      <p className="catatan"><Link to="/portal/panduan-lms">Panduan singkat ruang belajar</Link></p>
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
       {bolehBuat && (
         <div className="aksi">
@@ -241,7 +244,8 @@ export function DetailKelas() {
   )
 }
 
-function IsiMateri({ m, siswa, selesai }: { m: Materi; siswa: boolean; selesai: (id: string) => Promise<void> }) {
+function IsiMateri({ m, siswa, selesai, pratinjau }: { m: Materi; siswa: boolean; selesai: (id: string) => Promise<void>; pratinjau?: boolean }) {
+  if (pratinjau && m.tugas_id && m.format === 'html') return <LembarPratinjau html={m.isi ?? ''} judul={m.judul} />
   if (siswa && m.tugas_id && m.format === 'html') return <LembarSiswa tugasId={m.tugas_id} html={m.isi ?? ''} judul={m.judul} />
   const yt = m.jenis === 'video' && m.url ? idYoutube(m.url) : null
   return (
@@ -266,7 +270,7 @@ function IsiMateri({ m, siswa, selesai }: { m: Materi; siswa: boolean; selesai: 
         </div>
       )}
       {m.jenis !== 'teks' && m.url && (!yt || m.jenis !== 'video') && <p><a href={m.url} target="_blank" rel="noopener noreferrer">Buka {m.jenis === 'video' ? 'video' : m.jenis === 'berkas' ? 'berkas' : 'tautan'}</a></p>}
-      {siswa && !m.selesai && <div className="aksi"><button className="tombol" style={{ color: 'var(--warna-utama)' }} onClick={() => void selesai(m.id)}>Tandai sudah selesai</button></div>}
+      {siswa && !pratinjau && !m.selesai && <div className="aksi"><button className="tombol" style={{ color: 'var(--warna-utama)' }} onClick={() => void selesai(m.id)}>Tandai sudah selesai</button></div>}
     </div>
   )
 }
@@ -326,6 +330,13 @@ function RekapPertemuan({ pertemuanId, nomor, versi }: { pertemuanId: string; no
     } catch (e) { setGalat((e as Error).message) }
   }, [pertemuanId])
   useEffect(() => { void muat() }, [muat, versi])
+  const [langsung, setLangsung] = useState(true)
+  const [saring, setSaring] = useState('semua')
+  useEffect(() => {
+    if (!langsung) return
+    const j = window.setInterval(() => { if (document.visibilityState === 'visible') void muat() }, 20_000)
+    return () => window.clearInterval(j)
+  }, [langsung, muat])
   async function ubah(pd: string, status: string) {
     setGalat('')
     try { await panggil('lms_absen_guru', { p_pertemuan: pertemuanId, p_pd: pd, p_status: status, p_catatan: null }); await muat() } catch (e) { setGalat((e as Error).message) }
@@ -357,13 +368,23 @@ function RekapPertemuan({ pertemuanId, nomor, versi }: { pertemuanId: string; no
           <div><small>Aktif di forum</small><p style={{ margin: 0, fontSize: '1.2rem' }}>{aktifForum} siswa ({pct(aktifForum)}%)</p><small>{kiriman} kiriman siswa, {t.total_topik} topik</small></div>
         </div>
       )}
-      <div className="aksi jarak"><button className="tombol" style={{ color: 'var(--warna-utama)' }} disabled={!t} onClick={unduh}>Unduh CSV</button></div>
+      <div className="aksi jarak">
+        <button className="tombol" style={{ color: 'var(--warna-utama)' }} disabled={!t} onClick={unduh}>Unduh CSV</button>
+        <label className="baris-centang"><input type="checkbox" checked={langsung} onChange={(e) => setLangsung(e.target.checked)} /> Pantau langsung (segar tiap 20 detik)</label>
+        <label>Tampilkan
+          <select value={saring} onChange={(e) => setSaring(e.target.value)}>
+            <option value="semua">Semua siswa</option><option value="belum_absen">Belum absen</option>
+            <option value="belum_lembar">Belum mengumpulkan lembar</option><option value="belum_latihan">Belum menyelesaikan latihan</option>
+            <option value="belum_forum">Belum ikut forum</option>
+          </select>
+        </label>
+      </div>
       <div className="tabel-bungkus jarak">
         <table>
           <thead><tr><th>No</th><th>Nama</th><th>Kehadiran</th><th>Materi</th><th>Latihan</th>{(t?.total_lembar ?? 0) > 0 && <th>Lembar kerja</th>}<th>Forum</th><th>Ubah absen</th></tr></thead>
           <tbody>
             {!t && <tr><td colSpan={8}>Memuat...</td></tr>}
-            {(t?.siswa ?? []).map((x, i) => (
+            {(t?.siswa ?? []).filter((x) => saring === 'semua' || (saring === 'belum_absen' && x.absen === 'belum') || (saring === 'belum_lembar' && !x.lembar_status) || (saring === 'belum_latihan' && t!.total_latihan > 0 && x.latihan_selesai < t!.total_latihan) || (saring === 'belum_forum' && x.forum_total === 0)).map((x, i) => (
               <tr key={x.peserta_didik_id}>
                 <td>{x.no_urut ?? i + 1}</td>
                 <td>{x.nama}<br /><small>{x.nisn ?? ''}</small></td>
@@ -607,6 +628,7 @@ export function RuangPertemuan() {
   const [sibuk, setSibuk] = useState(false)
   const [versi, setVersi] = useState(0)
   const [ubahMateri, setUbahMateri] = useState<string | null>(null)
+  const [pratinjau, setPratinjau] = useState(false)
 
   const muat = useCallback(async () => {
     try {
@@ -646,6 +668,10 @@ export function RuangPertemuan() {
     if (!window.confirm('Hapus materi ini?')) return
     try { await panggil('lms_hapus_materi', { p_materi: materiId }); await muat() } catch (e) { setGalat((e as Error).message) }
   }
+  async function terbitPaksa() {
+    if (!window.confirm('Pertemuan belum lengkap. Tetap diterbitkan sekarang? Siswa langsung bisa membukanya.')) return
+    try { await panggil('lms_terbitkan_paksa', { p_pertemuan: id }); await muat() } catch (e) { setGalat((e as Error).message) }
+  }
   async function terbitkan(terbit: boolean) {
     if (!p) return
     try {
@@ -667,6 +693,10 @@ export function RuangPertemuan() {
             <button className="tombol" style={{ color: 'var(--warna-utama)' }} disabled={p.status !== 'terbit' && !p.kelengkapan?.lengkap} onClick={() => void terbitkan(p.status !== 'terbit')}>{p.status === 'terbit' ? 'Tarik jadi draf' : 'Terbitkan'}</button>
           </div>
           <PanelKelengkapan k={p.kelengkapan} />
+          {p.status !== 'terbit' && p.kelengkapan && !p.kelengkapan.lengkap && (
+            <div className="aksi"><button type="button" className="tombol" onClick={() => void terbitPaksa()}>Terbitkan sekarang walau belum lengkap</button></div>
+          )}
+          <div className="aksi"><label className="baris-centang"><input type="checkbox" checked={pratinjau} onChange={(e) => setPratinjau(e.target.checked)} /> Lihat sebagai siswa (pratinjau, tidak ada yang tersimpan)</label></div>
           <SalinPertemuan pertemuanId={id} versi={versi} />
           <KontrolAbsen p={p} muat={muat} />
         </>
@@ -690,12 +720,13 @@ export function RuangPertemuan() {
         <>
           <div className="judul-bagian jarak" id="materi"><h2>Materi</h2></div>
           {materi.length === 0 && <div className="kartu"><p className="catatan">Belum ada materi pada pertemuan ini.</p></div>}
-          {materi.map((m) => (
+          {pratinjau && <p className="catatan">Pratinjau tampilan siswa. Materi Guru saja disembunyikan, lembar kerja bisa dicoba tetapi tidak tersimpan.</p>}
+          {materi.filter((m) => !pratinjau || m.untuk === 'siswa').map((m) => (
             <div key={m.id}>
               {ubahMateri === m.id
                 ? <FormMateri pertemuanId={id} muat={muat} awal={m} selesai={() => setUbahMateri(null)} />
-                : <IsiMateri m={m} siswa={!kelola} selesai={selesai} />}
-              {kelola && ubahMateri !== m.id && (
+                : <IsiMateri m={m} siswa={!kelola} selesai={selesai} pratinjau={pratinjau} />}
+              {kelola && !pratinjau && ubahMateri !== m.id && (
                 <div className="aksi">
                   <button className="tombol" style={{ color: 'var(--warna-utama)' }} onClick={() => setUbahMateri(m.id)}>Ubah materi ini</button>
                   <button className="tombol" style={{ color: '#8a1f1f', borderColor: '#8a1f1f' }} onClick={() => void hapus(m.id)}>Hapus materi ini</button>
