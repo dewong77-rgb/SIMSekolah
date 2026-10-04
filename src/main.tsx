@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import PortalLayout from './components/PortalLayout'
+import PembatasGalat, { Memuat, muatUlangSekali } from './components/PembatasGalat'
 import Beranda from './pages/Beranda'
 import {
   Alumni, BeritaHalaman, HubunganIndustri, Jurusan, Kontak,
@@ -55,8 +56,14 @@ import { AuthProvider } from './auth/AuthContext'
 import RequireRole from './auth/RequireRole'
 import './styles.css'
 
+// Vite memicu ini bila berkas halaman hasil deploy lama sudah hilang. Muat ulang menarik versi terbaru.
+window.addEventListener('vite:preloadError', (e) => {
+  if (muatUlangSekali()) e.preventDefault()
+})
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
+    <PembatasGalat ruang="akar">
     <BrowserRouter>
       <AuthProvider>
       <Routes>
@@ -64,9 +71,9 @@ createRoot(document.getElementById('root')!).render(
           <Route index element={<Beranda />} />
           <Route path="profil" element={<Profil />} />
           <Route path="jurusan" element={<Jurusan />} />
-          <Route path="struktur-organisasi" element={<Suspense fallback={null}><Struktur /></Suspense>} />
+          <Route path="struktur-organisasi" element={<Suspense fallback={<Memuat />}><Struktur /></Suspense>} />
           <Route path="hubungan-industri" element={<HubunganIndustri />} />
-          <Route path="akademik" element={<Suspense fallback={null}><Akademik /></Suspense>} />
+          <Route path="akademik" element={<Suspense fallback={<Memuat />}><Akademik /></Suspense>} />
           <Route path="ppdb" element={<Ppdb />} />
           <Route path="lms" element={<Lms />} />
           <Route path="perpustakaan" element={<Perpustakaan />} />
@@ -74,7 +81,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="berita" element={<BeritaHalaman />} />
           <Route path="kontak" element={<Kontak />} />
           <Route path="masuk" element={<Masuk />} />
-          <Route path="privasi" element={<Suspense fallback={null}><Privasi /></Suspense>} />
+          <Route path="privasi" element={<Suspense fallback={<Memuat />}><Privasi /></Suspense>} />
           <Route path="*" element={<TidakAda />} />
         </Route>
         <Route element={<PortalLayout />}>
@@ -90,7 +97,7 @@ createRoot(document.getElementById('root')!).render(
             path="portal/unggah"
             element={
               <RequireRole peran={['admin_tu']}>
-                <Suspense fallback={null}><Unggah /></Suspense>
+                <Suspense fallback={<Memuat />}><Unggah /></Suspense>
               </RequireRole>
             }
           />
@@ -98,7 +105,7 @@ createRoot(document.getElementById('root')!).render(
             path="portal/akun"
             element={
               <RequireRole peran={['admin_tu']}>
-                <Suspense fallback={null}><Akun /></Suspense>
+                <Suspense fallback={<Memuat />}><Akun /></Suspense>
               </RequireRole>
             }
           />
@@ -106,7 +113,7 @@ createRoot(document.getElementById('root')!).render(
             path="portal/pengguna"
             element={
               <RequireRole peran={['admin_tu']} superAdmin>
-                <Suspense fallback={null}><Pengguna /></Suspense>
+                <Suspense fallback={<Memuat />}><Pengguna /></Suspense>
               </RequireRole>
             }
           />
@@ -114,7 +121,7 @@ createRoot(document.getElementById('root')!).render(
             path="portal/penugasan"
             element={
               <RequireRole peran={['admin_tu']} superAdmin>
-                <Suspense fallback={null}><Penugasan /></Suspense>
+                <Suspense fallback={<Memuat />}><Penugasan /></Suspense>
               </RequireRole>
             }
           />
@@ -122,7 +129,7 @@ createRoot(document.getElementById('root')!).render(
             path="portal/sambungan-drive"
             element={
               <RequireRole peran={['admin_tu']} superAdmin>
-                <Suspense fallback={null}><SambunganDrive /></Suspense>
+                <Suspense fallback={<Memuat />}><SambunganDrive /></Suspense>
               </RequireRole>
             }
           />
@@ -130,7 +137,7 @@ createRoot(document.getElementById('root')!).render(
             path="portal/profil-sekolah"
             element={
               <RequireRole peran={['admin_tu']} superAdmin>
-                <Suspense fallback={null}><ProfilSekolah /></Suspense>
+                <Suspense fallback={<Memuat />}><ProfilSekolah /></Suspense>
               </RequireRole>
             }
           />
@@ -138,7 +145,7 @@ createRoot(document.getElementById('root')!).render(
             path="portal/ganti-sandi"
             element={
               <RequireRole peran={['admin_tu', 'guru', 'staf', 'siswa', 'orang_tua']}>
-                <Suspense fallback={null}><GantiSandi /></Suspense>
+                <Suspense fallback={<Memuat />}><GantiSandi /></Suspense>
               </RequireRole>
             }
           />
@@ -146,7 +153,7 @@ createRoot(document.getElementById('root')!).render(
             path="portal/profil"
             element={
               <RequireRole peran={['admin_tu', 'guru', 'staf', 'orang_tua']}>
-                <Suspense fallback={null}><ProfilSaya /></Suspense>
+                <Suspense fallback={<Memuat />}><ProfilSaya /></Suspense>
               </RequireRole>
             }
           />
@@ -154,7 +161,7 @@ createRoot(document.getElementById('root')!).render(
             path="portal/data-saya"
             element={
               <RequireRole peran={['guru', 'staf', 'siswa']}>
-                <Suspense fallback={null}><ProfilSendiri /></Suspense>
+                <Suspense fallback={<Memuat />}><ProfilSendiri /></Suspense>
               </RequireRole>
             }
           />
@@ -162,7 +169,7 @@ createRoot(document.getElementById('root')!).render(
             path="portal/anak"
             element={
               <RequireRole peran={['orang_tua']}>
-                <Suspense fallback={null}><DaftarAnak /></Suspense>
+                <Suspense fallback={<Memuat />}><DaftarAnak /></Suspense>
               </RequireRole>
             }
           />
@@ -170,7 +177,7 @@ createRoot(document.getElementById('root')!).render(
             path="portal/profil/:jenis/:id"
             element={
               <RequireRole peran={['admin_tu', 'orang_tua']}>
-                <Suspense fallback={null}><ProfilOrang /></Suspense>
+                <Suspense fallback={<Memuat />}><ProfilOrang /></Suspense>
               </RequireRole>
             }
           />
@@ -178,7 +185,7 @@ createRoot(document.getElementById('root')!).render(
             path="portal/ajuan/baru/:jenis/:id"
             element={
               <RequireRole peran={['guru', 'staf', 'siswa', 'orang_tua']}>
-                <Suspense fallback={null}><FormAjuan /></Suspense>
+                <Suspense fallback={<Memuat />}><FormAjuan /></Suspense>
               </RequireRole>
             }
           />
@@ -186,7 +193,7 @@ createRoot(document.getElementById('root')!).render(
             path="portal/ajuan"
             element={
               <RequireRole peran={['guru', 'staf', 'siswa', 'orang_tua']}>
-                <Suspense fallback={null}><AjuanSaya /></Suspense>
+                <Suspense fallback={<Memuat />}><AjuanSaya /></Suspense>
               </RequireRole>
             }
           />
@@ -194,7 +201,7 @@ createRoot(document.getElementById('root')!).render(
             path="portal/ajuan-masuk"
             element={
               <RequireRole peran={['admin_tu', 'guru', 'staf']}>
-                <Suspense fallback={null}><AjuanMasuk /></Suspense>
+                <Suspense fallback={<Memuat />}><AjuanMasuk /></Suspense>
               </RequireRole>
             }
           />
@@ -202,7 +209,7 @@ createRoot(document.getElementById('root')!).render(
             path="portal/kalender"
             element={
               <RequireRole peran={['admin_tu', 'guru', 'staf']}>
-                <Suspense fallback={null}><KelolaKalender /></Suspense>
+                <Suspense fallback={<Memuat />}><KelolaKalender /></Suspense>
               </RequireRole>
             }
           />
@@ -210,7 +217,7 @@ createRoot(document.getElementById('root')!).render(
             path="portal/jam-pelajaran"
             element={
               <RequireRole peran={['admin_tu', 'guru', 'staf']}>
-                <Suspense fallback={null}><KelolaJam /></Suspense>
+                <Suspense fallback={<Memuat />}><KelolaJam /></Suspense>
               </RequireRole>
             }
           />
@@ -218,7 +225,7 @@ createRoot(document.getElementById('root')!).render(
             path="portal/riwayat"
             element={
               <RequireRole peran={['admin_tu']}>
-                <Suspense fallback={null}><RiwayatUnggah /></Suspense>
+                <Suspense fallback={<Memuat />}><RiwayatUnggah /></Suspense>
               </RequireRole>
             }
           />
@@ -226,7 +233,7 @@ createRoot(document.getElementById('root')!).render(
             path="portal/peserta-didik"
             element={
               <RequireRole peran={['admin_tu', 'guru']}>
-                <Suspense fallback={null}><PesertaDidik /></Suspense>
+                <Suspense fallback={<Memuat />}><PesertaDidik /></Suspense>
               </RequireRole>
             }
           />
@@ -234,7 +241,7 @@ createRoot(document.getElementById('root')!).render(
             path="portal/ptk"
             element={
               <RequireRole peran={['admin_tu', 'guru']}>
-                <Suspense fallback={null}><GuruTendik /></Suspense>
+                <Suspense fallback={<Memuat />}><GuruTendik /></Suspense>
               </RequireRole>
             }
           />
@@ -242,7 +249,7 @@ createRoot(document.getElementById('root')!).render(
             path="portal/rombel"
             element={
               <RequireRole peran={['admin_tu', 'guru']}>
-                <Suspense fallback={null}><DaftarRombel /></Suspense>
+                <Suspense fallback={<Memuat />}><DaftarRombel /></Suspense>
               </RequireRole>
             }
           />
@@ -250,30 +257,31 @@ createRoot(document.getElementById('root')!).render(
             path="portal/rombel/:id"
             element={
               <RequireRole peran={['admin_tu', 'guru']}>
-                <Suspense fallback={null}><DetailRombel /></Suspense>
+                <Suspense fallback={<Memuat />}><DetailRombel /></Suspense>
               </RequireRole>
             }
           />
-          <Route path="portal/surat" element={<RequireRole peran={['admin_tu', 'guru', 'staf']}><Suspense fallback={null}><RegisterSurat /></Suspense></RequireRole>} />
-          <Route path="portal/surat/:id" element={<RequireRole peran={['admin_tu', 'guru', 'staf']}><Suspense fallback={null}><DetailSurat /></Suspense></RequireRole>} />
-          <Route path="portal/disposisi" element={<RequireRole peran={['admin_tu', 'guru', 'staf']}><Suspense fallback={null}><KotakDisposisi /></Suspense></RequireRole>} />
-          <Route path="portal/lms" element={<RequireRole peran={['admin_tu', 'guru', 'siswa']}><Suspense fallback={null}><DaftarKelas /></Suspense></RequireRole>} />
-          <Route path="portal/lms/:kelasId" element={<RequireRole peran={['admin_tu', 'guru', 'siswa']}><Suspense fallback={null}><DetailKelas /></Suspense></RequireRole>} />
-          <Route path="portal/lms/:kelasId/rekap" element={<RequireRole peran={['admin_tu', 'guru']}><Suspense fallback={null}><RekapKelas /></Suspense></RequireRole>} />
-          <Route path="portal/lms/:kelasId/pertemuan/:id" element={<RequireRole peran={['admin_tu', 'guru', 'siswa']}><Suspense fallback={null}><RuangPertemuan /></Suspense></RequireRole>} />
-          <Route path="portal/lms/:kelasId/kuis/:id" element={<RequireRole peran={['admin_tu', 'guru', 'siswa']}><Suspense fallback={null}><RuangKuis /></Suspense></RequireRole>} />
-          <Route path="portal/lms/:kelasId/tugas/:id" element={<RequireRole peran={['admin_tu', 'guru', 'siswa']}><Suspense fallback={null}><RuangTugas /></Suspense></RequireRole>} />
-          <Route path="portal/lms/administrasi" element={<RequireRole peran={['admin_tu', 'guru']}><Suspense fallback={null}><AdministrasiGuru /></Suspense></RequireRole>} />
-          <Route path="portal/lms/:kelasId/jurnal" element={<RequireRole peran={['admin_tu', 'guru']}><Suspense fallback={null}><JurnalKelas /></Suspense></RequireRole>} />
-          <Route path="portal/lms/:kelasId/nilai" element={<RequireRole peran={['admin_tu', 'guru']}><Suspense fallback={null}><BukuNilai /></Suspense></RequireRole>} />
-          <Route path="portal/absensi" element={<RequireRole peran={['admin_tu', 'guru']}><Suspense fallback={null}><AbsensiGuru /></Suspense></RequireRole>} />
-          <Route path="portal/progres-lms" element={<RequireRole peran={['siswa']}><Suspense fallback={null}><ProgresSaya /></Suspense></RequireRole>} />
-          <Route path="portal/panduan-lms" element={<RequireRole peran={['admin_tu', 'guru', 'siswa']}><Suspense fallback={null}><PanduanLms /></Suspense></RequireRole>} />
-          <Route path="portal/tautan-ortu" element={<RequireRole peran={['admin_tu']}><Suspense fallback={null}><TautanOrtu /></Suspense></RequireRole>} />
-          <Route path="portal/anak-lms" element={<RequireRole peran={['orang_tua']}><Suspense fallback={null}><LmsAnak /></Suspense></RequireRole>} />
+          <Route path="portal/surat" element={<RequireRole peran={['admin_tu', 'guru', 'staf']}><Suspense fallback={<Memuat />}><RegisterSurat /></Suspense></RequireRole>} />
+          <Route path="portal/surat/:id" element={<RequireRole peran={['admin_tu', 'guru', 'staf']}><Suspense fallback={<Memuat />}><DetailSurat /></Suspense></RequireRole>} />
+          <Route path="portal/disposisi" element={<RequireRole peran={['admin_tu', 'guru', 'staf']}><Suspense fallback={<Memuat />}><KotakDisposisi /></Suspense></RequireRole>} />
+          <Route path="portal/lms" element={<RequireRole peran={['admin_tu', 'guru', 'siswa']}><Suspense fallback={<Memuat />}><DaftarKelas /></Suspense></RequireRole>} />
+          <Route path="portal/lms/:kelasId" element={<RequireRole peran={['admin_tu', 'guru', 'siswa']}><Suspense fallback={<Memuat />}><DetailKelas /></Suspense></RequireRole>} />
+          <Route path="portal/lms/:kelasId/rekap" element={<RequireRole peran={['admin_tu', 'guru']}><Suspense fallback={<Memuat />}><RekapKelas /></Suspense></RequireRole>} />
+          <Route path="portal/lms/:kelasId/pertemuan/:id" element={<RequireRole peran={['admin_tu', 'guru', 'siswa']}><Suspense fallback={<Memuat />}><RuangPertemuan /></Suspense></RequireRole>} />
+          <Route path="portal/lms/:kelasId/kuis/:id" element={<RequireRole peran={['admin_tu', 'guru', 'siswa']}><Suspense fallback={<Memuat />}><RuangKuis /></Suspense></RequireRole>} />
+          <Route path="portal/lms/:kelasId/tugas/:id" element={<RequireRole peran={['admin_tu', 'guru', 'siswa']}><Suspense fallback={<Memuat />}><RuangTugas /></Suspense></RequireRole>} />
+          <Route path="portal/lms/administrasi" element={<RequireRole peran={['admin_tu', 'guru']}><Suspense fallback={<Memuat />}><AdministrasiGuru /></Suspense></RequireRole>} />
+          <Route path="portal/lms/:kelasId/jurnal" element={<RequireRole peran={['admin_tu', 'guru']}><Suspense fallback={<Memuat />}><JurnalKelas /></Suspense></RequireRole>} />
+          <Route path="portal/lms/:kelasId/nilai" element={<RequireRole peran={['admin_tu', 'guru']}><Suspense fallback={<Memuat />}><BukuNilai /></Suspense></RequireRole>} />
+          <Route path="portal/absensi" element={<RequireRole peran={['admin_tu', 'guru']}><Suspense fallback={<Memuat />}><AbsensiGuru /></Suspense></RequireRole>} />
+          <Route path="portal/progres-lms" element={<RequireRole peran={['siswa']}><Suspense fallback={<Memuat />}><ProgresSaya /></Suspense></RequireRole>} />
+          <Route path="portal/panduan-lms" element={<RequireRole peran={['admin_tu', 'guru', 'siswa']}><Suspense fallback={<Memuat />}><PanduanLms /></Suspense></RequireRole>} />
+          <Route path="portal/tautan-ortu" element={<RequireRole peran={['admin_tu']}><Suspense fallback={<Memuat />}><TautanOrtu /></Suspense></RequireRole>} />
+          <Route path="portal/anak-lms" element={<RequireRole peran={['orang_tua']}><Suspense fallback={<Memuat />}><LmsAnak /></Suspense></RequireRole>} />
         </Route>
       </Routes>
       </AuthProvider>
     </BrowserRouter>
+    </PembatasGalat>
   </StrictMode>,
 )
