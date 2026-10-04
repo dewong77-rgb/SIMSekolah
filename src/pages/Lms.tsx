@@ -463,7 +463,7 @@ function RekapPertemuan({ pertemuanId, nomor, versi }: { pertemuanId: string; no
 type Tujuan = { kelas_id: string; rombel: string; mapel: string; jumlah_siswa: number; sudah_ada: boolean }
 
 /** Salin pertemuan (materi, latihan soal, topik forum pembuka) ke kelas lain dengan mata pelajaran yang sama. */
-function SalinPertemuan({ pertemuanId, versi }: { pertemuanId: string; versi: number }) {
+function SalinPertemuan({ pertemuanId, versi, terbit }: { pertemuanId: string; versi: number; terbit: boolean }) {
   const [tujuan, setTujuan] = useState<Tujuan[] | null>(null)
   const [pilih, setPilih] = useState<string[]>([])
   const [galat, setGalat] = useState('')
@@ -475,6 +475,18 @@ function SalinPertemuan({ pertemuanId, versi }: { pertemuanId: string; versi: nu
   useEffect(() => { void muat() }, [muat, versi])
   const bisa = (tujuan ?? []).filter((t) => !t.sudah_ada)
   const alih = (id: string) => setPilih((x) => (x.includes(id) ? x.filter((y) => y !== id) : [...x, id]))
+  async function bagikan() {
+    if (!window.confirm(terbit
+      ? `Bagikan ke ${bisa.length} kelas lain dan langsung terbitkan? Siswa di kelas itu bisa langsung membukanya.`
+      : `Salin ke ${bisa.length} kelas lain sebagai draf? Pertemuan ini belum terbit, jadi salinannya juga draf.`)) return
+    setSibuk(true); setGalat(''); setHasil('')
+    try {
+      const r = await panggil<{ disalin: number; dilewati: string[]; diterbitkan: boolean }>('lms_bagikan_pertemuan', { p_pertemuan: pertemuanId })
+      setHasil(r.diterbitkan ? `Dibagikan dan terbit di ${r.disalin} kelas lain.` : `Disalin ke ${r.disalin} kelas lain sebagai draf.`)
+      setPilih([]); await muat()
+    } catch (e) { setGalat((e as Error).message) }
+    setSibuk(false)
+  }
   async function salin() {
     setSibuk(true); setGalat(''); setHasil('')
     try {
@@ -487,8 +499,15 @@ function SalinPertemuan({ pertemuanId, versi }: { pertemuanId: string; versi: nu
   if (tujuan && tujuan.length === 0 && !hasil) return null
   return (
     <div className="kartu jarak">
-      <h3>Salin ke kelas lain</h3>
-      <p className="catatan">Materi, latihan soal, dan topik forum pembuka ikut disalin sebagai draf. Absen, balasan forum, nilai, jadwal latihan, dan tanggal terbit tetap terpisah per kelas.</p>
+      <h3>Bagikan ke kelas lain</h3>
+      {bisa.length > 0 && (
+        <div className="aksi">
+          <button type="button" className="tombol tombol-isi" disabled={sibuk} onClick={() => void bagikan()}>
+            {sibuk ? 'Memproses...' : terbit ? `Bagikan ke semua kelas (${bisa.length}) dan terbitkan` : `Salin ke semua kelas (${bisa.length}) sebagai draf`}
+          </button>
+        </div>
+      )}
+      <p className="catatan">Atau pilih kelas tertentu di bawah. Materi, latihan soal, dan topik forum pembuka ikut disalin sebagai draf. Absen, balasan forum, nilai, dan jadwal latihan tetap terpisah per kelas, jadi kode absen dibuka sendiri di tiap kelas. Salinan hanya bisa dibuat sekali per kelas.</p>
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
       {hasil && <div className="kartu hasil"><strong>{hasil}</strong><br /><small>Buka tiap kelas untuk mengatur jadwal latihan, membuka absen, lalu menerbitkan.</small></div>}
       {!tujuan && !galat && <p className="catatan">Memuat...</p>}
@@ -749,7 +768,7 @@ export function RuangPertemuan() {
             <div className="aksi"><button type="button" className="tombol" onClick={() => void terbitPaksa()}>Terbitkan sekarang walau belum lengkap</button></div>
           )}
           <div className="aksi"><label className="baris-centang"><input type="checkbox" checked={pratinjau} onChange={(e) => setPratinjau(e.target.checked)} /> Lihat sebagai siswa (pratinjau, tidak ada yang tersimpan)</label></div>
-          <SalinPertemuan pertemuanId={id} versi={versi} />
+          <SalinPertemuan pertemuanId={id} versi={versi} terbit={p.status === 'terbit'} />
           <KontrolAbsen p={p} muat={muat} />
         </>
       )}
