@@ -418,3 +418,13 @@ input[type="search"] { font: inherit; padding: 8px 12px; border: 1px solid #b9c1
   .kal-nav strong { min-width: 7.5rem; }
 }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Dokumen hasil impor Word */
+.dokumen { line-height: 1.65; overflow-wrap: anywhere; }
+.dokumen h2 { margin: 0 0 .4rem; }
+.dokumen h3 { margin: 1.4rem 0 .4rem; }
+.dokumen p { margin: .5rem 0; }
+.dokumen table { border-collapse: collapse; width: 100%; margin: .8rem 0; display: block; overflow-x: auto; }
+.dokumen td, .dokumen th { border: 1px solid var(--garis); padding: 6px 10px; vertical-align: top; min-width: 90px; }
+.dokumen img { max-width: 100%; height: auto; }
+.dokumen ul, .dokumen ol { padding-left: 1.4rem; }

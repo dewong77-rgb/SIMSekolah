@@ -8,6 +8,7 @@ import { DaftarKuis, LatihanPertemuan } from './LmsKuis'
 import { DaftarTugas } from './LmsTugas'
 import { Forum } from './LmsForum'
 import { nilaiTeks, unduhCsv } from './lmsUtil'
+import { htmlAman, wordKeHtml, judulDariNama, BATAS_HTML } from '../lib/dokumen'
 import { unduhRekapKelas } from './lmsXlsx'
 
 // Semua data lewat fungsi basis data lms_*. Tabel LMS tidak punya policy, jadi tidak dibaca langsung.
@@ -23,7 +24,7 @@ type Pertemuan = {
   kelengkapan: Kelengkapan | null
 }
 type Kelengkapan = { materi: number; latihan: number; forum: number; lengkap: boolean; kurang: string[] }
-type Materi = { id: string; urutan: number; jenis: 'teks' | 'video' | 'tautan' | 'berkas'; judul: string; isi: string | null; url: string | null; selesai: boolean }
+type Materi = { id: string; urutan: number; jenis: 'teks' | 'video' | 'tautan' | 'berkas'; judul: string; isi: string | null; url: string | null; selesai: boolean; format: 'teks' | 'html'; untuk: 'siswa' | 'guru' }
 type BarisAbsen = { peserta_didik_id: string; nama: string; nisn: string | null; no_urut: number | null; status: string; sumber: string | null; catatan: string | null }
 type BarisTerpadu = {
   peserta_didik_id: string; nama: string; nisn: string | null; no_urut: number | null; absen: string
@@ -242,9 +243,14 @@ function IsiMateri({ m, siswa, selesai }: { m: Materi; siswa: boolean; selesai: 
   const yt = m.jenis === 'video' && m.url ? idYoutube(m.url) : null
   return (
     <div className="kartu jarak">
-      <div className="lencana-baris"><span className="lencana">{labelJenis[m.jenis]}</span>{m.selesai && <span className="status status-selesai">Selesai dibaca</span>}</div>
+      <div className="lencana-baris">
+        <span className="lencana">{m.jenis === 'teks' && m.format === 'html' ? 'Dokumen' : labelJenis[m.jenis]}</span>
+        {m.untuk === 'guru' && <span className="status status-menunggu">Khusus guru, siswa tidak melihat</span>}
+        {m.selesai && <span className="status status-selesai">Selesai dibaca</span>}
+      </div>
       <h3>{m.judul}</h3>
-      {m.jenis === 'teks' && <div style={{ whiteSpace: 'pre-wrap' }}>{m.isi}</div>}
+      {m.jenis === 'teks' && m.format === 'html' && <div className="dokumen" dangerouslySetInnerHTML={{ __html: htmlAman(m.isi ?? '') }} />}
+      {m.jenis === 'teks' && m.format !== 'html' && <div style={{ whiteSpace: 'pre-wrap' }}>{m.isi}</div>}
       {yt && (
         <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
           <iframe
@@ -453,18 +459,20 @@ function PanelKelengkapan({ k }: { k: Kelengkapan | null }) {
 }
 
 function FormMateri({ pertemuanId, muat, awal, selesai }: { pertemuanId: string; muat: () => Promise<void>; awal?: Materi | null; selesai?: () => void }) {
-  const [v, setV] = useState<{ jenis: string; judul: string; isi: string; url: string }>({ jenis: awal?.jenis ?? 'teks', judul: awal?.judul ?? '', isi: awal?.isi ?? '', url: awal?.url ?? '' })
+  const [v, setV] = useState<{ jenis: string; judul: string; isi: string; url: string; untuk: string }>({ jenis: awal?.jenis ?? 'teks', judul: awal?.judul ?? '', isi: awal?.isi ?? '', url: awal?.url ?? '', untuk: awal?.untuk ?? 'siswa' })
   const [galat, setGalat] = useState('')
   const [sibuk, setSibuk] = useState(false)
+  const dokumen = awal?.format === 'html'
   async function simpan(e: FormEvent) {
     e.preventDefault()
     setSibuk(true); setGalat('')
     try {
-      await panggil('lms_simpan_materi', {
+      await panggil('lms_materi_tulis', {
         p_pertemuan: pertemuanId, p_id: awal?.id ?? null, p_jenis: v.jenis, p_judul: v.judul,
-        p_isi: v.jenis === 'teks' ? v.isi : null, p_url: v.jenis === 'teks' ? null : v.url, p_urutan: null,
+        p_isi: v.jenis === 'teks' ? v.isi : null, p_url: v.jenis === 'teks' ? null : v.url,
+        p_format: dokumen ? 'html' : 'teks', p_untuk: v.untuk,
       })
-      if (!awal) setV({ jenis: v.jenis, judul: '', isi: '', url: '' })
+      if (!awal) setV({ jenis: v.jenis, judul: '', isi: '', url: '', untuk: v.untuk })
       await muat()
       selesai?.()
     } catch (er) { setGalat((er as Error).message) }
@@ -472,22 +480,102 @@ function FormMateri({ pertemuanId, muat, awal, selesai }: { pertemuanId: string;
   }
   return (
     <form className="kartu form jarak" onSubmit={simpan}>
-      <h3>{awal ? 'Ubah materi' : 'Tambah materi'}</h3>
+      <h3>{awal ? 'Ubah materi' : 'Tambah materi manual'}</h3>
       <div className="grid grid-2">
         <label>Jenis
-          <select value={v.jenis} onChange={(e) => setV({ ...v, jenis: e.target.value })}>
-            <option value="teks">Bacaan (teks)</option><option value="video">Video (YouTube tidak terdaftar)</option>
+          <select value={v.jenis} disabled={dokumen} onChange={(e) => setV({ ...v, jenis: e.target.value })}>
+            <option value="teks">{dokumen ? 'Dokumen (hasil impor Word)' : 'Bacaan (teks)'}</option><option value="video">Video (YouTube tidak terdaftar)</option>
             <option value="berkas">Berkas (tautan Drive)</option><option value="tautan">Tautan referensi</option>
           </select>
         </label>
         <label>Judul<input required maxLength={200} value={v.judul} onChange={(e) => setV({ ...v, judul: e.target.value })} /></label>
       </div>
-      {v.jenis === 'teks'
-        ? <label>Isi bacaan<textarea required rows={8} maxLength={20000} value={v.isi} onChange={(e) => setV({ ...v, isi: e.target.value })} /><span className="petunjuk">Teks biasa. Baris kosong memisahkan paragraf.</span></label>
-        : <label>Tautan<input required type="url" pattern="https://.*" value={v.url} onChange={(e) => setV({ ...v, url: e.target.value })} placeholder="https://" /><span className="petunjuk">Harus diawali https://.</span></label>}
+      <label>Terlihat oleh
+        <select value={v.untuk} onChange={(e) => setV({ ...v, untuk: e.target.value })}>
+          <option value="siswa">Siswa dan guru</option><option value="guru">Guru saja</option>
+        </select>
+      </label>
+      {dokumen
+        ? <p className="catatan">Isi dokumen tidak diubah di sini. Untuk mengganti isinya, impor ulang dari Word lalu hapus yang lama.</p>
+        : v.jenis === 'teks'
+          ? <label>Isi bacaan<textarea required rows={8} maxLength={20000} value={v.isi} onChange={(e) => setV({ ...v, isi: e.target.value })} /><span className="petunjuk">Teks biasa. Baris kosong memisahkan paragraf.</span></label>
+          : <label>Tautan<input required type="url" pattern="https://.*" value={v.url} onChange={(e) => setV({ ...v, url: e.target.value })} placeholder="https://" /><span className="petunjuk">Harus diawali https://.</span></label>}
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
       <div className="aksi"><button className="tombol tombol-isi" disabled={sibuk}>{sibuk ? 'Menyimpan...' : 'Simpan materi'}</button>{awal && <button type="button" className="tombol" style={{ color: 'var(--warna-utama)' }} onClick={() => selesai?.()}>Batal</button>}</div>
     </form>
+  )
+}
+
+type BarisImpor = { nama: string; judul: string; untuk: 'siswa' | 'guru'; html: string; ukuran: number; galat: string }
+
+/** Perkiraan tujuan dari nama berkas: file pertemuan, modul, RPP, ATP untuk guru. Lainnya untuk siswa. */
+const tebakUntuk = (nama: string): 'siswa' | 'guru' => (/pertemuan|modul|rpp|atp|kktp|rubrik|kunci/i.test(nama) ? 'guru' : 'siswa')
+const urutanImpor = (nama: string) => (/bacaan|materi/i.test(nama) ? 0 : /lembar|kerja|tutorial|latihan/i.test(nama) ? 1 : tebakUntuk(nama) === 'guru' ? 3 : 2)
+
+/** Impor satu atau beberapa dokumen Word sebagai materi. Yang untuk siswa langsung tampil di halaman siswa. */
+function ImporDokumen({ pertemuanId, muat }: { pertemuanId: string; muat: () => Promise<void> }) {
+  const [baris, setBaris] = useState<BarisImpor[]>([])
+  const [galat, setGalat] = useState('')
+  const [sibuk, setSibuk] = useState(false)
+  const [membaca, setMembaca] = useState(false)
+  const [hasil, setHasil] = useState('')
+  async function pilih(files: FileList | null) {
+    if (!files || files.length === 0) return
+    setMembaca(true); setGalat(''); setHasil('')
+    const daftar = Array.from(files).sort((a, b) => urutanImpor(a.name) - urutanImpor(b.name))
+    const baru: BarisImpor[] = []
+    for (const f of daftar) {
+      try {
+        const r = await wordKeHtml(f)
+        baru.push({ nama: f.name, judul: r.judul || judulDariNama(f.name), untuk: tebakUntuk(f.name), html: r.html, ukuran: r.ukuran, galat: '' })
+      } catch (e) { baru.push({ nama: f.name, judul: judulDariNama(f.name), untuk: 'siswa', html: '', ukuran: 0, galat: (e as Error).message }) }
+    }
+    setBaris(baru); setMembaca(false)
+  }
+  const siap = baris.filter((b) => !b.galat && b.html && b.ukuran <= BATAS_HTML)
+  async function impor() {
+    setSibuk(true); setGalat(''); setHasil('')
+    let n = 0
+    try {
+      for (const b of siap) {
+        await panggil('lms_materi_tulis', { p_pertemuan: pertemuanId, p_id: null, p_jenis: 'teks', p_judul: b.judul, p_isi: b.html, p_url: null, p_format: 'html', p_untuk: b.untuk })
+        n++
+      }
+      setHasil(`${n} dokumen diimpor.`); setBaris([])
+      await muat()
+    } catch (e) { setGalat(`${(e as Error).message}${n ? ` (${n} dokumen sebelumnya sudah masuk)` : ''}`); await muat() }
+    setSibuk(false)
+  }
+  return (
+    <div className="kartu form jarak">
+      <h3>Impor dari Word</h3>
+      <p className="catatan">Pilih satu atau beberapa berkas .docx sekaligus. Isinya langsung tampil di halaman siswa sebagai bacaan, tabel dan tautan ikut terbawa. Berkas untuk guru (misalnya File Pertemuan) ditandai Guru saja, tidak terlihat siswa.</p>
+      <label>Berkas Word (.docx)<input type="file" multiple accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(e) => { void pilih(e.target.files); e.target.value = '' }} /></label>
+      {membaca && <p className="catatan">Membaca dokumen...</p>}
+      {baris.length > 0 && (
+        <div className="tabel-bungkus">
+          <table>
+            <thead><tr><th>Berkas</th><th>Judul materi</th><th>Terlihat oleh</th></tr></thead>
+            <tbody>
+              {baris.map((b, i) => (
+                <tr key={b.nama + i}>
+                  <td>{b.nama}{b.galat ? <><br /><small className="galat">{b.galat}</small></> : <><br /><small>{Math.round(b.ukuran / 1000)} KB</small></>}</td>
+                  <td><input aria-label={`Judul ${b.nama}`} maxLength={200} value={b.judul} disabled={!!b.galat} onChange={(e) => setBaris(baris.map((x, j) => (j === i ? { ...x, judul: e.target.value } : x)))} /></td>
+                  <td>
+                    <select aria-label={`Tujuan ${b.nama}`} value={b.untuk} disabled={!!b.galat} onChange={(e) => setBaris(baris.map((x, j) => (j === i ? { ...x, untuk: e.target.value as 'siswa' | 'guru' } : x)))}>
+                      <option value="siswa">Siswa dan guru</option><option value="guru">Guru saja</option>
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
+      {hasil && <div className="kartu hasil"><strong>{hasil}</strong></div>}
+      {siap.length > 0 && <div className="aksi"><button type="button" className="tombol tombol-isi" disabled={sibuk} onClick={() => void impor()}>{sibuk ? 'Mengimpor...' : `Impor ${siap.length} dokumen`}</button></div>}
+    </div>
   )
 }
 
@@ -603,7 +691,7 @@ export function RuangPertemuan() {
         </>
       )}
 
-      {kelola && p && materi && <FormMateri pertemuanId={id} muat={muat} />}
+      {kelola && p && materi && <><ImporDokumen pertemuanId={id} muat={muat} /><FormMateri pertemuanId={id} muat={muat} /></>}
 
       {p && !terkunci && (kelola || p.status === 'terbit') && (
         <>
