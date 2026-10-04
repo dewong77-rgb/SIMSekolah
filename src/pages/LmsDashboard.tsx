@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import KelolaPertemuan from './LmsKelola'
+import KelolaPertemuan, { AksesPertemuan } from './LmsKelola'
 import Halaman from '../components/Halaman'
 import { panggil, tgl, tglJam } from '../lib/rpc'
 
@@ -9,6 +9,7 @@ import { panggil, tgl, tglJam } from '../lib/rpc'
 type Grup = { pertemuan_id: string; judul: string; mapel: string; tanggal: string; jumlah_kelas: number; terbit: number }
 type Kelas = {
   pertemuan_id: string; kelas_id: string; rombel: string; status: 'draf' | 'terbit'
+  ditutup: boolean; buka_sampai: string | null; terbuka: boolean
   absen_terbuka: boolean; absen_tutup: string | null; kode_absen: string | null
   total: number; hadir: number; izin_sakit: number; alpa: number; belum: number
   total_materi: number; materi_mulai: number; materi_tuntas: number
@@ -66,17 +67,6 @@ export default function DashboardPembelajaran() {
     try {
       const r = await panggil<{ pertama: { kelas_id: string; id: string } }>(minggu ? 'lms_pertemuan_baru_rencana' : 'lms_pertemuan_baru_banyak', { ...(minggu ? { p_minggu: minggu } : {}), p_kelas: fb.kelas, p_judul: fb.judul, p_tanggal: fb.tanggal || null, p_tujuan: fb.tujuan || null, p_wajib_absen: fb.wajib })
       nav(`/portal/lms/${r.pertama.kelas_id}/pertemuan/${r.pertama.id}`)
-    } catch (er) { setGalat((er as Error).message) }
-    setSibuk(false)
-  }
-  async function aktifkanSemua() {
-    if (!pilih) return
-    if (!window.confirm('Aktifkan semuanya sekarang? Pertemuan diterbitkan di semua kelas (materi, lembar kerja, latihan, forum) dan absen langsung dibuka.')) return
-    setSibuk(true); setGalat(''); setPesan('')
-    try {
-      const r = await panggil<{ kode: string | null; kelas_dibuka: number; dibagikan: number; dilewati_tanpa_materi: number }>('lms_aktifkan_semua', { p_pertemuan: pilih, p_menit: menit, p_pakai_kode: kode })
-      setPesan(`Aktif di ${r.kelas_dibuka} kelas.${r.kode ? ` Kode absen ${r.kode}.` : ''}${r.dilewati_tanpa_materi ? ` ${r.dilewati_tanpa_materi} kelas dilewati karena belum punya materi.` : ''}`)
-      await muat(); await muatForum()
     } catch (er) { setGalat((er as Error).message) }
     setSibuk(false)
   }
@@ -140,7 +130,7 @@ export default function DashboardPembelajaran() {
   const adaLembar = k.some((x) => x.total_lembar > 0)
 
   return (
-    <Halaman judul="Dashboard pembelajaran" lead="Satu pertemuan, semua kelas yang Anda ampu. Absen dibuka sekaligus dengan satu kode, kemajuan siswa dipantau langsung.">
+    <Halaman judul="Dashboard pembelajaran" lead="Satu pertemuan, semua kelas yang Anda ampu. Aktif otomatis saat bahan bacaan dan lembar kerja ada. Kehadiran dan kemajuan siswa dipantau langsung.">
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
       <div className="aksi">
         <button type="button" className="tombol tombol-isi" onClick={() => setBaru(!baru)}>{baru ? 'Tutup formulir' : 'Pertemuan baru'}</button>
@@ -188,7 +178,6 @@ export default function DashboardPembelajaran() {
             <span className="petunjuk">Materi, latihan, dan forum diisi sekali. Saat diterbitkan, berlaku di semua kelas yang dicentang.</span>
           </fieldset>
           <label>Tujuan pembelajaran (opsional)<textarea rows={2} maxLength={1000} value={fb.tujuan} onChange={(e) => setFb({ ...fb, tujuan: e.target.value })} /></label>
-          <label className="baris-centang"><input type="checkbox" checked={fb.wajib} onChange={(e) => setFb({ ...fb, wajib: e.target.checked })} /> Siswa wajib absen sebelum membuka materi</label>
           <div className="aksi"><button className="tombol tombol-isi" disabled={sibuk || fb.kelas.length === 0}>{sibuk ? 'Membuat...' : 'Buat dan isi pertemuan'}</button></div>
         </form>
       )}
@@ -205,22 +194,12 @@ export default function DashboardPembelajaran() {
 
       {d && (
         <>
-          {(k.some((x) => x.status === 'draf') || terbuka.length === 0) && (
-            <div className="kartu jarak aktifkan-panel">
-              <h3 style={{ marginTop: 0 }}>Aktifkan untuk semua kelas</h3>
-              <p>Satu klik: terbit di {k.length} kelas, forum dan latihan aktif, absen dibuka dengan satu kode.</p>
-              <div className="grid grid-2">
-                <label>Absen dibuka selama (menit)<input type="number" min={1} max={240} value={menit} onChange={(e) => setMenit(Number(e.target.value))} /></label>
-                <label className="baris-centang" style={{ alignSelf: 'end' }}><input type="checkbox" checked={kode} onChange={(e) => setKode(e.target.checked)} /> Pakai kode 4 digit</label>
-              </div>
-              <div className="aksi"><button className="tombol tombol-isi tombol-besar" disabled={sibuk} onClick={() => void aktifkanSemua()}>{sibuk ? 'Mengaktifkan...' : 'Aktifkan semua kelas'}</button></div>
-              {pesan && <p className="catatan" role="status"><strong>{pesan}</strong></p>}
-            </div>
-          )}
+          {k.length > 0 && pilih && <AksesPertemuan key={`a${pilih}`} pertemuanId={pilih} status={k.some((x) => x.status === 'terbit') ? 'terbit' : 'draf'} ditutup={k.filter((x) => x.status === 'terbit').every((x) => x.ditutup)} bukaSampai={k.find((x) => x.status === 'terbit')?.buka_sampai ?? null} setelah={muat} />}
           {k.length > 0 && pilih && <KelolaPertemuan key={pilih} kelasId={(k.find((x) => x.pertemuan_id === pilih) ?? k[0]).kelas_id} pertemuanId={pilih} setelahUbah={async () => { const g = await panggil<Grup[]>('lms_dashboard_daftar'); setDaftar(g); await muat() }} setelahHapus={async () => { const g = await panggil<Grup[]>('lms_dashboard_daftar'); setDaftar(g); setD(null); setSp(g.length > 0 ? { p: g[0].pertemuan_id } : {}, { replace: true }) }} />}
           {k.length > 0 && <div className="aksi jarak"><Link className="tombol" style={{ color: 'var(--warna-utama)' }} to={`/portal/lms/${(k.find((x) => x.pertemuan_id === pilih) ?? k[0]).kelas_id}/pertemuan/${pilih ?? k[0].pertemuan_id}`}>Atur isi pertemuan ini (materi, latihan, forum)</Link></div>}
-          <div className="kartu jarak">
-            <h3>Absen semua kelas</h3>
+          <details className="kartu jarak">
+            <summary><strong>Absen dengan kode (opsional)</strong></summary>
+            <p className="catatan">Kehadiran sudah tercatat otomatis saat siswa membaca, mengumpulkan lembar kerja, atau menulis di forum. Kode hanya perlu bila Anda ingin absen tatap muka.</p>
             {terbuka.length > 0 ? (
               <>
                 <p>Absen dibuka di {terbuka.length} dari {k.length} kelas{tutupAktif ? <>, sampai <strong>{tglJam(tutupAktif)}</strong></> : null}.</p>
@@ -237,10 +216,10 @@ export default function DashboardPembelajaran() {
               </div>
             )}
             {pesan && <p className="catatan" role="status">{pesan}</p>}
-          </div>
+          </details>
 
           <div className="grid grid-3 jarak">
-            <div className="kartu"><small>Sudah absen</small><p style={{ margin: 0, fontSize: '1.4rem' }}>{jml((x) => x.hadir + x.izin_sakit)} dari {total}</p><small>{jml((x) => x.belum)} belum absen</small></div>
+            <div className="kartu"><small>Hadir (otomatis dari aktivitas)</small><p style={{ margin: 0, fontSize: '1.4rem' }}>{jml((x) => x.hadir + x.izin_sakit)} dari {total}</p><small>{jml((x) => x.belum)} belum hadir</small></div>
             <div className="kartu"><small>Materi dibaca tuntas</small><p style={{ margin: 0, fontSize: '1.4rem' }}>{adaMateri ? `${jml((x) => x.materi_tuntas)} siswa` : '-'}</p><small>{adaMateri ? `${jml((x) => x.materi_mulai)} sudah mulai membaca` : 'Belum ada materi'}</small></div>
             <div className="kartu"><small>Latihan selesai</small><p style={{ margin: 0, fontSize: '1.4rem' }}>{adaLatihan ? `${jml((x) => x.latihan_selesai)} siswa` : '-'}</p><small>{adaLembar ? `${jml((x) => x.lembar_kumpul)} lembar kerja terkumpul, ` : ''}{jml((x) => x.forum_aktif)} aktif di forum</small></div>
           </div>
@@ -248,12 +227,12 @@ export default function DashboardPembelajaran() {
           <div className="aksi jarak"><label className="baris-centang"><input type="checkbox" checked={langsung} onChange={(e) => setLangsung(e.target.checked)} /> Pantau langsung (segar tiap 15 detik)</label></div>
           <div className="tabel-bungkus">
             <table>
-              <thead><tr><th>Kelas</th><th>Absen</th><th>Belum absen</th><th>Materi dibaca</th><th>Latihan</th><th>Lembar kerja</th><th>Forum</th></tr></thead>
+              <thead><tr><th>Kelas</th><th>Akses</th><th>Belum hadir</th><th>Materi dibaca</th><th>Latihan</th><th>Lembar kerja</th><th>Forum</th></tr></thead>
               <tbody>
                 {k.map((x) => (
                   <tr key={x.pertemuan_id}>
                     <td><Link to={`/portal/lms/${x.kelas_id}/pertemuan/${x.pertemuan_id}`}>{x.rombel}</Link><br />
-                      {x.status !== 'terbit' ? <span className="status status-menunggu">Draf</span> : x.absen_terbuka ? <span className="status status-selesai">Absen dibuka</span> : <small>{x.total} siswa</small>}
+                      {x.status !== 'terbit' ? <span className="status status-menunggu">Menunggu bahan</span> : !x.terbuka ? <span className="status status-dibatalkan">Ditutup</span> : x.absen_terbuka ? <span className="status status-selesai">Absen dibuka</span> : <small>{x.total} siswa</small>}
                     </td>
                     <td><Sel a={x.hadir + x.izin_sakit} b={x.total} /></td>
                     <td>{x.belum}{x.alpa > 0 ? <><br /><small>{x.alpa} alpa</small></> : null}</td>

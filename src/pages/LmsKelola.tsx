@@ -76,7 +76,6 @@ export default function KelolaPertemuan({ kelasId, pertemuanId, setelahUbah, set
             <label>Tanggal<input type="date" required value={f.tanggal} onChange={(e) => setF({ ...f, tanggal: e.target.value })} /></label>
           </div>
           <label>Tujuan pembelajaran (opsional)<textarea rows={2} maxLength={1000} value={f.tujuan} onChange={(e) => setF({ ...f, tujuan: e.target.value })} /></label>
-          <label className="baris-centang"><input type="checkbox" checked={f.wajib} onChange={(e) => setF({ ...f, wajib: e.target.checked })} /> Siswa wajib absen sebelum membuka materi</label>
           <label className="baris-centang"><input type="checkbox" checked={semua} onChange={(e) => setSemua(e.target.checked)} /> Terapkan di semua kelas yang berbagi pertemuan ini</label>
           {!semua && <p className="catatan">Bila judul diubah hanya di kelas ini, kelas ini terlepas dari kelompok dan tidak ikut absen serentak.</p>}
           <div className="aksi">
@@ -85,6 +84,75 @@ export default function KelolaPertemuan({ kelasId, pertemuanId, setelahUbah, set
           </div>
         </form>
       )}
+    </div>
+  )
+}
+
+const DURASI: [string, string][] = [['', 'Tanpa batas waktu'], ['1', '1 hari'], ['3', '3 hari'], ['7', '1 minggu'], ['14', '2 minggu'], ['30', '1 bulan'], ['tanggal', 'Sampai tanggal tertentu']]
+const waktu = (x: string) => new Date(x).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })
+
+/** Buka atau tutup pertemuan di semua kelas yang berbagi pertemuan ini, manual atau dengan batas waktu. */
+export function AksesPertemuan({ pertemuanId, status, ditutup, bukaSampai, setelah }: {
+  pertemuanId: string; status: string; ditutup: boolean; bukaSampai: string | null; setelah: () => void | Promise<void>
+}) {
+  const [durasi, setDurasi] = useState('')
+  const [tanggal, setTanggal] = useState('')
+  const [sibuk, setSibuk] = useState(false)
+  const [galat, setGalat] = useState('')
+  const [pesan, setPesan] = useState('')
+  const lewat = !!bukaSampai && new Date(bukaSampai).getTime() <= Date.now()
+  const tertutup = ditutup || lewat
+
+  async function kirim(buka: boolean) {
+    setGalat(''); setPesan('')
+    let sampai: string | null = null
+    if (buka && durasi === 'tanggal') {
+      if (!tanggal) { setGalat('Pilih tanggal dan jamnya.'); return }
+      sampai = new Date(tanggal).toISOString()
+    } else if (buka && durasi) sampai = new Date(Date.now() + Number(durasi) * 86400000).toISOString()
+    setSibuk(true)
+    try {
+      const n = await panggil<number>('lms_pertemuan_akses', { p_pertemuan: pertemuanId, p_buka: buka, p_sampai: sampai })
+      setPesan(buka ? `Dibuka di ${n} kelas.` : `Ditutup di ${n} kelas.`)
+      await setelah()
+    } catch (e) { setGalat((e as Error).message) }
+    setSibuk(false)
+  }
+
+  return (
+    <div className="kartu jarak aktifkan-panel">
+      <h3 style={{ marginTop: 0 }}>Akses siswa</h3>
+      {status !== 'terbit' ? (
+        <p>Belum aktif. Pertemuan aktif otomatis di semua kelas begitu bahan bacaan dan lembar kerja sudah ada.</p>
+      ) : (
+        <>
+          <p>
+            {tertutup
+              ? <span className="status status-dibatalkan">{lewat && !ditutup ? 'Batas waktu berakhir' : 'Ditutup'}</span>
+              : <span className="status status-selesai">Terbuka</span>}{' '}
+            {!tertutup && bukaSampai ? <>sampai <strong>{waktu(bukaSampai)}</strong>.</> : null}
+            {!tertutup && !bukaSampai ? 'Tanpa batas waktu.' : null}
+            {tertutup ? ' Siswa tidak bisa membuka, mengerjakan, atau berdiskusi di pertemuan ini.' : ''}
+          </p>
+          <div className="grid grid-2">
+            <label>{tertutup ? 'Buka lagi selama' : 'Atur batas waktu'}
+              <select value={durasi} onChange={(e) => setDurasi(e.target.value)}>{DURASI.map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select>
+            </label>
+            {durasi === 'tanggal' && <label>Sampai<input type="datetime-local" value={tanggal} onChange={(e) => setTanggal(e.target.value)} /></label>}
+          </div>
+          <div className="aksi">
+            {tertutup
+              ? <button type="button" className="tombol tombol-isi" disabled={sibuk} onClick={() => void kirim(true)}>Buka lagi</button>
+              : <>
+                  <button type="button" className="tombol tombol-isi" disabled={sibuk} onClick={() => void kirim(true)}>Terapkan batas waktu</button>
+                  <button type="button" className="tombol" style={{ color: '#8a1f1f', borderColor: '#8a1f1f' }} disabled={sibuk} onClick={() => void kirim(false)}>Tutup sekarang</button>
+                </>}
+          </div>
+          <p className="catatan">Berlaku di semua kelas yang berbagi pertemuan ini. Siswa wajib menuntaskan pertemuan yang masih terbuka sebelum membuka pertemuan berikutnya.</p>
+        </>
+      )}
+      {pesan && <p className="catatan" role="status"><strong>{pesan}</strong></p>}
+      {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
     </div>
   )
 }

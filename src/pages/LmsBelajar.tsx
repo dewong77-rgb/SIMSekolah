@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Halaman from '../components/Halaman'
-import { panggil, tgl } from '../lib/rpc'
+import { panggil, tgl, tglJam } from '../lib/rpc'
 import { htmlAman } from '../lib/dokumen'
 import { LembarSiswa, LembarPratinjau } from './LmsLembar'
 import { LatihanPertemuan } from './LmsKuis'
@@ -60,11 +60,12 @@ type Langkah = {
   lembar: { total: number; terkumpul: number }
   latihan: { total: number; selesai: number }
   forum: { topik: number; ikut: boolean }
+  akses?: { boleh: boolean; ditutup: boolean; buka_sampai: string | null; sebelumnya: { id: string; nomor: number; judul: string } | null }
   nilai?: { tuntas: boolean; nilai: number | null; bonus: number; lembar_dinilai: number; lembar_total: number }
 }
 type KelasRingkas = { id: string; mapel: string; rombel: string; guru: string }
 type PertemuanRingkas = { id: string; nomor: number; judul: string; tanggal: string; tujuan: string | null; status: string }
-type Kunci = 'absen' | 'materi' | 'lembar' | 'forum' | 'latihan'
+type Kunci = 'materi' | 'lembar' | 'forum' | 'latihan'
 
 /** Tampilan siswa untuk satu pertemuan: lima langkah berurutan, satu langkah per layar. */
 
@@ -92,9 +93,6 @@ export function PertemuanSiswa({ kelasId, id }: { kelasId: string; id: string })
   const [terkunci, setTerkunci] = useState(false)
   const [aktif, setAktif] = useState<Kunci | null>(null)
   const [galat, setGalat] = useState('')
-  const [pesan, setPesan] = useState('')
-  const [kode, setKode] = useState('')
-  const [sibuk, setSibuk] = useState(false)
   const [versi, setVersi] = useState(0)
 
   const muat = useCallback(async () => {
@@ -111,7 +109,7 @@ export function PertemuanSiswa({ kelasId, id }: { kelasId: string; id: string })
         const r = await panggil<{ materi: Materi[] }>('lms_materi_buka', { p_pertemuan: id })
         setMateri(r.materi); setTerkunci(false)
       } catch (e) {
-        if ((e as Error).message.startsWith('Absen dulu')) { setTerkunci(true); setMateri(null) } else throw e
+        if ((e as Error).message.startsWith('Pertemuan ini terkunci')) { setTerkunci(true); setMateri(null) } else throw e
       }
       setVersi((x) => x + 1)
     } catch (e) { setGalat((e as Error).message) }
@@ -121,7 +119,6 @@ export function PertemuanSiswa({ kelasId, id }: { kelasId: string; id: string })
   type ItemLangkah = { k: Kunci; nama: string; ket: string; selesai: boolean; ada: boolean; wajib: boolean }
   const bacaSelesai = !!l && l.materi.selesai >= l.materi.total
   const langkah: ItemLangkah[] = l ? ([
-    { k: 'absen', nama: 'Absen', wajib: true, ada: l.absen.perlu, selesai: !!l.absen.status, ket: l.absen.status ? 'Sudah hadir' : l.absen.terbuka ? 'Dibuka, absen sekarang' : 'Belum dibuka' },
     { k: 'materi', nama: 'Bahan bacaan', wajib: true, ada: l.materi.total > 0, selesai: l.materi.total > 0 && bacaSelesai, ket: `${l.materi.selesai} dari ${l.materi.total} dibaca` },
     { k: 'lembar', nama: 'Lembar kerja', wajib: true, ada: l.lembar.total > 0, selesai: l.lembar.total > 0 && l.lembar.terkumpul >= l.lembar.total, ket: bacaSelesai ? `${l.lembar.terkumpul} dari ${l.lembar.total} terkumpul` : 'Baca bahan bacaan dulu' },
     { k: 'forum', nama: 'Diskusi', wajib: false, ada: l.forum.topik > 0, selesai: l.forum.ikut, ket: l.forum.ikut ? 'Sudah ikut' : 'Tanya atau komentar' },
@@ -132,16 +129,6 @@ export function PertemuanSiswa({ kelasId, id }: { kelasId: string; id: string })
   const selesaiSemua = wajibItem.length > 0 && wajibItem.every((x) => x.selesai)
   const nl = l?.nilai
 
-  async function absen(e: FormEvent) {
-    e.preventDefault()
-    setSibuk(true); setGalat(''); setPesan('')
-    try {
-      const r = await panggil<{ ok: boolean; pesan: string }>('lms_absen', { p_pertemuan: id, p_kode: kode || null })
-      if (r.ok) { setPesan(r.pesan); setKode(''); setAktif('materi') } else setGalat(r.pesan)
-      await muat()
-    } catch (er) { setGalat((er as Error).message) }
-    setSibuk(false)
-  }
   async function selesai(materiId: string) {
     try { await panggil('lms_tandai_selesai', { p_materi: materiId }); await muat() } catch (e) { setGalat((e as Error).message) }
   }
@@ -152,7 +139,6 @@ export function PertemuanSiswa({ kelasId, id }: { kelasId: string; id: string })
   return (
     <Halaman judul={p?.judul ?? 'Pertemuan'} lead={kelas && p ? `${kelas.mapel} ${kelas.rombel}, ${tgl(p.tanggal)}` : undefined}>
       {galat && <p className="catatan galat" role="alert">{galat}</p>}
-      {pesan && <div className="kartu hasil"><strong>{pesan}</strong></div>}
       {selesaiSemua && (
         <div className="kartu hasil">
           <strong>Tiga tahap wajib selesai.</strong>{' '}
@@ -163,33 +149,29 @@ export function PertemuanSiswa({ kelasId, id }: { kelasId: string; id: string })
       {p?.tujuan && <div className="kartu"><small>Tujuan belajar</small><p style={{ marginBottom: 0, whiteSpace: 'pre-line' }}>{p.tujuan}</p></div>}
       <KartuKriteria pertemuanId={id} nilai={nl?.nilai ?? null} />
 
-      <nav className="langkah-bar" aria-label="Langkah belajar">
+      {!butuhAbsen && <nav className="langkah-bar" aria-label="Langkah belajar">
         {langkah.map((x, i) => (
           <button key={x.k} type="button" className={`langkah${nomorSaatIni === x.k ? ' langkah-aktif' : ''}${x.selesai ? ' langkah-selesai' : ''}${!x.wajib ? ' langkah-opsi' : ''}`} onClick={() => setAktif(x.k)}>
             <span className="langkah-no">{x.selesai ? '✓' : i + 1}</span>
             <span className="langkah-teks"><strong>{x.nama}</strong><small>{x.ket}</small></span>
           </button>
         ))}
-      </nav>
+      </nav>}
 
-      {butuhAbsen && nomorSaatIni !== 'absen' && (
+      {butuhAbsen && (
         <div className="kartu jarak">
-          <h3>Absen dulu</h3>
-          <p>Materi, lembar kerja, latihan, dan diskusi terbuka setelah Anda hadir.</p>
-          <div className="aksi"><button type="button" className="tombol tombol-isi" onClick={() => setAktif('absen')}>Ke langkah absen</button></div>
-        </div>
-      )}
-
-      {nomorSaatIni === 'absen' && (
-        <div className="kartu jarak">
-          <h3>Absen</h3>
-          {l?.absen.status ? <p><span className="status status-selesai">Tercatat: {l.absen.status}</span></p> : l?.absen.terbuka ? (
-            <form className="form" onSubmit={absen}>
-              {l.absen.pakai_kode && <label>Kode absen<input className="kode-besar" inputMode="numeric" maxLength={4} pattern="[0-9]{4}" required value={kode} onChange={(e) => setKode(e.target.value)} placeholder="4 angka dari guru" /></label>}
-              <button className="tombol tombol-isi tombol-besar" disabled={sibuk}>{sibuk ? 'Mengirim...' : 'Saya hadir'}</button>
-            </form>
-          ) : <p className="catatan">Absen belum dibuka atau sudah ditutup. Tunggu aba-aba guru, lalu ketuk Segarkan.</p>}
-          <div className="aksi"><button type="button" className="tombol" style={{ color: 'var(--warna-utama)' }} onClick={() => void muat()}>Segarkan</button></div>
+          {l?.akses?.ditutup ? (
+            <>
+              <h3>Pertemuan ditutup</h3>
+              <p>Guru menutup pertemuan ini{l.akses.buka_sampai ? ` sejak ${tglJam(l.akses.buka_sampai)}` : ''}. Hubungi guru bila Anda belum sempat mengerjakan.</p>
+            </>
+          ) : l?.akses?.sebelumnya ? (
+            <>
+              <h3>Selesaikan pertemuan {l.akses.sebelumnya.nomor} dulu</h3>
+              <p>Pertemuan ini terbuka setelah bahan bacaan dan lembar kerja pertemuan {l.akses.sebelumnya.nomor}, {l.akses.sebelumnya.judul}, selesai.</p>
+              <div className="aksi"><Link to={`/portal/lms/${kelasId}/pertemuan/${l.akses.sebelumnya.id}`} className="tombol tombol-isi tombol-besar">Ke pertemuan {l.akses.sebelumnya.nomor}</Link></div>
+            </>
+          ) : <p>Pertemuan ini belum bisa dibuka.</p>}
         </div>
       )}
 
@@ -225,7 +207,7 @@ export function PertemuanSiswa({ kelasId, id }: { kelasId: string; id: string })
 
 type Beranda = {
   kelas_id: string; mapel: string; rombel: string; guru: string | null; pertemuan_id: string | null
-  judul: string | null; nomor: number | null; tanggal: string | null; absen_terbuka: boolean | null; sudah_absen: boolean | null; perlu_absen: boolean | null
+  judul: string | null; nomor: number | null; tanggal: string | null; absen_terbuka: boolean | null; sudah_absen: boolean | null; perlu_absen: boolean | null; tuntas?: boolean
 }
 
 /** Kartu besar per mata pelajaran: satu ketukan menuju pertemuan terbaru. */
@@ -249,9 +231,8 @@ export function BerandaBelajar() {
             {x.pertemuan_id ? (
               <>
                 <h3>{x.judul}</h3>
-                {x.absen_terbuka && !x.sudah_absen && <p><span className="status status-menunggu">Absen sudah dibuka</span></p>}
-                {x.sudah_absen && <p><span className="status status-selesai">Sudah absen</span></p>}
-                <Link to={`/portal/lms/${x.kelas_id}/pertemuan/${x.pertemuan_id}`} className="tombol tombol-isi tombol-besar">{x.absen_terbuka && !x.sudah_absen ? 'Absen dan mulai belajar' : 'Buka pertemuan'}</Link>
+                {x.tuntas ? <p><span className="status status-selesai">Selesai</span></p> : x.sudah_absen ? <p><span className="status status-menunggu">Sedang dikerjakan</span></p> : null}
+                <Link to={`/portal/lms/${x.kelas_id}/pertemuan/${x.pertemuan_id}`} className="tombol tombol-isi tombol-besar">{x.tuntas ? 'Buka lagi' : x.sudah_absen ? 'Lanjutkan' : 'Mulai belajar'}</Link>
               </>
             ) : <p className="catatan">Belum ada pertemuan.</p>}
             <small><Link to={`/portal/lms/${x.kelas_id}`}>Pertemuan sebelumnya</Link></small>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import Halaman from '../components/Halaman'
 import { useAuth } from '../auth/AuthContext'
@@ -11,7 +11,7 @@ import { nilaiTeks, unduhCsv } from './lmsUtil'
 import PengingatLms from './LmsPengingat'
 import { wordKeHtml, judulDariNama, BATAS_HTML } from '../lib/dokumen'
 import { unduhRekapKelas } from './lmsXlsx'
-import KelolaPertemuan from './LmsKelola'
+import KelolaPertemuan, { AksesPertemuan } from './LmsKelola'
 import { BerandaBelajar, IsiMateri, KartuKriteria, PertemuanSiswa, type Materi } from './LmsBelajar'
 
 // Semua data lewat fungsi basis data lms_*. Tabel LMS tidak punya policy, jadi tidak dibaca langsung.
@@ -25,6 +25,7 @@ type Pertemuan = {
   status: 'draf' | 'terbit'; wajib_absen: boolean; absen_terbuka: boolean; absen_tutup: string | null
   kode_absen: string | null; jumlah_materi: number; jumlah_latihan: number; hadir: number | null; status_saya: string | null
   kelengkapan: Kelengkapan | null
+  ditutup?: boolean; buka_sampai?: string | null; terbuka?: boolean; boleh?: boolean | null; tuntas_saya?: boolean | null
 }
 type Kelengkapan = { materi: number; lembar?: number; latihan: number; forum: number; lengkap: boolean; kurang: string[] }
 type NilaiPert = { peserta_didik_id: string; nilai: { tuntas: boolean; nilai: number | null; bonus: number; lembar_dinilai: number; lembar_total: number } }
@@ -212,11 +213,7 @@ export function DetailKelas() {
             <label>Tanggal<input type="date" value={v.tanggal} onChange={(e) => setV({ ...v, tanggal: e.target.value })} /><span className="petunjuk">Kosong berarti hari ini.</span></label>
           </div>
           <label>Tujuan pembelajaran (opsional)<textarea rows={2} maxLength={1000} value={v.tujuan} onChange={(e) => setV({ ...v, tujuan: e.target.value })} /></label>
-          <label className="centang" style={{ display: 'flex', gap: 8, alignItems: 'center', fontWeight: 400 }}>
-            <input type="checkbox" checked={v.wajib} onChange={(e) => setV({ ...v, wajib: e.target.checked })} style={{ width: 'auto' }} />
-            Siswa wajib absen sebelum membuka materi
-          </label>
-          <p className="catatan">Pertemuan baru berstatus draf. Isi materi, latihan soal, dan forum diskusi, lalu terbitkan dari ruang pertemuan.</p>
+          <p className="catatan">Pertemuan menjadi aktif otomatis begitu bahan bacaan dan lembar kerja sudah ada.</p>
           <div className="aksi"><button className="tombol tombol-isi" disabled={sibuk}>{sibuk ? 'Menyimpan...' : 'Simpan pertemuan'}</button></div>
         </form>
       )}
@@ -228,9 +225,11 @@ export function DetailKelas() {
             <Link key={p.id} to={`/portal/lms/${kelasId}/pertemuan/${p.id}`} className="kartu tautan kartu-pertemuan">
               <small>{i === 0 ? 'Terbaru, ' : ''}{tgl(p.tanggal)}</small>
               <h3>{p.judul}</h3>
-              {p.absen_terbuka && !p.status_saya
-                ? <span className="status status-menunggu">Absen dibuka</span>
-                : <span className={`status ${kelasStatus[p.status_saya ?? 'belum']}`}>{labelStatus[p.status_saya ?? 'belum']}</span>}
+              {p.tuntas_saya ? <span className="status status-selesai">Selesai</span>
+                : p.terbuka === false ? <span className="status status-dibatalkan">Ditutup</span>
+                : p.boleh === false ? <span className="status status-menunggu">Terkunci, selesaikan pertemuan sebelumnya</span>
+                : p.status_saya ? <span className="status status-menunggu">Sedang dikerjakan</span>
+                : <span className="status status-menunggu">Belum dimulai</span>}
             </Link>
           ))}
         </div>
@@ -252,7 +251,6 @@ export function DetailKelas() {
                       <label>Tanggal<input type="date" required value={ev.tanggal} onChange={(e) => setEv({ ...ev, tanggal: e.target.value })} /></label>
                     </div>
                     <label>Tujuan pembelajaran (opsional)<textarea rows={2} maxLength={1000} value={ev.tujuan} onChange={(e) => setEv({ ...ev, tujuan: e.target.value })} /></label>
-                    <label className="baris-centang"><input type="checkbox" checked={ev.wajib} onChange={(e) => setEv({ ...ev, wajib: e.target.checked })} /> Siswa wajib absen sebelum membuka materi</label>
                     <div className="aksi">
                       <button className="tombol tombol-isi" disabled={sibuk}>{sibuk ? 'Menyimpan...' : 'Simpan perubahan'}</button>
                       <button type="button" className="tombol" onClick={() => setUbahId(null)}>Batal</button>
@@ -408,7 +406,7 @@ function RekapPertemuan({ pertemuanId, nomor, versi }: { pertemuanId: string; no
         <label className="baris-centang"><input type="checkbox" checked={langsung} onChange={(e) => setLangsung(e.target.checked)} /> Pantau langsung (segar tiap 20 detik)</label>
         <label>Tampilkan
           <select value={saring} onChange={(e) => setSaring(e.target.value)}>
-            <option value="semua">Semua siswa</option><option value="belum_absen">Belum absen</option>
+            <option value="semua">Semua siswa</option><option value="belum_absen">Belum mulai (belum hadir)</option>
             <option value="belum_lembar">Belum mengumpulkan lembar</option><option value="belum_latihan">Belum menyelesaikan latihan</option>
             <option value="belum_forum">Belum ikut forum</option>
           </select>
@@ -686,7 +684,8 @@ export function RuangPertemuan() {
   const [versi, setVersi] = useState(0)
   const [ubahMateri, setUbahMateri] = useState<string | null>(null)
   const [pratinjau, setPratinjau] = useState(false)
-  const [sekalianBagi, setSekalianBagi] = useState(true)
+  const sekalianBagi = true
+  const sinkron = useRef('')
 
   const muat = useCallback(async () => {
     try {
@@ -695,12 +694,18 @@ export function RuangPertemuan() {
       const cari = daftar.find((x) => x.id === id) ?? null
       setP(cari)
       if (!cari) { setGalat('Pertemuan tidak ditemukan.'); return }
+      // Guru: isi pertemuan yang lengkap otomatis disalin ke semua kelas lain yang diampu (tanpa menimpa yang sudah ada).
+      const kk = cari.kelengkapan
+      if (kk?.lengkap && cari.status === 'terbit' && k.find((x) => x.id === kelasId)?.peran === 'pengelola') {
+        const tanda = `${id}:${kk.materi}:${kk.lembar ?? 0}:${kk.latihan}`
+        if (sinkron.current !== tanda) { sinkron.current = tanda; void panggil('lms_bagikan_pertemuan', { p_pertemuan: id }).catch(() => undefined) }
+      }
       try {
         const r = await panggil<{ materi: Materi[] }>('lms_materi_buka', { p_pertemuan: id })
         setMateri(r.materi); setTerkunci(false)
       } catch (e) {
         const m = (e as Error).message
-        if (m.startsWith('Absen dulu')) { setTerkunci(true); setMateri(null) } else throw e
+        if (m.startsWith('Pertemuan ini terkunci')) { setTerkunci(true); setMateri(null) } else throw e
       }
       setVersi((x) => x + 1)
     } catch (e) { setGalat((e as Error).message) }
@@ -742,15 +747,6 @@ export function RuangPertemuan() {
       if (!m.startsWith('Tidak ada kelas lain')) setGalat(m)
     }
   }
-  async function terbitkan(terbit: boolean) {
-    if (!p) return
-    try {
-      await panggil('lms_simpan_pertemuan', { p_kelas: kelasId, p_id: id, p_judul: p.judul, p_tanggal: null, p_tujuan: p.tujuan, p_wajib_absen: p.wajib_absen, p_terbit: terbit })
-      if (terbit) await bagiBila()
-      await muat()
-    } catch (e) { setGalat((e as Error).message) }
-  }
-
   if (profil?.peran === 'siswa') return <PertemuanSiswa kelasId={kelasId} id={id} />
 
   return (
@@ -762,20 +758,17 @@ export function RuangPertemuan() {
 
       {kelola && p && (
         <>
-          <div className="aksi">
-            <span className={`status ${p.status === 'terbit' ? 'status-selesai' : 'status-menunggu'}`}>{p.status === 'terbit' ? 'Terbit' : 'Draf'}</span>
-            <button className="tombol" style={{ color: 'var(--warna-utama)' }} disabled={p.status !== 'terbit' && !p.kelengkapan?.lengkap} onClick={() => void terbitkan(p.status !== 'terbit')}>{p.status === 'terbit' ? 'Tarik jadi draf' : 'Terbitkan'}</button>
-          </div>
+          <AksesPertemuan pertemuanId={id} status={p.status} ditutup={!!p.ditutup} bukaSampai={p.buka_sampai ?? null} setelah={muat} />
           <KelolaPertemuan kelasId={kelasId} pertemuanId={id} setelahUbah={muat} setelahHapus={() => nav(`/portal/lms/${kelasId}`)} />
           <PanelKelengkapan k={p.kelengkapan} />
-          {p.status !== 'terbit' && <div className="aksi"><label className="baris-centang"><input type="checkbox" checked={sekalianBagi} onChange={(e) => setSekalianBagi(e.target.checked)} /> Saat diterbitkan, sekalian bagikan dan terbitkan di semua kelas lain yang Anda ampu</label></div>}
           {p.status !== 'terbit' && p.kelengkapan && !p.kelengkapan.lengkap && (
-            <div className="aksi"><button type="button" className="tombol" onClick={() => void terbitPaksa()}>Terbitkan sekarang walau belum lengkap</button></div>
+            <details className="jarak"><summary>Aktifkan sekarang walau belum lengkap</summary>
+              <div className="aksi"><button type="button" className="tombol" onClick={() => void terbitPaksa()}>Aktifkan sekarang</button></div></details>
           )}
           <div className="aksi"><label className="baris-centang"><input type="checkbox" checked={pratinjau} onChange={(e) => setPratinjau(e.target.checked)} /> Lihat sebagai siswa (pratinjau, tidak ada yang tersimpan)</label></div>
           <details className="jarak"><summary>Salin ke kelas tertentu saja</summary><SalinPertemuan pertemuanId={id} versi={versi} terbit={p.status === 'terbit'} /></details>
           <p className="catatan"><Link to={`/portal/lms/dashboard?p=${id}`}>Buka di Dashboard pembelajaran (aktifkan dan pantau semua kelas)</Link></p>
-          <KontrolAbsen p={p} muat={muat} />
+          <details className="jarak"><summary>Absen dengan kode (opsional)</summary><p className="catatan">Kehadiran sudah tercatat otomatis dari aktivitas siswa. Kode hanya untuk absen tatap muka.</p><KontrolAbsen p={p} muat={muat} /></details>
         </>
       )}
 
