@@ -1,7 +1,8 @@
 // Halaman super admin: menguji sambungan ke Google Drive sekolah lewat Edge Function "drive".
 import { useState } from 'react'
 import Halaman from '../components/Halaman'
-import { supabase } from '../lib/supabase'
+import { panggilDrive } from '../lib/berkas'
+import { SUPABASE_KUNCI, SUPABASE_URL, supabase } from '../lib/supabase'
 
 type Status = {
   terhubung: boolean
@@ -15,22 +16,6 @@ type Langkah = { nama: string; status: 'jalan' | 'ok' | 'gagal'; ket?: string }
 
 const GB = 1024 ** 3
 const ukuran = (b: number) => (b >= GB ? `${(b / GB).toFixed(2)} GB` : `${(b / 1024 ** 2).toFixed(1)} MB`)
-
-async function panggilDrive<T>(body: Record<string, unknown>): Promise<T> {
-  const { data, error } = await supabase.functions.invoke('drive', { body })
-  if (error) {
-    let pesan = error.message
-    const ctx = (error as { context?: Response }).context
-    if (ctx && typeof ctx.json === 'function') {
-      try {
-        const j = await ctx.json()
-        if (j?.error) pesan = j.error
-      } catch { /* pakai pesan bawaan */ }
-    }
-    throw new Error(pesan)
-  }
-  return data as T
-}
 
 export default function SambunganDrive() {
   const [sibuk, setSibuk] = useState(false)
@@ -75,12 +60,12 @@ export default function SambunganDrive() {
 
       catat({ nama: 'Mengunduh kembali berkas uji', status: 'jalan' })
       const { data: jwt } = await supabase.auth.getSession()
-      const url = `${import.meta.env.VITE_SUPABASE_URL ?? 'https://myjdtybkfgscerdhyemb.supabase.co'}/functions/v1/drive`
+      const url = `${SUPABASE_URL}/functions/v1/drive`
       const u = await fetch(url, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${jwt.session?.access_token ?? ''}`,
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? 'sb_publishable_3_nSHpyNyPTRIv2y0zD01A_dDeyGzB6',
+          apikey: SUPABASE_KUNCI,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ aksi: 'unduh', berkas_id: sesi.berkas_id }),

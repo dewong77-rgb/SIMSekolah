@@ -2,11 +2,11 @@ import { createClient } from '@supabase/supabase-js'
 
 // Kunci publik (publishable) memang aman di browser. Akses data dijaga RLS di basis data.
 // Jangan pernah memasukkan kunci service_role ke sini.
-const URL = import.meta.env.VITE_SUPABASE_URL ?? 'https://myjdtybkfgscerdhyemb.supabase.co'
-const KUNCI =
+export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL ?? 'https://myjdtybkfgscerdhyemb.supabase.co'
+export const SUPABASE_KUNCI =
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? 'sb_publishable_3_nSHpyNyPTRIv2y0zD01A_dDeyGzB6'
 
-export const supabase = createClient(URL, KUNCI)
+export const supabase = createClient(SUPABASE_URL, SUPABASE_KUNCI)
 
 export type Peran = 'admin_tu' | 'guru' | 'staf' | 'siswa' | 'orang_tua'
 

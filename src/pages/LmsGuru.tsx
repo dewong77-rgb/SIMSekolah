@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react
 import { Link, useParams } from 'react-router-dom'
 import Halaman from '../components/Halaman'
 import { useAuth } from '../auth/AuthContext'
+import { AKSEPTASI, hapusBerkas, periksaBerkas, ukuranTeks, unduhBerkas, unggahBerkas } from '../lib/berkas'
 import { panggil, tgl } from '../lib/rpc'
 import { biru, merah, nilaiTeks, unduhCsv } from './lmsUtil'
 import { KartuKelas, type KelasRingkas } from './LmsProgres'
@@ -12,6 +13,7 @@ type Kelas = { id: string; mapel: string; rombel: string; peran: 'pengelola' | '
 type Perangkat = {
   id: string; jenis: string; judul: string; isi: string | null; url: string | null; kelas_ajar_id: string | null
   kelas: string | null; guru: string; milik_saya: boolean; diubah_pada: string
+  berkas_id: string | null; berkas_nama: string | null; berkas_ukuran: number | null
 }
 const labelPerangkat: Record<string, string> = {
   cp: 'Capaian Pembelajaran (CP)', tp: 'Tujuan Pembelajaran (TP)', atp: 'Alur Tujuan Pembelajaran (ATP)',
@@ -24,16 +26,42 @@ const jenisInti = ['cp', 'atp', 'prota', 'promes', 'modul_ajar', 'kktp']
 
 function FormPerangkat({ kelas, awal, selesai, batal }: { kelas: Kelas[]; awal: Perangkat | null; selesai: () => Promise<void>; batal: () => void }) {
   const [v, setV] = useState({ jenis: awal?.jenis ?? 'modul_ajar', judul: awal?.judul ?? '', kelas: awal?.kelas_ajar_id ?? '', isi: awal?.isi ?? '', url: awal?.url ?? '' })
+  const [berkas, setBerkas] = useState<File | null>(null)
+  const [progres, setProgres] = useState<number | null>(null)
   const [galat, setGalat] = useState('')
   const [sibuk, setSibuk] = useState(false)
+  const berkasLama = awal?.berkas_id ? { id: awal.berkas_id, nama: awal.berkas_nama ?? 'berkas', ukuran: awal.berkas_ukuran } : null
+
+  function pilih(f: File | null) {
+    setGalat('')
+    if (f) {
+      const salah = periksaBerkas(f)
+      if (salah) { setGalat(salah); setBerkas(null); return }
+    }
+    setBerkas(f)
+  }
+
   async function kirim(e: FormEvent) {
     e.preventDefault()
-    setSibuk(true); setGalat('')
+    setSibuk(true); setGalat(''); setProgres(null)
+    let baruId: string | null = null
+    let tersimpan = false
     try {
-      await panggil('lms_perangkat_simpan', { p_id: awal?.id ?? null, p_kelas: v.kelas || null, p_jenis: v.jenis, p_judul: v.judul, p_isi: v.isi || null, p_url: v.url || null })
-      await selesai()
-    } catch (er) { setGalat((er as Error).message) }
+      let berkasId = berkasLama?.id ?? null
+      if (berkas) {
+        const b = await unggahBerkas(berkas, 'perangkat_ajar', null, setProgres)
+        baruId = b.id; berkasId = b.id
+      }
+      await panggil('lms_perangkat_simpan', { p_id: awal?.id ?? null, p_kelas: v.kelas || null, p_jenis: v.jenis, p_judul: v.judul, p_isi: v.isi || null, p_url: v.url || null, p_berkas: berkasId })
+      tersimpan = true
+      if (baruId && berkasLama) await hapusBerkas(berkasLama.id).catch(() => undefined)
+    } catch (er) {
+      if (baruId && !tersimpan) await hapusBerkas(baruId).catch(() => undefined)
+      setGalat((er as Error).message)
+    }
+    setProgres(null)
     setSibuk(false)
+    if (tersimpan) await selesai()
   }
   return (
     <form className="kartu form jarak" onSubmit={kirim}>
@@ -53,11 +81,20 @@ function FormPerangkat({ kelas, awal, selesai, batal }: { kelas: Kelas[]; awal: 
         </label>
         <label>Tautan dokumen (opsional)<input type="url" pattern="https://.*" value={v.url} onChange={(e) => setV({ ...v, url: e.target.value })} placeholder="https://drive.google.com/..." /></label>
       </div>
-      <label>Isi dokumen (opsional bila ada tautan)<textarea rows={10} maxLength={50000} value={v.isi} onChange={(e) => setV({ ...v, isi: e.target.value })} /><span className="petunjuk">Teks biasa. Dokumen panjang lebih nyaman disimpan di Drive, lalu tempel tautannya.</span></label>
+      <label>Berkas (opsional, maksimal 25 MB)
+        <input type="file" accept={AKSEPTASI} disabled={sibuk} onChange={(e) => pilih(e.target.files?.[0] ?? null)} />
+        <span className="petunjuk">
+          PDF, Word, Excel, PowerPoint, gambar, atau teks. Berkas disimpan di Google Drive sekolah.
+          {berkasLama && !berkas && <> Berkas saat ini: {berkasLama.nama} ({ukuranTeks(berkasLama.ukuran)}). Pilih berkas baru untuk menggantinya.</>}
+          {berkas && <> Dipilih: {berkas.name} ({ukuranTeks(berkas.size)}).</>}
+        </span>
+      </label>
+      {progres != null && <p className="catatan" role="status">Mengunggah berkas... {progres}%</p>}
+      <label>Isi dokumen (opsional bila ada tautan atau berkas)<textarea rows={10} maxLength={50000} value={v.isi} onChange={(e) => setV({ ...v, isi: e.target.value })} /><span className="petunjuk">Teks biasa. Dokumen panjang lebih nyaman diunggah sebagai berkas.</span></label>
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
       <div className="aksi">
-        <button className="tombol tombol-isi" disabled={sibuk}>{sibuk ? 'Menyimpan...' : 'Simpan'}</button>
-        <button type="button" className="tombol" style={biru} onClick={batal}>Batal</button>
+        <button className="tombol tombol-isi" disabled={sibuk}>{sibuk ? (progres != null ? 'Mengunggah...' : 'Menyimpan...') : 'Simpan'}</button>
+        <button type="button" className="tombol" style={biru} onClick={batal} disabled={sibuk}>Batal</button>
       </div>
     </form>
   )
@@ -83,7 +120,17 @@ export function AdministrasiGuru() {
   useEffect(() => { void muat() }, [muat])
   async function hapus(id: string) {
     if (!window.confirm('Hapus dokumen ini?')) return
-    try { await panggil('lms_perangkat_hapus', { p_id: id }); await muat() } catch (e) { setGalat((e as Error).message) }
+    const lama = (daftar ?? []).find((d) => d.id === id)
+    try {
+      await panggil('lms_perangkat_hapus', { p_id: id })
+      if (lama?.berkas_id) await hapusBerkas(lama.berkas_id).catch(() => undefined)
+      await muat()
+    } catch (e) { setGalat((e as Error).message) }
+  }
+  async function unduh(d: Perangkat) {
+    if (!d.berkas_id) return
+    setGalat('')
+    try { await unduhBerkas(d.berkas_id, d.berkas_nama ?? 'berkas') } catch (e) { setGalat((e as Error).message) }
   }
   const guruDaftar = useMemo(() => Array.from(new Set((daftar ?? []).map((d) => d.guru))).sort(), [daftar])
   const tampil = (daftar ?? []).filter((d) => (!saring || d.jenis === saring) && (!guruPilih || d.guru === guruPilih))
@@ -135,6 +182,7 @@ export function AdministrasiGuru() {
                 <td>
                   <strong>{d.judul}</strong>{d.kelas ? <><br /><small>{d.kelas}</small></> : null}
                   {d.url && <><br /><a href={d.url} target="_blank" rel="noopener noreferrer">Buka tautan</a></>}
+                  {d.berkas_id && <><br /><button type="button" className="tombol" style={biru} onClick={() => void unduh(d)}>Unduh {d.berkas_nama} ({ukuranTeks(d.berkas_ukuran)})</button></>}
                   {d.isi && <><br /><button type="button" className="tombol" style={biru} onClick={() => setLihat(lihat === d.id ? null : d.id)}>{lihat === d.id ? 'Sembunyikan isi' : 'Baca isi'}</button></>}
                   {lihat === d.id && d.isi && <p style={{ whiteSpace: 'pre-wrap' }}>{d.isi}</p>}
                 </td>
