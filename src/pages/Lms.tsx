@@ -426,7 +426,7 @@ function RekapPertemuan({ pertemuanId, nomor, versi }: { pertemuanId: string; no
                 <td>{t && t.total_latihan > 0 ? <>{x.latihan_selesai}/{t.total_latihan}{x.latihan_nilai !== null ? <><br /><small>nilai {nilaiTeks(x.latihan_nilai)}</small></> : null}</> : '-'}</td>
                 {(t?.total_lembar ?? 0) > 0 && <td>{x.lembar_status ? <>{x.lembar_status === 'dinilai' ? 'Dinilai' : 'Terkumpul'}{x.lembar_nilai != null ? <><br /><small>nilai {nilaiTeks(x.lembar_nilai)}</small></> : null}</> : <small>Belum</small>}</td>}
                 <td>{x.forum_total > 0 ? <>{x.forum_total} kiriman<br /><small>{x.forum_topik} topik, {x.forum_balasan} balasan</small></> : <small>Belum ikut</small>}</td>
-                <td>{nl[x.peserta_didik_id]?.nilai != null ? <strong>{nl[x.peserta_didik_id].nilai}</strong> : nl[x.peserta_didik_id]?.tuntas ? <small>Tuntas, menunggu nilai lembar</small> : <small>Belum tuntas</small>}</td>
+                <td>{nl[x.peserta_didik_id]?.nilai != null ? <strong>{nl[x.peserta_didik_id].nilai}</strong> : nl[x.peserta_didik_id]?.tuntas ? <small>Tuntas</small> : <small>Belum tuntas</small>}</td>
                 <td>
                   <select aria-label={`Ubah status ${x.nama}`} value="" onChange={(e) => e.target.value && void ubah(x.peserta_didik_id, e.target.value)}>
                     <option value="">Pilih</option>
@@ -534,7 +534,7 @@ function PanelKelengkapan({ k }: { k: Kelengkapan | null }) {
         <li><span className="status status-selesai">Otomatis</span> <a href="#forum"><strong>Forum diskusi</strong></a>: dibuat saat diterbitkan{k.forum > 0 ? ` (${k.forum} topik)` : ''}</li>
         <li><span className={`status ${k.latihan > 0 ? 'status-selesai' : 'status-dibatalkan'}`}>{k.latihan > 0 ? 'Aktif' : 'Opsional'}</span> <a href="#latihan"><strong>Kuis atau latihan soal</strong></a>: {k.latihan > 0 ? `${k.latihan} latihan, jadi nilai tambah` : 'bila ingin nilai tambah'}</li>
       </ul>
-      <p className="catatan">{k.lengkap ? 'Bahan bacaan dan lembar kerja sudah ada. Pertemuan siap diterbitkan.' : `Lengkapi dulu ${k.kurang.join(' dan ')} sebelum menerbitkan.`} Nilai pertemuan: hadir, baca bahan bacaan, kumpulkan lembar kerja, lalu Anda menilai lembar kerja.</p>
+      <p className="catatan">{k.lengkap ? 'Bahan bacaan dan lembar kerja sudah ada. Pertemuan siap diterbitkan.' : `Lengkapi dulu ${k.kurang.join(' dan ')} sebelum menerbitkan.`} Nilai pertemuan keluar otomatis sebesar KKTP begitu siswa absen, membaca bahan bacaan minimal 15 menit, dan mengumpulkan lembar kerja. Anda tetap bisa menilai isi lembar kerja untuk menaikkan nilai di atas KKTP, dan forum atau kuis menambah nilai lebih tinggi lagi.</p>
     </div>
   )
 }

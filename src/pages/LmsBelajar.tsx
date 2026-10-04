@@ -7,9 +7,24 @@ import { LembarSiswa, LembarPratinjau } from './LmsLembar'
 import { LatihanPertemuan } from './LmsKuis'
 import { Forum } from './LmsForum'
 
-export type Materi = { id: string; urutan: number; jenis: 'teks' | 'video' | 'tautan' | 'berkas'; judul: string; isi: string | null; url: string | null; selesai: boolean; format: 'teks' | 'html'; untuk: 'siswa' | 'guru'; tugas_id?: string | null }
+export type Materi = { id: string; urutan: number; jenis: 'teks' | 'video' | 'tautan' | 'berkas'; judul: string; isi: string | null; url: string | null; selesai: boolean; format: 'teks' | 'html'; untuk: 'siswa' | 'guru'; tugas_id?: string | null; mulai_pada?: string | null }
 
 const labelJenis: Record<string, string> = { teks: 'Bacaan', video: 'Video', tautan: 'Tautan', berkas: 'Berkas' }
+
+/** Jeda baca minimal sebelum bahan bacaan boleh ditandai selesai. Harus sama dengan batas di lms_tandai_selesai. */
+const MENIT_BACA_MINIMAL = 15
+
+function sisaDetikBaca(mulaiPada?: string | null): number {
+  if (!mulaiPada) return MENIT_BACA_MINIMAL * 60
+  const lewat = (Date.now() - new Date(mulaiPada).getTime()) / 1000
+  return Math.max(0, Math.ceil(MENIT_BACA_MINIMAL * 60 - lewat))
+}
+
+function formatMenitDetik(detik: number): string {
+  const m = Math.floor(detik / 60)
+  const s = detik % 60
+  return `${m}:${String(s).padStart(2, '0')}`
+}
 
 /** Mengambil id video YouTube dari tautan biasa. Hanya pola 11 karakter yang diterima. */
 function idYoutube(url: string): string | null {
@@ -26,6 +41,14 @@ export function IsiMateri({ m, siswa, selesai, pratinjau }: { m: Materi; siswa: 
   if (pratinjau && m.tugas_id && m.format === 'html') return <LembarPratinjau html={m.isi ?? ''} judul={m.judul} />
   if (siswa && m.tugas_id && m.format === 'html') return <LembarSiswa tugasId={m.tugas_id} html={m.isi ?? ''} judul={m.judul} />
   const yt = m.jenis === 'video' && m.url ? idYoutube(m.url) : null
+  const kenaJeda = siswa && !pratinjau && !m.tugas_id && !m.selesai
+  const [sisa, setSisa] = useState(() => (kenaJeda ? sisaDetikBaca(m.mulai_pada) : 0))
+  useEffect(() => {
+    if (!kenaJeda) return
+    setSisa(sisaDetikBaca(m.mulai_pada))
+    const iv = window.setInterval(() => setSisa(sisaDetikBaca(m.mulai_pada)), 1000)
+    return () => window.clearInterval(iv)
+  }, [kenaJeda, m.mulai_pada])
   return (
     <div className="kartu jarak">
       <div className="lencana-baris">
@@ -48,7 +71,13 @@ export function IsiMateri({ m, siswa, selesai, pratinjau }: { m: Materi; siswa: 
         </div>
       )}
       {m.jenis !== 'teks' && m.url && (!yt || m.jenis !== 'video') && <p><a href={m.url} target="_blank" rel="noopener noreferrer">Buka {m.jenis === 'video' ? 'video' : m.jenis === 'berkas' ? 'berkas' : 'tautan'}</a></p>}
-      {siswa && !pratinjau && !m.selesai && <div className="aksi"><button className="tombol" style={{ color: 'var(--warna-utama)' }} onClick={() => void selesai(m.id)}>Tandai sudah selesai</button></div>}
+      {siswa && !pratinjau && !m.selesai && (
+        <div className="aksi">
+          {kenaJeda && sisa > 0
+            ? <p className="catatan">Baca dulu. Tombol selesai aktif dalam {formatMenitDetik(sisa)}.</p>
+            : <button className="tombol" style={{ color: 'var(--warna-utama)' }} onClick={() => void selesai(m.id)}>Tandai sudah selesai</button>}
+        </div>
+      )}
     </div>
   )
 }
@@ -61,7 +90,7 @@ type Langkah = {
   latihan: { total: number; selesai: number }
   forum: { topik: number; ikut: boolean }
   akses?: { boleh: boolean; ditutup: boolean; buka_sampai: string | null; sebelumnya: { id: string; nomor: number; judul: string } | null }
-  nilai?: { tuntas: boolean; nilai: number | null; bonus: number; lembar_dinilai: number; lembar_total: number }
+  nilai?: { tuntas: boolean; nilai: number | null; kktp?: number; bonus: number; bonus_kuis?: number; bonus_forum?: number; lembar_dinilai: number; lembar_total: number }
 }
 type KelasRingkas = { id: string; mapel: string; rombel: string; guru: string }
 type PertemuanRingkas = { id: string; nomor: number; judul: string; tanggal: string; tujuan: string | null; status: string }
@@ -142,8 +171,10 @@ export function PertemuanSiswa({ kelasId, id }: { kelasId: string; id: string })
       {selesaiSemua && (
         <div className="kartu hasil">
           <strong>Tiga tahap wajib selesai.</strong>{' '}
-          {nl?.nilai != null ? <>Nilai pertemuan: <strong>{nl.nilai}</strong>{nl.bonus > 0 ? ` (termasuk bonus kuis ${nl.bonus})` : ''}.</> : 'Nilai keluar setelah guru menilai lembar kerja.'}
-          {' '}Silakan lanjut ke diskusi{langkah.some((x) => x.k === 'latihan') ? ' atau kuis untuk nilai tambah' : ''}.
+          {nl?.nilai != null
+            ? <>Nilai pertemuan: <strong>{nl.nilai}</strong> (KKTP {nl.kktp ?? 70}{(nl.bonus ?? 0) > 0 ? ` + bonus ${nl.bonus}` : ''}).</>
+            : 'Nilai keluar otomatis sebesar KKTP begitu tiga tahap wajib selesai.'}
+          {' '}Diskusi di forum dan kuis bisa menambah nilai ini lebih tinggi lagi.
         </div>
       )}
       {p?.tujuan && <div className="kartu"><small>Tujuan belajar</small><p style={{ marginBottom: 0, whiteSpace: 'pre-line' }}>{p.tujuan}</p></div>}
