@@ -218,6 +218,22 @@ export function DetailKelas() {
           <div className="aksi"><button className="tombol tombol-isi" disabled={sibuk}>{sibuk ? 'Menyimpan...' : 'Simpan pertemuan'}</button></div>
         </form>
       )}
+      {!kelola && (
+        <div className="jarak">
+          {!daftar && <p className="catatan">Memuat...</p>}
+          {daftar && daftar.length === 0 && <div className="kartu"><p className="catatan">Belum ada pertemuan.</p></div>}
+          {(daftar ?? []).filter((p) => p.status === 'terbit').slice().sort((a, b) => b.nomor - a.nomor).map((p, i) => (
+            <Link key={p.id} to={`/portal/lms/${kelasId}/pertemuan/${p.id}`} className="kartu tautan kartu-pertemuan">
+              <small>{i === 0 ? 'Terbaru, ' : ''}{tgl(p.tanggal)}</small>
+              <h3>{p.judul}</h3>
+              {p.absen_terbuka && !p.status_saya
+                ? <span className="status status-menunggu">Absen dibuka</span>
+                : <span className={`status ${kelasStatus[p.status_saya ?? 'belum']}`}>{labelStatus[p.status_saya ?? 'belum']}</span>}
+            </Link>
+          ))}
+        </div>
+      )}
+      {kelola && (
       <div className="tabel-bungkus jarak">
         <table>
           <thead><tr><th>No</th><th>Pertemuan</th><th>Tanggal</th><th>{kelola ? 'Kehadiran' : 'Status saya'}</th><th></th></tr></thead>
@@ -278,8 +294,12 @@ export function DetailKelas() {
           </tbody>
         </table>
       </div>
-      {kelas && <DaftarKuis kelasId={kelasId} kelola={kelola} pertemuan={(daftar ?? []).map((p) => ({ id: p.id, nomor: p.nomor, judul: p.judul }))} />}
-      {kelas && <DaftarTugas kelasId={kelasId} kelola={kelola} pertemuan={(daftar ?? []).map((p) => ({ id: p.id, nomor: p.nomor, judul: p.judul }))} />}
+      )}
+      {kelas && (() => {
+        const pt = (daftar ?? []).map((p) => ({ id: p.id, nomor: p.nomor, judul: p.judul }))
+        const isi = <><DaftarKuis kelasId={kelasId} kelola={kelola} pertemuan={pt} /><DaftarTugas kelasId={kelasId} kelola={kelola} pertemuan={pt} /></>
+        return kelola ? isi : <details className="jarak"><summary>Semua latihan dan tugas kelas ini</summary>{isi}</details>
+      })()}
       <Kembali ke="/portal/lms" teks="Kembali ke daftar kelas" />
     </Halaman>
   )
@@ -742,7 +762,8 @@ export function RuangPertemuan() {
             <div className="aksi"><button type="button" className="tombol" onClick={() => void terbitPaksa()}>Terbitkan sekarang walau belum lengkap</button></div>
           )}
           <div className="aksi"><label className="baris-centang"><input type="checkbox" checked={pratinjau} onChange={(e) => setPratinjau(e.target.checked)} /> Lihat sebagai siswa (pratinjau, tidak ada yang tersimpan)</label></div>
-          <SalinPertemuan pertemuanId={id} versi={versi} terbit={p.status === 'terbit'} />
+          <details className="jarak"><summary>Salin ke kelas tertentu saja</summary><SalinPertemuan pertemuanId={id} versi={versi} terbit={p.status === 'terbit'} /></details>
+          <p className="catatan"><Link to={`/portal/lms/dashboard?p=${id}`}>Buka di Dashboard pembelajaran (aktifkan dan pantau semua kelas)</Link></p>
           <KontrolAbsen p={p} muat={muat} />
         </>
       )}
