@@ -45,9 +45,21 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
       item: [
         { to: '/portal/lms', label: 'Ruang belajar', ikon: 'buku', ket: 'Kelas, materi, absensi per pertemuan, kuis, tugas' },
         { to: '/portal/lms/dashboard', label: 'Dashboard pembelajaran', ikon: 'grafik', ket: 'Absen serentak dan pantauan semua kelas dalam satu layar' },
-        { to: '/portal/lms/rencana', label: 'Rencana ajar', ikon: 'dokumen', ket: 'ATP, KKTP, dan Program Semester. Template Excel bisa diunduh' },
         { to: '/portal/absensi', label: 'Absensi', ikon: 'centang', ket: 'Jumlah siswa yang diajar dan rekap kehadiran per kelas' },
         { to: '/portal/lms/administrasi', label: 'Administrasi guru', ikon: 'dokumen', ket: 'ATP, modul ajar, program, dan perangkat ajar lain' },
+      ],
+    },
+    {
+      judul: 'Perangkat ajar',
+      item: [
+        { to: '/portal/lms/rencana', label: 'Rencana ajar (Excel)', ikon: 'dokumen', ket: 'Sumber data TP, ATP, KKTP, dan Promes. Template bisa diunduh dan diunggah' },
+        { to: '/portal/lms/perangkat/tp', label: 'TP', ikon: 'dokumen', ket: 'Tujuan Pembelajaran' },
+        { to: '/portal/lms/perangkat/atp', label: 'ATP', ikon: 'dokumen', ket: 'Alur Tujuan Pembelajaran' },
+        { to: '/portal/lms/perangkat/silabus', label: 'Silabus', ikon: 'dokumen', ket: 'Tujuan, materi, asesmen, alokasi waktu' },
+        { to: '/portal/lms/perangkat/prota', label: 'Prota', ikon: 'dokumen', ket: 'Program Tahunan' },
+        { to: '/portal/lms/perangkat/promes', label: 'Promes', ikon: 'dokumen', ket: 'Program Semester' },
+        { to: '/portal/lms/perangkat/modul_ajar', label: 'Modul Ajar', ikon: 'dokumen', ket: 'Unggah atau tautkan modul ajar' },
+        { to: '/portal/lms/perangkat/rpp', label: 'RPP', ikon: 'dokumen', ket: 'Unggah atau tautkan RPP' },
       ],
     },
     {
