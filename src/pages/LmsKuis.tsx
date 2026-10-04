@@ -843,7 +843,7 @@ function KuisSiswa({ kelasId, a, muat }: { kelasId: string; a: Asesmen; muat: ()
     <>
       {galat && (
         <p className="catatan galat" role="alert">
-          {galat}{galat.startsWith('Absen dulu') && a.pertemuan_id ? <> <Link to={`/portal/lms/${kelasId}`}>Kembali ke kelas</Link></> : null}
+          {galat}{galat.startsWith('Pertemuan ini terkunci') && a.pertemuan_id ? <> <Link to={`/portal/lms/${kelasId}`}>Kembali ke kelas</Link></> : null}
         </p>
       )}
       {hasil && (
