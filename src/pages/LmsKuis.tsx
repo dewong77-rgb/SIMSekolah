@@ -146,6 +146,50 @@ function FormAsesmen({ kelasId, pertemuan, awal, selesai }: {
 }
 
 /** Daftar kuis dan ulangan satu kelas. Dipasang di halaman kelas. */
+/** Latihan soal di dalam ruang pertemuan. Guru membuat latihan terkait pertemuan, siswa mengerjakan setelah absen. */
+export function LatihanPertemuan({ kelasId, pertemuanId, judul, kelola, perbarui, versi }: {
+  kelasId: string; pertemuanId: string; judul: string; kelola: boolean; perbarui: () => void; versi: number
+}) {
+  const [daftar, setDaftar] = useState<Asesmen[] | null>(null)
+  const [galat, setGalat] = useState('')
+  const [sibuk, setSibuk] = useState(false)
+  const nav = useNavigate()
+  useEffect(() => {
+    panggil<Asesmen[]>('lms_asesmen_daftar', { p_kelas: kelasId })
+      .then((d) => setDaftar(d.filter((a) => a.pertemuan_id === pertemuanId)))
+      .catch((e: Error) => setGalat(e.message))
+  }, [kelasId, pertemuanId, versi])
+  async function buat() {
+    setSibuk(true); setGalat('')
+    try {
+      const id = await simpanAsesmen(kelasId, null, { ...nilaiAwal(null), pertemuan: pertemuanId, jenis: 'kuis', judul: `Latihan: ${judul}`.slice(0, 200), durasi: 15, maks: 3 }, false)
+      perbarui()
+      nav(`/portal/lms/${kelasId}/kuis/${id}`)
+    } catch (e) { setGalat((e as Error).message) }
+    setSibuk(false)
+  }
+  return (
+    <div className="kartu jarak" id="latihan">
+      <h3>Latihan soal</h3>
+      {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
+      {!daftar && <p className="catatan">Memuat...</p>}
+      {daftar && daftar.length === 0 && <p className="catatan">{kelola ? 'Belum ada latihan soal untuk pertemuan ini. Wajib ada minimal satu dengan minimal satu soal.' : 'Belum ada latihan soal.'}</p>}
+      {(daftar ?? []).map((a) => (
+        <p key={a.id} style={{ margin: '6px 0' }}>
+          <Link to={`/portal/lms/${kelasId}/kuis/${a.id}`}>{a.judul}</Link>{' '}
+          <small>{a.jumlah_soal} soal, {a.durasi_menit} menit</small>{' '}
+          {kelola
+            ? <><span className={`status ${a.status === 'terbit' ? 'status-selesai' : 'status-menunggu'}`}>{a.status === 'terbit' ? 'Terbit' : 'Draf'}</span>{a.jumlah_soal === 0 ? <> <span className="status status-ditolak">Belum ada soal</span></> : null}</>
+            : a.berjalan ? <span className="status status-menunggu">Sedang dikerjakan</span>
+              : a.percobaan_selesai ? <small>{a.menunggu_koreksi && a.nilai_terbaik === null ? 'Menunggu koreksi' : `Nilai ${nilaiTeks(a.nilai_terbaik)}`}</small>
+                : <span className="status status-dibatalkan">Belum dikerjakan</span>}
+        </p>
+      ))}
+      {kelola && <div className="aksi"><button className="tombol" style={{ color: 'var(--warna-utama)' }} disabled={sibuk} onClick={() => void buat()}>{sibuk ? 'Membuat...' : 'Buat latihan soal'}</button></div>}
+    </div>
+  )
+}
+
 export function DaftarKuis({ kelasId, kelola, pertemuan }: { kelasId: string; kelola: boolean; pertemuan: PertemuanRingkas[] }) {
   const [daftar, setDaftar] = useState<Asesmen[] | null>(null)
   const [galat, setGalat] = useState('')
