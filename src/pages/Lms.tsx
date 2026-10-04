@@ -376,6 +376,58 @@ function RekapPertemuan({ pertemuanId, nomor, versi }: { pertemuanId: string; no
   )
 }
 
+type Tujuan = { kelas_id: string; rombel: string; mapel: string; jumlah_siswa: number; sudah_ada: boolean }
+
+/** Salin pertemuan (materi, latihan soal, topik forum pembuka) ke kelas lain dengan mata pelajaran yang sama. */
+function SalinPertemuan({ pertemuanId, versi }: { pertemuanId: string; versi: number }) {
+  const [tujuan, setTujuan] = useState<Tujuan[] | null>(null)
+  const [pilih, setPilih] = useState<string[]>([])
+  const [galat, setGalat] = useState('')
+  const [hasil, setHasil] = useState('')
+  const [sibuk, setSibuk] = useState(false)
+  const muat = useCallback(async () => {
+    try { setTujuan(await panggil<Tujuan[]>('lms_salin_tujuan', { p_pertemuan: pertemuanId })) } catch (e) { setGalat((e as Error).message) }
+  }, [pertemuanId])
+  useEffect(() => { void muat() }, [muat, versi])
+  const bisa = (tujuan ?? []).filter((t) => !t.sudah_ada)
+  const alih = (id: string) => setPilih((x) => (x.includes(id) ? x.filter((y) => y !== id) : [...x, id]))
+  async function salin() {
+    setSibuk(true); setGalat(''); setHasil('')
+    try {
+      const r = await panggil<{ disalin: number; dilewati: string[] }>('lms_salin_pertemuan', { p_pertemuan: pertemuanId, p_kelas: pilih })
+      setHasil(`Disalin ke ${r.disalin} kelas sebagai draf.${r.dilewati.length ? ` Dilewati karena sudah ada: ${r.dilewati.join(', ')}.` : ''}`)
+      setPilih([]); await muat()
+    } catch (e) { setGalat((e as Error).message) }
+    setSibuk(false)
+  }
+  if (tujuan && tujuan.length === 0 && !hasil) return null
+  return (
+    <div className="kartu jarak">
+      <h3>Salin ke kelas lain</h3>
+      <p className="catatan">Materi, latihan soal, dan topik forum pembuka ikut disalin sebagai draf. Absen, balasan forum, nilai, jadwal latihan, dan tanggal terbit tetap terpisah per kelas.</p>
+      {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
+      {hasil && <div className="kartu hasil"><strong>{hasil}</strong><br /><small>Buka tiap kelas untuk mengatur jadwal latihan, membuka absen, lalu menerbitkan.</small></div>}
+      {!tujuan && !galat && <p className="catatan">Memuat...</p>}
+      {tujuan && tujuan.length > 0 && (
+        <>
+          <div className="aksi">
+            <button type="button" className="tombol" style={{ color: 'var(--warna-utama)' }} onClick={() => setPilih(pilih.length === bisa.length ? [] : bisa.map((t) => t.kelas_id))} disabled={bisa.length === 0}>
+              {pilih.length === bisa.length && bisa.length > 0 ? 'Kosongkan pilihan' : 'Pilih semua'}
+            </button>
+          </div>
+          {tujuan.map((t) => (
+            <label key={t.kelas_id} className="centang" style={{ display: 'flex', gap: 8, alignItems: 'center', fontWeight: 400, margin: '6px 0' }}>
+              <input type="checkbox" style={{ width: 'auto' }} disabled={t.sudah_ada} checked={pilih.includes(t.kelas_id)} onChange={() => alih(t.kelas_id)} />
+              {t.rombel} <small>{t.jumlah_siswa} siswa{t.sudah_ada ? ', sudah ada pertemuan berjudul sama' : ''}</small>
+            </label>
+          ))}
+          <div className="aksi"><button className="tombol tombol-isi" disabled={sibuk || pilih.length === 0} onClick={() => void salin()}>{sibuk ? 'Menyalin...' : `Salin ke ${pilih.length} kelas`}</button></div>
+        </>
+      )}
+    </div>
+  )
+}
+
 /** Tiga isian wajib satu pertemuan. Pertemuan baru bisa diterbitkan setelah ketiganya ada. */
 function PanelKelengkapan({ k }: { k: Kelengkapan | null }) {
   if (!k) return null
@@ -512,6 +564,7 @@ export function RuangPertemuan() {
             <button className="tombol" style={{ color: 'var(--warna-utama)' }} disabled={p.status !== 'terbit' && !p.kelengkapan?.lengkap} onClick={() => void terbitkan(p.status !== 'terbit')}>{p.status === 'terbit' ? 'Tarik jadi draf' : 'Terbitkan'}</button>
           </div>
           <PanelKelengkapan k={p.kelengkapan} />
+          <SalinPertemuan pertemuanId={id} versi={versi} />
           <KontrolAbsen p={p} muat={muat} />
         </>
       )}
