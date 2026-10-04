@@ -77,7 +77,7 @@ function UtasTopik({ t, kelola, muat }: { t: Topik; kelola: boolean; muat: () =>
 }
 
 /** Forum satu pertemuan. */
-export function Forum({ pertemuanId, kelola }: { pertemuanId: string; kelola: boolean }) {
+export function Forum({ pertemuanId, kelola, setelah }: { pertemuanId: string; kelola: boolean; setelah?: () => void }) {
   const [daftar, setDaftar] = useState<Topik[] | null>(null)
   const [galat, setGalat] = useState('')
   const [form, setForm] = useState(false)
@@ -87,10 +87,11 @@ export function Forum({ pertemuanId, kelola }: { pertemuanId: string; kelola: bo
     try { setDaftar(await panggil<Topik[]>('lms_forum_daftar', { p_pertemuan: pertemuanId })) } catch (e) { setGalat((e as Error).message) }
   }, [pertemuanId])
   useEffect(() => { void muat() }, [muat])
+  const sesudahAksi = async () => { await muat(); setelah?.() }
   async function buat(e: FormEvent) {
     e.preventDefault()
     setSibuk(true); setGalat('')
-    try { await panggil('lms_forum_buat', { p_pertemuan: pertemuanId, p_judul: v.judul, p_isi: v.isi }); setV({ judul: '', isi: '' }); setForm(false); await muat() } catch (er) { setGalat((er as Error).message) }
+    try { await panggil('lms_forum_buat', { p_pertemuan: pertemuanId, p_judul: v.judul, p_isi: v.isi }); setV({ judul: '', isi: '' }); setForm(false); await sesudahAksi() } catch (er) { setGalat((er as Error).message) }
     setSibuk(false)
   }
   return (
@@ -107,7 +108,7 @@ export function Forum({ pertemuanId, kelola }: { pertemuanId: string; kelola: bo
       )}
       {!daftar && !galat && <p className="catatan">Memuat...</p>}
       {daftar && daftar.length === 0 && <div className="kartu jarak"><p className="catatan">Belum ada diskusi. Jadilah yang pertama bertanya.</p></div>}
-      {(daftar ?? []).map((t) => <UtasTopik key={t.id} t={t} kelola={kelola} muat={muat} />)}
+      {(daftar ?? []).map((t) => <UtasTopik key={t.id} t={t} kelola={kelola} muat={sesudahAksi} />)}
     </>
   )
 }
