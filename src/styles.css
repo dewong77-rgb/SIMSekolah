@@ -480,3 +480,10 @@ input[type="search"] { font: inherit; padding: 8px 12px; border: 1px solid #b9c1
 .kartu-pertemuan{display:grid;gap:.35rem;margin-bottom:.6rem;text-decoration:none;color:inherit}
 .kartu-pertemuan h3{margin:0}
 .langkah-opsi{border-style:dashed}
+
+@media print {
+  .portal-samping, .portal-atas, .portal-kaki, .portal-tabir, .tanpa-cetak, .remah, .header, .footer { display: none !important; }
+  .portal-utama, .portal-isi { margin: 0 !important; padding: 0 !important; max-width: none !important; }
+  .dokumen-ajar table { font-size: 10pt; }
+  .dokumen-ajar h3 { break-after: avoid; }
+}
