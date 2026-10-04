@@ -119,6 +119,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
         disposisi,
       ],
     },
+    { judul: 'Layanan sekolah', item: [{ to: '/portal/buku-tamu', label: 'Buku tamu', ikon: 'kelompok', ket: 'Catat pengunjung, jam pulang, rekap asal dan tujuan' }] },
     {
       judul: 'Akun dan akses',
       item: [
@@ -157,6 +158,8 @@ const menuIzin: { izin: string; nama: string; bidang: string; ikon: string; to?:
   { izin: 'profil.setujui_guru', nama: 'Ajuan perbaikan data', bidang: 'Tata usaha', ikon: 'kotak', to: '/portal/ajuan-masuk' },
   { izin: 'profil.setujui_siswa', nama: 'Ajuan perbaikan data', bidang: 'Tata usaha', ikon: 'kotak', to: '/portal/ajuan-masuk' },
   { izin: 'dapodik.kerjakan_ajuan', nama: 'Antrean perbaikan Dapodik', bidang: 'Tata usaha', ikon: 'kotak', to: '/portal/ajuan-masuk' },
+  { izin: 'tamu.catat', nama: 'Buku tamu', bidang: 'Keamanan dan tamu', ikon: 'kelompok', to: '/portal/buku-tamu' },
+  { izin: 'tamu.baca_semua', nama: 'Buku tamu', bidang: 'Keamanan dan tamu', ikon: 'kelompok', to: '/portal/buku-tamu' },
   { izin: 'surat.catat', nama: 'Persuratan', bidang: 'Persuratan', ikon: 'surat', to: '/portal/surat' },
   { izin: 'surat.baca_semua', nama: 'Persuratan', bidang: 'Persuratan', ikon: 'surat', to: '/portal/surat' },
   { izin: 'surat.disposisi', nama: 'Persuratan dan disposisi', bidang: 'Persuratan', ikon: 'surat', to: '/portal/surat' },
