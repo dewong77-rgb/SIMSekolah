@@ -441,3 +441,24 @@ input[type="search"] { font: inherit; padding: 8px 12px; border: 1px solid #b9c1
 .baris-centang { display: flex; gap: 8px; align-items: flex-start; }
 .baris-centang input { width: auto; margin-top: 4px; }
 .dokumen-isian .isian-penuh { display: block; width: 100%; }
+
+/* Pengingat LMS */
+.pengingat { display: grid; gap: 8px; margin-bottom: 1rem; }
+.pengingat .perhatian-item { display: flex; gap: 10px; align-items: center; }
+.pengingat-lewat { border-left: 4px solid #b3261e; }
+.pengingat-segera { border-left: 4px solid #e8a020; }
+
+.panduan { padding-left: 1.3rem; display: grid; gap: .8rem; line-height: 1.6; }
+
+/* Tampilan HP: sasaran sentuh besar, teks isian 16px agar layar tidak membesar sendiri di iOS */
+@media (max-width: 640px) {
+  .tombol { min-height: 44px; }
+  input, textarea, select { font-size: 16px; }
+  .aksi { flex-wrap: wrap; gap: 8px; }
+  .lampiran-kotak { width: calc(50% - 6px); }
+  .dokumen-isian .isian-baris { width: 100%; display: block; }
+  .dokumen table { font-size: .92rem; }
+  .dokumen td, .dokumen th { min-width: 70px; padding: 5px 6px; }
+  .pengingat .perhatian-item { align-items: flex-start; }
+  .tabel-bungkus { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
