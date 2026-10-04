@@ -5,6 +5,13 @@ export type BarisTp = { elemen_kode: string; elemen_nama: string | null; capaian
 export type BarisMinggu = { semester: number | null; nomor: number | null; tanggal_mulai: string | null; tanggal_selesai: string | null; elemen_kode: string | null; materi_pokok: string | null; jp: number | null; tp_kode: string | null; keterangan: string | null; efektif: boolean }
 
 const KOL_TP = ['Semester', 'Kode Elemen', 'Nama Elemen', 'Capaian Pembelajaran Elemen', 'Kode TP', 'Rumusan Tujuan Pembelajaran', 'Alokasi JP', 'Kriteria Ketercapaian (KKTP)', 'Nilai Tuntas']
+export type Profil = Record<string, string>
+export const KUNCI_PROFIL: [string, string][] = [
+  ['satuan', 'Satuan pendidikan'], ['fase', 'Fase'], ['program_keahlian', 'Program keahlian'], ['alokasi_waktu', 'Alokasi waktu'], ['penyusun', 'Penyusun'],
+  ['dasar_hukum', 'Dasar hukum (satu per baris, tekan Alt+Enter di Excel)'], ['cp_umum', 'Capaian Pembelajaran umum fase'],
+  ['catatan_1', 'Catatan Prota semester 1'], ['catatan_2', 'Catatan Prota semester 2'], ['catatan_prota', 'Catatan akhir Prota'],
+  ['kepala', 'Nama kepala sekolah'], ['nip_kepala', 'NIP kepala sekolah'], ['nip_guru', 'NIP guru'], ['kota', 'Kota pengesahan'], ['tanggal', 'Waktu pengesahan (misalnya Juli 2026)'],
+]
 const KOL_MG = ['Semester', 'Pertemuan ke', 'Tanggal Mulai', 'Tanggal Selesai', 'Kode Elemen', 'Materi Pokok', 'JP', 'Kode TP (pisah koma)', 'Keterangan']
 
 function sel(v: unknown): string {
@@ -53,13 +60,13 @@ async function simpan(wb: import('exceljs').Workbook, nama: string) {
 }
 
 /** Unduh template. Bila data diberikan, isinya ikut (ekspor rencana sendiri), bila tidak, berisi contoh singkat. */
-export async function unduhTemplateRencana(mapel: string, tingkat: string, data?: { tp: BarisTp[]; minggu: BarisMinggu[] }): Promise<void> {
+export async function unduhTemplateRencana(mapel: string, tingkat: string, data?: { tp: BarisTp[]; minggu: BarisMinggu[]; profil?: Profil }): Promise<void> {
   const { Workbook } = await import('exceljs')
   const wb = new Workbook()
   const info = wb.addWorksheet('Petunjuk')
   const baris = [
     [`Rencana ajar ${mapel} kelas ${tingkat}`],
-    ['Isi dua sheet: TP (Tujuan Pembelajaran beserta kriteria ketercapaian) dan Minggu (rencana per pertemuan). Satu baris per TP dan satu baris per minggu.'],
+    ['Isi tiga sheet: TP (Tujuan Pembelajaran beserta kriteria ketercapaian), Minggu (rencana per pertemuan), dan Profil (kop, dasar hukum, pengesahan; boleh dikosongkan). Satu baris per TP dan satu baris per minggu. Kolom Kunci di sheet Profil jangan diubah.'],
     ['Sheet TP: Kode TP harus unik, misalnya BK.1. Alokasi JP angka. Nilai Tuntas angka 0 sampai 100 (bawaan 70). Kolom Semester, Nama Elemen, dan Capaian boleh diisi sekali per elemen lalu disalin ke bawah.'],
     ['Sheet Minggu: minggu tidak efektif (libur, ujian, MPLS) cukup isi Semester, tanggal, dan Keterangan, kosongkan Pertemuan ke. Minggu efektif wajib punya nomor Pertemuan ke (1, 2, 3 dan seterusnya) dan Materi Pokok.'],
     ['Kode TP di sheet Minggu mengacu ke Kode TP di sheet TP. Boleh lebih dari satu, pisahkan dengan koma, misalnya BK.1, BK.2.'],
@@ -81,12 +88,20 @@ export async function unduhTemplateRencana(mapel: string, tingkat: string, data?
     m.addRow([1, 1, '2026-08-03', '2026-08-05', 'SK', 'Arsitektur komputer dan komponen utama', 4, 'SK.1', ''])
     m.addRow([1, 2, '2026-08-10', '2026-08-12', 'SK', 'Representasi data biner', 4, 'SK.2', ''])
   }
+  const pf = wb.addWorksheet('Profil'); pf.addRow(['Kunci', 'Isi', 'Keterangan'])
+  const nilaiPf = data?.profil ?? {}
+  for (const [k, ket] of KUNCI_PROFIL) pf.addRow([k, nilaiPf[k] ?? '', ket])
+  const elemenSem = new Map<string, string>()
+  for (const x of (data?.tp ?? [])) elemenSem.set(`${x.elemen_kode}_${x.semester ?? 1}`, x.elemen_nama ?? x.elemen_kode)
+  if (!data) elemenSem.set('SK_1', 'Sistem Komputer')
+  for (const [k, nm] of elemenSem) pf.addRow([`fokus_${k}`, nilaiPf[`fokus_${k}`] ?? '', `Fokus materi elemen ${nm} (tampil di Prota)`])
+  gaya(pf, [22, 90, 50])
   gaya(t, [10, 12, 28, 50, 10, 55, 10, 55, 12])
   gaya(m, [10, 12, 14, 14, 12, 60, 8, 22, 50])
   await simpan(wb, data ? `rencana-ajar-${mapel}-${tingkat}.xlsx`.replace(/\s+/g, '-') : 'template-rencana-ajar.xlsx')
 }
 
-export async function bacaRencanaXlsx(file: File): Promise<{ tp: BarisTp[]; minggu: BarisMinggu[]; galat: string[] }> {
+export async function bacaRencanaXlsx(file: File): Promise<{ tp: BarisTp[]; minggu: BarisMinggu[]; profil: Profil | null; galat: string[] }> {
   const { Workbook } = await import('exceljs')
   const wb = new Workbook()
   await wb.xlsx.load(await file.arrayBuffer())
@@ -97,7 +112,7 @@ export async function bacaRencanaXlsx(file: File): Promise<{ tp: BarisTp[]; ming
   const m = wb.getWorksheet('Minggu')
   if (!t) galat.push('Sheet TP tidak ditemukan.')
   if (!m) galat.push('Sheet Minggu tidak ditemukan.')
-  if (!t || !m) return { tp, minggu, galat }
+  if (!t || !m) return { tp, minggu, profil: null, galat }
   const kodeAda = new Set<string>()
   let elemenTerakhir = { kode: '', nama: '', capaian: '', semester: '' }
   t.eachRow((row, n) => {
@@ -137,5 +152,15 @@ export async function bacaRencanaXlsx(file: File): Promise<{ tp: BarisTp[]; ming
   })
   if (tp.length === 0 && galat.length === 0) galat.push('Sheet TP kosong.')
   if (minggu.length === 0 && galat.length === 0) galat.push('Sheet Minggu kosong.')
-  return { tp, minggu, galat }
+  let profil: Profil | null = null
+  const pf = wb.getWorksheet('Profil')
+  if (pf) {
+    profil = {}
+    pf.eachRow((row, n) => {
+      if (n === 1) return
+      const k = sel(row.getCell(1).value); const v = sel(row.getCell(2).value)
+      if (k && v && /^[a-z0-9_]+$/i.test(k)) profil![k] = v
+    })
+  }
+  return { tp, minggu, profil, galat }
 }

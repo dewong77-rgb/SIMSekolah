@@ -7,7 +7,7 @@ import { bacaRencanaXlsx, unduhTemplateRencana, type BarisMinggu, type BarisTp }
 
 type Tp = BarisTp & { mapel: string; tingkat: string; urutan: number }
 type Minggu = BarisMinggu & { id: string; mapel: string; tingkat: string; urutan: number; terpakai: boolean }
-type Data = { tp: Tp[]; minggu: Minggu[] }
+type Data = { tp: Tp[]; minggu: Minggu[]; profil?: { mapel: string; tingkat: string; data: Record<string, string> }[] }
 type Kelompok = { mapel: string; tingkat: string }
 
 export default function RencanaAjar() {
@@ -39,7 +39,7 @@ export default function RencanaAjar() {
   async function unduh(isi: boolean) {
     if (!mapel || !tingkat) { setGalat('Isi mata pelajaran dan tingkat dulu.'); return }
     setGalat(null)
-    await unduhTemplateRencana(mapel, tingkat, isi ? { tp, minggu: mg } : undefined)
+    await unduhTemplateRencana(mapel, tingkat, isi ? { tp, minggu: mg, profil: d?.profil?.find((x) => x.mapel === mapel && x.tingkat === tingkat)?.data } : undefined)
   }
 
   async function unggah(f: File | undefined) {
@@ -52,6 +52,7 @@ export default function RencanaAjar() {
       if (r.galat.length) { setGalat(r.galat.slice(0, 8).join('\n')); return }
       if (!confirm(`Ganti seluruh rencana ${mapel} kelas ${tingkat} dengan isi berkas ini (${r.tp.length} TP, ${r.minggu.length} baris minggu)? Pertemuan yang sudah dibuat tetap ada, hanya tautan ke minggu lamanya dilepas.`)) return
       const h = await panggil<{ tp: number; minggu: number }>('lms_rencana_ganti', { p_mapel: mapel, p_tingkat: tingkat, p_tp: r.tp, p_minggu: r.minggu })
+      if (r.profil && Object.keys(r.profil).length) await panggil('lms_rencana_profil_simpan', { p_mapel: mapel, p_tingkat: tingkat, p_data: r.profil })
       setInfo(`Tersimpan: ${h.tp} TP dan ${h.minggu} baris Program Semester.`)
       setPilih(`${mapel}|${tingkat}`)
       await muat()
