@@ -16,7 +16,7 @@ type Perangkat = {
   berkas_id: string | null; berkas_nama: string | null; berkas_ukuran: number | null
 }
 const labelPerangkat: Record<string, string> = {
-  cp: 'Capaian Pembelajaran (CP)', tp: 'Tujuan Pembelajaran (TP)', atp: 'Alur Tujuan Pembelajaran (ATP)',
+  cp: 'Capaian Pembelajaran (CP)', tp: 'Tujuan Pembelajaran (TP)', atp: 'Alur Tujuan Pembelajaran (ATP)', silabus: 'Silabus',
   prota: 'Program Tahunan', promes: 'Program Semester', modul_ajar: 'Modul Ajar', rpp: 'RPP', kktp: 'KKTP',
   bahan_ajar: 'Bahan Ajar', lkpd: 'LKPD', soal_asesmen: 'Soal dan kisi-kisi', analisis_nilai: 'Analisis nilai',
   remedial_pengayaan: 'Remedial dan pengayaan', lainnya: 'Lainnya',
@@ -24,8 +24,8 @@ const labelPerangkat: Record<string, string> = {
 // Jenis yang lazim diperiksa kelengkapannya oleh supervisi.
 const jenisInti = ['cp', 'atp', 'prota', 'promes', 'modul_ajar', 'kktp']
 
-function FormPerangkat({ kelas, awal, selesai, batal }: { kelas: Kelas[]; awal: Perangkat | null; selesai: () => Promise<void>; batal: () => void }) {
-  const [v, setV] = useState({ jenis: awal?.jenis ?? 'modul_ajar', judul: awal?.judul ?? '', kelas: awal?.kelas_ajar_id ?? '', isi: awal?.isi ?? '', url: awal?.url ?? '' })
+function FormPerangkat({ kelas, awal, jenisAwal, selesai, batal }: { kelas: Kelas[]; awal: Perangkat | null; jenisAwal?: string; selesai: () => Promise<void>; batal: () => void }) {
+  const [v, setV] = useState({ jenis: awal?.jenis ?? jenisAwal ?? 'modul_ajar', judul: awal?.judul ?? '', kelas: awal?.kelas_ajar_id ?? '', isi: awal?.isi ?? '', url: awal?.url ?? '' })
   const [berkas, setBerkas] = useState<File | null>(null)
   const [progres, setProgres] = useState<number | null>(null)
   const [galat, setGalat] = useState('')
@@ -104,11 +104,22 @@ function FormPerangkat({ kelas, awal, selesai, batal }: { kelas: Kelas[]; awal: 
 export function AdministrasiGuru() {
   const { profil } = useAuth()
   const supervisi = profil?.peran === 'admin_tu'
+  return (
+    <Halaman judul="Administrasi guru" lead={supervisi ? 'Perangkat ajar seluruh guru, untuk supervisi.' : 'Perangkat ajar Anda: ATP, modul ajar, program, dan lainnya.'}>
+      <DaftarPerangkat />
+    </Halaman>
+  )
+}
+
+/** Daftar dokumen perangkat ajar. Dengan `jenis`, daftar dan formulir dikunci ke satu jenis. */
+export function DaftarPerangkat({ jenis }: { jenis?: string }) {
+  const { profil } = useAuth()
+  const supervisi = profil?.peran === 'admin_tu'
   const [daftar, setDaftar] = useState<Perangkat[] | null>(null)
   const [kelas, setKelas] = useState<Kelas[]>([])
   const [galat, setGalat] = useState('')
   const [edit, setEdit] = useState<Perangkat | 'baru' | null>(null)
-  const [saring, setSaring] = useState('')
+  const [saring, setSaring] = useState(jenis ?? '')
   const [guruPilih, setGuruPilih] = useState('')
   const [lihat, setLihat] = useState<string | null>(null)
   const muat = useCallback(async () => {
@@ -138,10 +149,10 @@ export function AdministrasiGuru() {
     guru: g, hitung: Object.fromEntries(jenisInti.map((j) => [j, (daftar ?? []).filter((d) => d.guru === g && d.jenis === j).length])),
   })), [guruDaftar, daftar])
   return (
-    <Halaman judul="Administrasi guru" lead={supervisi ? 'Perangkat ajar seluruh guru, untuk supervisi.' : 'Perangkat ajar Anda: ATP, modul ajar, program, dan lainnya.'}>
+    <>
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
       {!supervisi && !edit && <div className="aksi"><button className="tombol tombol-isi" onClick={() => setEdit('baru')}>Tambah dokumen</button></div>}
-      {edit && <FormPerangkat key={edit === 'baru' ? 'baru' : edit.id} kelas={kelas} awal={edit === 'baru' ? null : edit} selesai={async () => { setEdit(null); await muat() }} batal={() => setEdit(null)} />}
+      {edit && <FormPerangkat key={edit === 'baru' ? 'baru' : edit.id} kelas={kelas} jenisAwal={jenis} awal={edit === 'baru' ? null : edit} selesai={async () => { setEdit(null); await muat() }} batal={() => setEdit(null)} />}
 
       {supervisi && matriks.length > 0 && (
         <div className="kartu jarak">
@@ -156,12 +167,12 @@ export function AdministrasiGuru() {
       )}
 
       <div className="grid grid-2 jarak">
-        <label>Jenis
+        {!jenis && <label>Jenis
           <select value={saring} onChange={(e) => setSaring(e.target.value)}>
             <option value="">Semua jenis</option>
             {Object.entries(labelPerangkat).map(([k, t]) => <option key={k} value={k}>{t}</option>)}
           </select>
-        </label>
+        </label>}
         {supervisi && (
           <label>Guru
             <select value={guruPilih} onChange={(e) => setGuruPilih(e.target.value)}>
@@ -202,8 +213,8 @@ export function AdministrasiGuru() {
           </tbody>
         </table>
       </div>
-      <p className="catatan jarak"><Link to="/portal/lms">Kembali ke ruang belajar</Link></p>
-    </Halaman>
+      {!jenis && <p className="catatan jarak"><Link to="/portal/lms">Kembali ke ruang belajar</Link></p>}
+    </>
   )
 }
 
