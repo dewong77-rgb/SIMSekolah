@@ -67,6 +67,23 @@ type PertemuanRingkas = { id: string; nomor: number; judul: string; tanggal: str
 type Kunci = 'absen' | 'materi' | 'lembar' | 'forum' | 'latihan'
 
 /** Tampilan siswa untuk satu pertemuan: lima langkah berurutan, satu langkah per layar. */
+
+type InfoTp = { tp: { kode: string; rumusan: string; kriteria: string | null; nilai_tuntas: number }[]; nilai_tuntas: number | null }
+
+/** Kriteria ketercapaian (KKTP) dan batas tuntas dari rencana ajar. Tidak tampil bila pertemuan tidak terhubung ke rencana. */
+export function KartuKriteria({ pertemuanId, nilai }: { pertemuanId: string; nilai?: number | null }) {
+  const [t, setT] = useState<InfoTp | null>(null)
+  useEffect(() => { panggil<InfoTp>('lms_pertemuan_tp', { p_pertemuan: pertemuanId }).then(setT).catch(() => setT(null)) }, [pertemuanId])
+  const ada = (t?.tp ?? []).filter((x) => x.kriteria)
+  if (!t || (ada.length === 0 && t.nilai_tuntas == null)) return null
+  return (
+    <details className="kartu">
+      <summary><strong>Kriteria ketercapaian</strong>{t.nilai_tuntas != null ? <small>{' '}| tuntas bila nilai {t.nilai_tuntas} atau lebih{nilai != null ? (nilai >= t.nilai_tuntas ? ', sudah tercapai' : ', belum tercapai') : ''}</small> : null}</summary>
+      {ada.map((x) => <div key={x.kode} style={{ marginTop: 8 }}><small>{x.kode}</small><p style={{ margin: 0, whiteSpace: 'pre-line' }}>{x.kriteria}</p></div>)}
+    </details>
+  )
+}
+
 export function PertemuanSiswa({ kelasId, id }: { kelasId: string; id: string }) {
   const [kelas, setKelas] = useState<KelasRingkas | null>(null)
   const [p, setP] = useState<PertemuanRingkas | null>(null)
@@ -143,7 +160,8 @@ export function PertemuanSiswa({ kelasId, id }: { kelasId: string; id: string })
           {' '}Silakan lanjut ke diskusi{langkah.some((x) => x.k === 'latihan') ? ' atau kuis untuk nilai tambah' : ''}.
         </div>
       )}
-      {p?.tujuan && <div className="kartu"><small>Tujuan belajar</small><p style={{ marginBottom: 0 }}>{p.tujuan}</p></div>}
+      {p?.tujuan && <div className="kartu"><small>Tujuan belajar</small><p style={{ marginBottom: 0, whiteSpace: 'pre-line' }}>{p.tujuan}</p></div>}
+      <KartuKriteria pertemuanId={id} nilai={nl?.nilai ?? null} />
 
       <nav className="langkah-bar" aria-label="Langkah belajar">
         {langkah.map((x, i) => (
