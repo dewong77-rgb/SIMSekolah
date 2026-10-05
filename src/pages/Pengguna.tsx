@@ -53,16 +53,19 @@ export default function PenggunaHalaman() {
   }, [])
   useEffect(() => { void muat() }, [muat])
 
-  async function aksi(body: Record<string, unknown>, konfirmasi?: string) {
-    if (konfirmasi && !window.confirm(konfirmasi)) return
+  async function aksi(body: Record<string, unknown>, konfirmasi?: string): Promise<boolean> {
+    if (konfirmasi && !window.confirm(konfirmasi)) return false
     setSibuk(true)
+    let ok = true
     try {
       await panggil(body)
       await muat()
     } catch (e) {
       setGalat((e as Error).message)
+      ok = false
     }
     setSibuk(false)
+    return ok
   }
 
   const hitung = useMemo(() => {
@@ -272,6 +275,12 @@ export default function PenggunaHalaman() {
                       </button>{' '}
                       {p.sandi && (
                         <>
+                          <button
+                            className="tombol" style={{ padding: '4px 10px', color: 'var(--warna-utama)' }} disabled={sibuk}
+                            onClick={async () => { if (await aksi({ aksi: 'buka_kunci', user_id: p.user_id })) window.alert(`Kunci masuk ${p.nama ?? 'akun ini'} sudah dibuka. Silakan coba masuk lagi.`) }}
+                          >
+                            Buka kunci
+                          </button>{' '}
                           <button
                             className="tombol" style={{ padding: '4px 10px', color: 'var(--warna-utama)' }} disabled={sibuk}
                             onClick={() => aksi({ aksi: 'reset_sandi', user_id: p.user_id }, `Kembalikan password ${p.nama} ke password awal?`)}

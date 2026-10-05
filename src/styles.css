@@ -495,3 +495,14 @@ input[type="search"] { font: inherit; padding: 8px 12px; border: 1px solid #b9c1
 .tombol-ikon-bahaya{color:#8a1f1f;border-color:#8a1f1f}
 .tombol-ikon-bahaya:hover{background:#fbeeee}
 @media (max-width:640px){.tombol-ikon span{display:none}}
+
+/* Kolom password dengan tombol mata dan daftar syarat password */
+.kolom-sandi { position: relative; display: block; }
+.form .kolom-sandi input { width: 100%; box-sizing: border-box; padding-right: 54px; font-size: 16px; }
+.tombol-mata { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; display: grid; place-items: center; background: none; border: 0; border-radius: 8px; color: var(--warna-utama); cursor: pointer; }
+.tombol-mata[aria-pressed="true"] { background: var(--latar-lembut); }
+.syarat-sandi { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: .9rem; }
+.syarat-sandi li::before { content: '○'; display: inline-block; width: 1.4em; color: var(--teks-lembut); }
+.syarat-sandi li.ok { color: #1b5e20; }
+.syarat-sandi li.ok::before { content: '✓'; color: #1b5e20; font-weight: 700; }
+.kotak-hitung { border-left: 4px solid var(--warna-aksen); background: #fffaf0; padding: 8px 12px; border-radius: 0 8px 8px 0; }
