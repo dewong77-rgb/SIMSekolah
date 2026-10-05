@@ -49,7 +49,7 @@ export default function PortalLayout() {
 
   const menu = useMemo<MenuPortal>(() => {
     if (!profil) return { kelompok: [], segera: [] }
-    return susunMenu(profil.peran, superAdmin, new Set(penugasan.flatMap((p) => p.izin)))
+    return susunMenu(profil.peran, superAdmin, penugasan)
   }, [profil, superAdmin, penugasan])
 
   useEffect(() => {
@@ -217,6 +217,12 @@ export default function PortalLayout() {
                           )}
                         </div>
                       )}
+                      {profil && !wajibGanti && menu.kelompok.filter((k) => k.judul.startsWith('Tugas tambahan')).map((k) => (
+                        <div key={k.judul}>
+                          <small className="akun-info" style={{ display: 'block', paddingBottom: 0 }}>{k.judul.replace('Tugas tambahan: ', '')}</small>
+                          {k.item.map((i) => <Link key={i.to} role="menuitem" to={i.to}><Ikon nama={i.ikon} />{i.label}</Link>)}
+                        </div>
+                      ))}
                       {profil && !wajibGanti && (
                         <>
                           {profil.peran !== 'siswa' && <Link role="menuitem" to="/portal/profil"><Ikon nama="pengguna" />Profil dan password</Link>}
