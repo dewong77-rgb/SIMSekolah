@@ -81,6 +81,15 @@ const TautanOrtu = lazy(() => import('./pages/LmsProgres').then((m) => ({ defaul
 const RuangKuis = lazy(() => import('./pages/LmsKuis').then((m) => ({ default: m.RuangKuis })))
 const RuangPertemuan = lazy(() => import('./pages/Lms').then((m) => ({ default: m.RuangPertemuan })))
 const RekapKelas = lazy(() => import('./pages/Lms').then((m) => ({ default: m.RekapKelas })))
+const AsesmenLayout = lazy(() => import('./pages/asesmen/AsesmenLayout'))
+const AsesmenBeranda = lazy(() => import('./pages/asesmen/AsesmenBeranda'))
+const UjianDetail = lazy(() => import('./pages/asesmen/AsesmenAdmin').then((m) => ({ default: m.UjianDetail })))
+const RuangDaftar = lazy(() => import('./pages/asesmen/AsesmenAdmin').then((m) => ({ default: m.RuangDaftar })))
+const BankDaftar = lazy(() => import('./pages/asesmen/AsesmenBank').then((m) => ({ default: m.BankDaftar })))
+const BankDetail = lazy(() => import('./pages/asesmen/AsesmenBank').then((m) => ({ default: m.BankDetail })))
+const PengawasDaftar = lazy(() => import('./pages/asesmen/AsesmenPengawas').then((m) => ({ default: m.PengawasDaftar })))
+const Pantau = lazy(() => import('./pages/asesmen/AsesmenPengawas').then((m) => ({ default: m.Pantau })))
+const UjianSaya = lazy(() => import('./pages/asesmen/AsesmenSiswa').then((m) => ({ default: m.UjianSaya })))
 import { AuthProvider } from './auth/AuthContext'
 import RequireRole from './auth/RequireRole'
 import './styles.css'
@@ -116,7 +125,7 @@ createRoot(document.getElementById('root')!).render(
           <Route
             path="portal"
             element={
-              <RequireRole peran={['admin_tu', 'guru', 'staf', 'siswa', 'orang_tua']}>
+              <RequireRole peran={['admin_tu', 'guru', 'staf', 'siswa', 'orang_tua', 'admin_ujian']}>
                 <Portal />
               </RequireRole>
             }
@@ -471,6 +480,16 @@ createRoot(document.getElementById('root')!).render(
           <Route path="portal/panduan-lms" element={<RequireRole peran={['admin_tu', 'guru', 'siswa']}><Suspense fallback={null}><PanduanLms /></Suspense></RequireRole>} />
           <Route path="portal/tautan-ortu" element={<RequireRole peran={['admin_tu']}><Suspense fallback={null}><TautanOrtu /></Suspense></RequireRole>} />
           <Route path="portal/anak-lms" element={<RequireRole peran={['orang_tua']}><Suspense fallback={null}><LmsAnak /></Suspense></RequireRole>} />
+        </Route>
+        <Route path="asesmen" element={<RequireRole peran={['admin_tu', 'guru', 'staf', 'siswa', 'admin_ujian']}><Suspense fallback={null}><AsesmenLayout /></Suspense></RequireRole>}>
+          <Route index element={<RequireRole peran={['admin_tu', 'guru', 'staf', 'siswa', 'admin_ujian']}><Suspense fallback={null}><AsesmenBeranda /></Suspense></RequireRole>} />
+          <Route path="ujian/:id" element={<RequireRole peran={['admin_ujian', 'admin_tu']}><Suspense fallback={null}><UjianDetail /></Suspense></RequireRole>} />
+          <Route path="ruang" element={<RequireRole peran={['admin_ujian', 'admin_tu']}><Suspense fallback={null}><RuangDaftar /></Suspense></RequireRole>} />
+          <Route path="bank" element={<RequireRole peran={['admin_tu', 'guru', 'staf', 'admin_ujian']}><Suspense fallback={null}><BankDaftar /></Suspense></RequireRole>} />
+          <Route path="bank/:id" element={<RequireRole peran={['admin_tu', 'guru', 'staf', 'admin_ujian']}><Suspense fallback={null}><BankDetail /></Suspense></RequireRole>} />
+          <Route path="pengawas" element={<RequireRole peran={['admin_tu', 'guru', 'staf']}><Suspense fallback={null}><PengawasDaftar /></Suspense></RequireRole>} />
+          <Route path="pantau/:sr" element={<RequireRole peran={['admin_tu', 'guru', 'staf', 'admin_ujian']}><Suspense fallback={null}><Pantau /></Suspense></RequireRole>} />
+          <Route path="ujian-saya/:peserta" element={<RequireRole peran={['siswa']}><Suspense fallback={null}><UjianSaya /></Suspense></RequireRole>} />
         </Route>
       </Routes>
       </AuthProvider>

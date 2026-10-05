@@ -11,7 +11,7 @@ type Pengguna = {
 type Ringkasan = { siswa_aktif: number; alumni: number; guru_total: number; staf_total: number }
 type Kelompok = 'aktif' | 'alumni'
 
-const namaPeran: Record<string, string> = { admin_tu: 'Admin TU', guru: 'Guru', staf: 'Staf TU', siswa: 'Siswa', orang_tua: 'Orang tua' }
+const namaPeran: Record<string, string> = { admin_tu: 'Admin TU', guru: 'Guru', staf: 'Staf TU', siswa: 'Siswa', orang_tua: 'Orang tua', admin_ujian: 'Admin ujian' }
 
 async function panggil(body: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke('kelola-akun', { body })
@@ -213,6 +213,7 @@ export default function PenggunaHalaman() {
             <option value="admin_tu">Admin TU</option>
             <option value="guru">Guru</option>
             <option value="orang_tua">Orang tua</option>
+            <option value="admin_ujian">Admin ujian</option>
           </select>
           <button
             className="tombol tombol-isi" disabled={sibuk || !emailBaru}
@@ -232,6 +233,7 @@ export default function PenggunaHalaman() {
           <option value="staf">Staf TU</option>
           <option value="admin_tu">Admin TU</option>
           <option value="orang_tua">Orang tua</option>
+          <option value="admin_ujian">Admin ujian</option>
         </select>
         <input type="search" placeholder="Cari nama, email, atau NISN" value={cari} onChange={(e) => { setCari(e.target.value); setHal(1) }} style={{ minWidth: 260 }} aria-label="Cari" />
         <span className="catatan">{tampil.length.toLocaleString('id-ID')} akun cocok</span>
@@ -257,6 +259,7 @@ export default function PenggunaHalaman() {
                       <option value="guru">Guru</option>
                       <option value="staf">Staf TU</option>
                       <option value="orang_tua">Orang tua</option>
+                      <option value="admin_ujian">Admin ujian</option>
                     </select>
                   )}
                 </td>

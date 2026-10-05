@@ -9,7 +9,7 @@ const cors = {
 const json = (b: unknown, status = 200) =>
   new Response(JSON.stringify(b), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
 
-const PERAN = ['admin_tu', 'guru', 'staf', 'siswa', 'orang_tua']
+const PERAN = ['admin_tu', 'guru', 'staf', 'siswa', 'orang_tua', 'admin_ujian']
 const ddmmyyyy = (t: string) => { const [y, m, d] = t.split('-'); return `${d}${m}${y}` }
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -265,7 +265,7 @@ Deno.serve(async (req) => {
     const email = String(b.email ?? '').trim().toLowerCase()
     const peran = String(b.peran ?? '')
     if (!EMAIL.test(email)) return json({ galat: 'email tidak valid' }, 400)
-    if (!['admin_tu', 'guru', 'orang_tua'].includes(peran)) return json({ galat: 'peran tidak dapat ditambah manual' }, 400)
+    if (!['admin_tu', 'guru', 'orang_tua', 'admin_ujian'].includes(peran)) return json({ galat: 'peran tidak dapat ditambah manual' }, 400)
     const { data: c, error: ec } = await db.auth.admin.createUser({ email, email_confirm: true })
     if (ec || !c?.user) return json({ galat: ec?.message ?? 'akun tidak dapat dibuat' }, 400)
     const { error: ei } = await db.from('profil_pengguna').insert({ user_id: c.user.id, npsn: me.npsn, peran })
