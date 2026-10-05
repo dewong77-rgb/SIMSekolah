@@ -7,7 +7,9 @@ import { LembarSiswa, LembarPratinjau } from './LmsLembar'
 import { LatihanPertemuan } from './LmsKuis'
 import { Forum } from './LmsForum'
 
-export type Materi = { id: string; urutan: number; jenis: 'teks' | 'video' | 'tautan' | 'berkas'; judul: string; isi: string | null; url: string | null; selesai: boolean; format: 'teks' | 'html'; untuk: 'siswa' | 'guru'; tugas_id?: string | null }
+export type Materi = { id: string; urutan: number; jenis: 'teks' | 'video' | 'tautan' | 'berkas'; judul: string; isi: string | null; url: string | null; selesai: boolean; format: 'teks' | 'html'; untuk: 'siswa' | 'guru'; tugas_id?: string | null; mulai_pada?: string | null }
+
+const MENIT_BACA = 10
 
 const labelJenis: Record<string, string> = { teks: 'Bacaan', video: 'Video', tautan: 'Tautan', berkas: 'Berkas' }
 
@@ -20,6 +22,21 @@ function idYoutube(url: string): string | null {
     else if (u.hostname.endsWith('youtube.com')) id = u.searchParams.get('v') ?? (u.pathname.startsWith('/embed/') ? u.pathname.slice(7) : null)
     return id && /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null
   } catch { return null }
+}
+
+function TombolSelesai({ mulai, onKlik }: { mulai: string | null | undefined; onKlik: () => void }) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t) }, [])
+  const awal = mulai ? new Date(mulai).getTime() : now
+  const lewat = Math.max(0, Math.floor((now - awal) / 1000))
+  const sisa = Math.max(0, MENIT_BACA * 60 - lewat)
+  const fmt = (d: number) => `${String(Math.floor(d / 60)).padStart(2, '0')}:${String(d % 60).padStart(2, '0')}`
+  return (
+    <div className="aksi" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
+      <div className="catatan">Durasi membaca {fmt(Math.min(lewat, MENIT_BACA * 60))} dari {fmt(MENIT_BACA * 60)}. {sisa > 0 ? `Tombol selesai aktif ${fmt(sisa)} lagi.` : 'Sudah cukup, silakan tandai selesai.'}</div>
+      <button className="tombol" disabled={sisa > 0} style={{ color: 'var(--warna-utama)' }} onClick={onKlik}>Tandai sudah selesai</button>
+    </div>
+  )
 }
 
 export function IsiMateri({ m, siswa, selesai, pratinjau }: { m: Materi; siswa: boolean; selesai: (id: string) => Promise<void>; pratinjau?: boolean }) {
@@ -48,7 +65,7 @@ export function IsiMateri({ m, siswa, selesai, pratinjau }: { m: Materi; siswa: 
         </div>
       )}
       {m.jenis !== 'teks' && m.url && (!yt || m.jenis !== 'video') && <p><a href={m.url} target="_blank" rel="noopener noreferrer">Buka {m.jenis === 'video' ? 'video' : m.jenis === 'berkas' ? 'berkas' : 'tautan'}</a></p>}
-      {siswa && !pratinjau && !m.selesai && <div className="aksi"><button className="tombol" style={{ color: 'var(--warna-utama)' }} onClick={() => void selesai(m.id)}>Tandai sudah selesai</button></div>}
+      {siswa && !pratinjau && !m.selesai && <TombolSelesai mulai={m.mulai_pada} onKlik={() => void selesai(m.id)} />}
     </div>
   )
 }
