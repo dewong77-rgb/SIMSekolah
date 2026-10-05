@@ -15,6 +15,9 @@ type NilaiAuth = {
   /** Super admin selalu true. Lingkup kosong pada penugasan berarti seluruh sekolah. */
   punyaIzin: (izin: string, lingkup?: string) => boolean
   memuat: boolean
+  /** Terisi bila profil gagal dimuat (jaringan putus, server lambat). Berbeda dengan akun yang memang belum terdaftar. */
+  galatProfil: boolean
+  muatUlang: () => void
   keluar: () => Promise<void>
 }
 
@@ -27,6 +30,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [penugasan, setPenugasan] = useState<PenugasanSaya[]>([])
   const [memuatSesi, setMemuatSesi] = useState(true)
   const [memuatProfil, setMemuatProfil] = useState(false)
+  const [galatProfil, setGalatProfil] = useState(false)
+  const [ulang, setUlang] = useState(0)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -51,25 +56,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     let batal = false
     setMemuatProfil(true)
-    Promise.all([
-      supabase
-        .from('profil_pengguna')
-        .select('user_id, npsn, peran, ptk_id, peserta_didik_id')
-        .eq('user_id', userId)
-        .maybeSingle(),
-      supabase.from('super_admin').select('user_id').eq('user_id', userId).maybeSingle(),
-      supabase.rpc('penugasan_saya'),
-    ]).then(([p, sa, pg]) => {
-      if (batal) return
-      setProfil((p.data as ProfilPengguna | null) ?? null)
-      setSuperAdmin(!!sa.data)
-      setPenugasan((pg.data as PenugasanSaya[] | null) ?? [])
-      setMemuatProfil(false)
-    })
+    setGalatProfil(false)
+    // Batas waktu 20 detik: tanpa ini, satu permintaan yang menggantung membuat layar "Memuat..." selamanya.
+    const batas = new Promise<never>((_, tolak) => window.setTimeout(() => tolak(new Error('waktu habis')), 20000))
+    Promise.race([
+      Promise.all([
+        supabase.from('profil_pengguna').select('user_id, npsn, peran, ptk_id, peserta_didik_id').eq('user_id', userId).maybeSingle(),
+        supabase.from('super_admin').select('user_id').eq('user_id', userId).maybeSingle(),
+        supabase.rpc('penugasan_saya'),
+      ]),
+      batas,
+    ])
+      .then(([p, sa, pg]) => {
+        if (batal) return
+        if (p.error) throw p.error
+        setProfil((p.data as ProfilPengguna | null) ?? null)
+        setSuperAdmin(!!sa.data)
+        setPenugasan((pg.data as PenugasanSaya[] | null) ?? [])
+      })
+      .catch(() => { if (!batal) setGalatProfil(true) })
+      .finally(() => { if (!batal) setMemuatProfil(false) })
     return () => {
       batal = true
     }
-  }, [userId])
+  }, [userId, ulang])
 
   const nilai: NilaiAuth = {
     session,
@@ -80,6 +90,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       superAdmin ||
       penugasan.some((p) => p.izin.includes(izin) && (!lingkup || !p.lingkup_id || p.lingkup_id === lingkup)),
     memuat: memuatSesi || memuatProfil,
+    galatProfil,
+    muatUlang: () => setUlang((n) => n + 1),
     keluar: async () => {
       await supabase.auth.signOut()
     },

@@ -5,7 +5,7 @@ import type { Peran } from '../lib/supabase'
 import { useAuth } from './AuthContext'
 
 export default function RequireRole({ peran, superAdmin = false, children }: { peran: Peran[]; superAdmin?: boolean; children: ReactNode }) {
-  const { session, profil, superAdmin: adalahSuper, memuat, keluar } = useAuth()
+  const { session, profil, superAdmin: adalahSuper, memuat, keluar, galatProfil, muatUlang } = useAuth()
   const lokasi = useLocation()
 
   if (memuat) {
@@ -18,6 +18,19 @@ export default function RequireRole({ peran, superAdmin = false, children }: { p
 
   if (!session) {
     return <Navigate to="/masuk" replace state={{ dari: lokasi.pathname }} />
+  }
+
+  if (galatProfil && !profil) {
+    return (
+      <Halaman judul="Gagal memuat akun" lead="Koneksi ke server terputus atau terlalu lambat. Akun Anda tidak bermasalah.">
+        <div className="kartu">
+          <div className="aksi">
+            <button className="tombol tombol-isi" onClick={muatUlang}>Coba lagi</button>
+            <button className="tombol" onClick={keluar}>Keluar</button>
+          </div>
+        </div>
+      </Halaman>
+    )
   }
 
   if (!profil) {
