@@ -171,8 +171,12 @@ const khususSuper: ItemPortal[] = [
 
 /** Menu dari izin penugasan. Item tanpa `to` belum punya halaman. */
 const menuIzin: { izin: string; nama: string; bidang: string; ikon: string; to?: string }[] = [
-  { izin: 'hubin.kelola_dudi', nama: 'Kelola DU/DI dan MoU', bidang: 'Hubungan industri', ikon: 'tas' },
-  { izin: 'hubin.kelola_humas', nama: 'Informasi dan kehumasan', bidang: 'Hubungan industri', ikon: 'tas' },
+  { izin: 'hubin.kelola_dudi', nama: 'Mitra industri dan MoU', bidang: 'Hubungan industri', ikon: 'tas', to: '/portal/hubin/kerjasama' },
+  { izin: 'hubin.kelola_profil', nama: 'Profil sekolah', bidang: 'Hubungan industri dan humas', ikon: 'sekolah', to: '/portal/profil-sekolah' },
+  { izin: 'hubin.kelola_profil', nama: 'Profil jurusan', bidang: 'Hubungan industri dan humas', ikon: 'sekolah', to: '/portal/hubin/jurusan' },
+  { izin: 'hubin.tulis_berita', nama: 'Berita dan kegiatan', bidang: 'Hubungan industri dan humas', ikon: 'dokumen', to: '/portal/hubin/berita' },
+  { izin: 'hubin.kelola_humas', nama: 'Berita dan kegiatan', bidang: 'Hubungan industri dan humas', ikon: 'dokumen', to: '/portal/hubin/berita' },
+  { izin: 'hubin.tracer', nama: 'Tracer study alumni', bidang: 'Hubungan industri dan humas', ikon: 'grafik', to: '/portal/hubin/tracer' },
   { izin: 'kurikulum.atur_jadwal', nama: 'Jam pelajaran', bidang: 'Kurikulum', ikon: 'kalender', to: '/portal/jam-pelajaran' },
   { izin: 'kurikulum.kalender', nama: 'Kalender sekolah', bidang: 'Kurikulum', ikon: 'kalender', to: '/portal/kalender' },
   { izin: 'kegiatan.kelola', nama: 'Kalender sekolah', bidang: 'Kegiatan sekolah', ikon: 'kalender', to: '/portal/kalender' },

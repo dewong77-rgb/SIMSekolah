@@ -5,7 +5,7 @@ import Layout from './components/Layout'
 import PortalLayout from './components/PortalLayout'
 import Beranda from './pages/Beranda'
 import {
-  Alumni, BeritaHalaman, HubunganIndustri, Jurusan, Kontak,
+  Alumni, HubunganIndustri, Jurusan, Kontak,
   Lms, Perpustakaan, Ppdb, Profil, TidakAda,
 } from './pages/Halaman-halaman'
 import Masuk from './pages/Masuk'
@@ -20,7 +20,14 @@ const Penugasan = lazy(() => import('./pages/Penugasan'))
 const KelolaKalender = lazy(() => import('./pages/KelolaKalender'))
 const KelolaJam = lazy(() => import('./pages/KelolaJam'))
 const Akademik = lazy(() => import('./pages/Akademik'))
-const ProfilSekolah = lazy(() => import('./pages/ProfilSekolah'))
+const BeritaDaftar = lazy(() => import('./pages/Berita').then((m) => ({ default: m.BeritaDaftar })))
+const BeritaBaca = lazy(() => import('./pages/Berita').then((m) => ({ default: m.BeritaBaca })))
+const TracerAlumni = lazy(() => import('./pages/TracerAlumni'))
+const HubinKerjasama = lazy(() => import('./pages/hubin/HubinKerjasama'))
+const HubinJurusan = lazy(() => import('./pages/hubin/HubinJurusan'))
+const HubinBerita = lazy(() => import('./pages/hubin/HubinBerita'))
+const HubinTracer = lazy(() => import('./pages/hubin/HubinTracer'))
+const ProfilSekolahHubin = lazy(() => import('./pages/hubin/ProfilSekolahHubin'))
 const RegisterSurat = lazy(() => import('./pages/Persuratan').then((m) => ({ default: m.RegisterSurat })))
 const DetailSurat = lazy(() => import('./pages/Persuratan').then((m) => ({ default: m.DetailSurat })))
 const KotakDisposisi = lazy(() => import('./pages/Persuratan').then((m) => ({ default: m.KotakDisposisi })))
@@ -77,7 +84,9 @@ createRoot(document.getElementById('root')!).render(
           <Route path="lms" element={<Lms />} />
           <Route path="perpustakaan" element={<Perpustakaan />} />
           <Route path="alumni" element={<Alumni />} />
-          <Route path="berita" element={<BeritaHalaman />} />
+          <Route path="berita" element={<Suspense fallback={null}><BeritaDaftar /></Suspense>} />
+          <Route path="berita/:slug" element={<Suspense fallback={null}><BeritaBaca /></Suspense>} />
+          <Route path="alumni/tracer" element={<Suspense fallback={null}><TracerAlumni /></Suspense>} />
           <Route path="kontak" element={<Kontak />} />
           <Route path="buku-tamu" element={<Suspense fallback={null}><BukuTamu /></Suspense>} />
           <Route path="masuk" element={<Masuk />} />
@@ -136,8 +145,40 @@ createRoot(document.getElementById('root')!).render(
           <Route
             path="portal/profil-sekolah"
             element={
-              <RequireRole peran={['admin_tu']} superAdmin>
-                <Suspense fallback={null}><ProfilSekolah /></Suspense>
+              <RequireRole peran={['admin_tu', 'guru', 'staf']}>
+                <Suspense fallback={null}><ProfilSekolahHubin /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/hubin/kerjasama"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf']}>
+                <Suspense fallback={null}><HubinKerjasama /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/hubin/jurusan"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf']}>
+                <Suspense fallback={null}><HubinJurusan /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/hubin/berita"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf']}>
+                <Suspense fallback={null}><HubinBerita /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/hubin/tracer"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf']}>
+                <Suspense fallback={null}><HubinTracer /></Suspense>
               </RequireRole>
             }
           />

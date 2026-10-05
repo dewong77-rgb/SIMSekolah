@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom'
-import { berita } from '../data/contoh'
+import { KartuBerita } from './Berita'
+import { useBeritaPublik } from '../lib/hubin'
 import { useSekolah } from '../lib/profilSekolah'
 import JamSistem from '../components/JamSistem'
 import AgendaTerdekat from '../components/AgendaTerdekat'
 import { useJurusan, useStatistik } from '../lib/dataPublik'
-import { tanggalPanjang } from '../lib/format'
 import { useAuth } from '../auth/AuthContext'
 
 const angka = (n: number | undefined) => (n === undefined ? '...' : n.toLocaleString('id-ID'))
@@ -12,6 +12,7 @@ const angka = (n: number | undefined) => (n === undefined ? '...' : n.toLocaleSt
 export default function Beranda() {
   const sekolah = useSekolah()
   const { jurusan } = useJurusan()
+  const { hasil: hasilBerita } = useBeritaPublik(3)
   const st = useStatistik()
   const { session } = useAuth()
   const pintuPortal = session ? '/portal' : '/masuk'
@@ -97,15 +98,9 @@ export default function Beranda() {
           <h2>Berita terbaru</h2>
           <Link to="/berita">Semua berita</Link>
         </div>
+        {hasilBerita && hasilBerita.baris.length === 0 && <p className="kartu">Belum ada berita yang diterbitkan.</p>}
         <div className="grid grid-3">
-          {berita.map((b) => (
-            <article key={b.slug} className="kartu">
-              <span className="lencana">{b.kategori}</span>
-              <h3>{b.judul}</h3>
-              <p>{b.ringkas}</p>
-              <small>{tanggalPanjang(b.tanggal)}</small>
-            </article>
-          ))}
+          {hasilBerita?.baris.map((b) => <KartuBerita key={b.slug} b={b} />)}
         </div>
       </section>
     </>
