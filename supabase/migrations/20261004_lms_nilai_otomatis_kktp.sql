@@ -1,5 +1,5 @@
 -- Aturan nilai pertemuan versi final (keputusan Dewong, 2026-10-04):
--- tiga tahap wajib (absen otomatis, bahan bacaan minimal 15 menit, lembar kerja terkumpul) memberi nilai
+-- tiga tahap wajib (absen otomatis, bahan bacaan minimal 10 menit, lembar kerja terkumpul) memberi nilai
 -- otomatis sebesar KKTP TP terkait pertemuan. Guru masih bisa menilai isi lembar kerja untuk menaikkan nilai
 -- di atas KKTP. Forum dan kuis memberi bonus tambahan di atas nilai dasar, total nilai dibatasi 100.
 
@@ -65,7 +65,7 @@ begin
       from public.materi m where m.pertemuan_id = p_pertemuan and (v_kelola or m.untuk = 'siswa')), '[]'::jsonb));
 end $$;
 
--- lms_tandai_selesai: bahan bacaan baru bisa ditandai selesai setelah 15 menit sejak pertama dibuka.
+-- lms_tandai_selesai: bahan bacaan baru bisa ditandai selesai setelah 10 menit sejak pertama dibuka.
 -- Lembar kerja (tugas_id terisi) tidak kena jeda ini, alurnya lewat lms_lembar_kumpul.
 create or replace function public.lms_tandai_selesai(p_materi uuid) returns void
 language plpgsql security definer set search_path = '' as $$
@@ -85,9 +85,9 @@ begin
       insert into public.progres_mulai (materi_id, peserta_didik_id) values (p_materi, v_pd) on conflict do nothing;
       v_mulai := now();
     end if;
-    v_sisa := 15 - extract(epoch from (now() - v_mulai)) / 60;
+    v_sisa := 10 - extract(epoch from (now() - v_mulai)) / 60;
     if v_sisa > 0 then
-      raise exception 'Baca dulu minimal 15 menit sebelum menandai selesai. Sisa % menit.', ceil(v_sisa)
+      raise exception 'Baca dulu minimal 10 menit sebelum menandai selesai. Sisa % menit.', ceil(v_sisa)
         using errcode = 'P0001', hint = 'durasi_kurang';
     end if;
   end if;

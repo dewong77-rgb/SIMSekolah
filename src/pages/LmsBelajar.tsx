@@ -12,7 +12,7 @@ export type Materi = { id: string; urutan: number; jenis: 'teks' | 'video' | 'ta
 const labelJenis: Record<string, string> = { teks: 'Bacaan', video: 'Video', tautan: 'Tautan', berkas: 'Berkas' }
 
 /** Jeda baca minimal sebelum bahan bacaan boleh ditandai selesai. Harus sama dengan batas di lms_tandai_selesai. */
-const MENIT_BACA_MINIMAL = 15
+const MENIT_BACA_MINIMAL = 10
 
 function sisaDetikBaca(mulaiPada?: string | null): number {
   if (!mulaiPada) return MENIT_BACA_MINIMAL * 60
