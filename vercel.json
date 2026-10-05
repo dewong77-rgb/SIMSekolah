@@ -1,3 +1,100 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "redirects": [
+    {
+      "source": "/staff",
+      "destination": "/struktur-organisasi",
+      "permanent": false
+    },
+    {
+      "source": "/berita/profil",
+      "destination": "/profil",
+      "permanent": false
+    },
+    {
+      "source": "/berita/profil/:slug",
+      "destination": "/jurusan",
+      "permanent": false
+    },
+    {
+      "source": "/berita/kategori/:slug",
+      "destination": "/berita",
+      "permanent": false
+    },
+    {
+      "source": "/berita/read/:slug",
+      "destination": "/berita",
+      "permanent": false
+    },
+    {
+      "source": "/prestasi",
+      "destination": "/berita",
+      "permanent": false
+    },
+    {
+      "source": "/prestasi/:path*",
+      "destination": "/berita",
+      "permanent": false
+    },
+    {
+      "source": "/galeri",
+      "destination": "/berita",
+      "permanent": false
+    },
+    {
+      "source": "/video",
+      "destination": "/berita",
+      "permanent": false
+    },
+    {
+      "source": "/portfolio",
+      "destination": "/berita",
+      "permanent": false
+    },
+    {
+      "source": "/portfolio/:path*",
+      "destination": "/berita",
+      "permanent": false
+    },
+    {
+      "source": "/ekstrakurikuler",
+      "destination": "/profil",
+      "permanent": false
+    },
+    {
+      "source": "/ekstrakurikuler/:path*",
+      "destination": "/profil",
+      "permanent": false
+    },
+    {
+      "source": "/fasilitas",
+      "destination": "/profil",
+      "permanent": false
+    },
+    {
+      "source": "/fasilitas/:path*",
+      "destination": "/profil",
+      "permanent": false
+    },
+    {
+      "source": "/download",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/download/:path*",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/layanan",
+      "destination": "/masuk",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }
