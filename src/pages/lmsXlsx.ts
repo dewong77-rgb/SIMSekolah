@@ -27,12 +27,12 @@ type Jurnal = { tanggal: string; pertemuan_nomor: number | null; materi: string;
 const kodeAbsen: Record<string, string> = { hadir: 'H', izin: 'I', sakit: 'S', alpa: 'A' }
 const labelTugas: Record<string, string> = { belum: 'Belum', terkumpul: 'Terkumpul', terlambat: 'Terlambat', dinilai: 'Dinilai' }
 const labelKuis: Record<string, string> = { belum: 'Belum', berjalan: 'Mengerjakan', perlu_koreksi: 'Menunggu koreksi', selesai: 'Selesai' }
-const grupNama: Record<string, string> = { kuis: 'Kuis', tugas: 'Tugas', uh: 'Ulangan harian', uas: 'Ulangan semester' }
-const grupUrut = ['kuis', 'tugas', 'uh', 'uas']
+const grupNama: Record<string, string> = { kuis: 'Kuis', tugas: 'Tugas', uh: 'Ulangan harian', uts: 'UTS', uas: 'UAS' }
+const grupUrut = ['kuis', 'tugas', 'uh', 'uts', 'uas']
 
 const bersih = (s: string) => s.replace(/[\\/?*[\]:]/g, ' ').slice(0, 31).trim() || 'Sheet'
 
-export async function unduhRekapKelas(kelas: Info, bobot: Record<string, number> = { kuis: 20, tugas: 20, uh: 30, uas: 30 }) {
+export async function unduhRekapKelas(kelas: Info, bobot: Record<string, number> = { kuis: 20, tugas: 20, uh: 20, uts: 20, uas: 20 }) {
   const id = kelas.id
   const [pertemuan, rekap, nilai, asesmen, tugas, jurnal] = await Promise.all([
     panggil<Pertemuan[]>('lms_pertemuan_daftar', { p_kelas: id }),

@@ -9,12 +9,13 @@ import { biru, dariInputLokal, dua, keInputLokal, merah, nilaiTeks, unduhCsv } f
 // Kunci jawaban dan rubrik skor baru dikirim setelah siswa selesai.
 
 export type PertemuanRingkas = { id: string; nomor: number; judul: string }
+type Jenis = 'kuis' | 'ulangan_harian' | 'ulangan_tengah' | 'ulangan_semester'
 type Tipe = 'pilgan' | 'isian' | 'esai'
 type Level = { skor: number; deskripsi: string }
 type Rubrik = { kriteria: string; skor_maks: number; level?: Level[] }
 type Komposisi = { pilgan: number; isian: number; esai: number; total_bobot: number }
 type Asesmen = {
-  id: string; jenis: 'kuis' | 'ulangan_harian' | 'ulangan_semester'; judul: string; petunjuk: string | null
+  id: string; jenis: Jenis; judul: string; petunjuk: string | null
   pertemuan_id: string | null; pertemuan_nomor: number | null; durasi_menit: number
   buka: string | null; tutup: string | null; maks_percobaan: number; acak: boolean; tampil_hasil: boolean
   jumlah_tampil: number | null; kkm: number | null; komposisi: Komposisi
@@ -52,7 +53,9 @@ type SoalKoreksi = {
   kunci_isian: string[] | null; jawaban: JawabanKoreksi[]
 }
 
-const labelJenis: Record<string, string> = { kuis: 'Kuis', ulangan_harian: 'Ulangan harian', ulangan_semester: 'Ulangan semester' }
+const labelJenis: Record<string, string> = { kuis: 'Kuis', ulangan_harian: 'Ulangan harian', ulangan_tengah: 'Ulangan tengah semester (UTS)', ulangan_semester: 'Ulangan akhir semester (UAS)' }
+const labelTab: Record<Jenis, string> = { kuis: 'Kuis', ulangan_harian: 'Ulangan harian', ulangan_tengah: 'UTS', ulangan_semester: 'UAS' }
+const urutJenis: Jenis[] = ['kuis', 'ulangan_harian', 'ulangan_tengah', 'ulangan_semester']
 const labelTipe: Record<Tipe, string> = { pilgan: 'Pilihan ganda', isian: 'Isian singkat', esai: 'Esai dengan rubrik' }
 const labelStatusKuis: Record<StatusKuis, string> = { belum: 'Belum mengerjakan', berjalan: 'Sedang mengerjakan', perlu_koreksi: 'Menunggu koreksi', selesai: 'Selesai' }
 const kelasStatusKuis: Record<StatusKuis, string> = { belum: 'status-dibatalkan', berjalan: 'status-menunggu', perlu_koreksi: 'status-menunggu', selesai: 'status-selesai' }
@@ -82,17 +85,17 @@ function simpanAsesmen(kelasId: string, a: Asesmen | null, v: NilaiForm, terbit:
     p_kkm: v.kkm.trim() ? Number(v.kkm) : null,
   })
 }
-const nilaiAwal = (a: Asesmen | null): NilaiForm => ({
-  pertemuan: a?.pertemuan_id ?? '', jenis: a?.jenis ?? 'kuis', judul: a?.judul ?? '', petunjuk: a?.petunjuk ?? '',
+const nilaiAwal = (a: Asesmen | null, jenisAwal: Jenis = 'kuis'): NilaiForm => ({
+  pertemuan: a?.pertemuan_id ?? '', jenis: a?.jenis ?? jenisAwal, judul: a?.judul ?? '', petunjuk: a?.petunjuk ?? '',
   durasi: a?.durasi_menit ?? 15, buka: keInputLokal(a?.buka ?? null), tutup: keInputLokal(a?.tutup ?? null),
   maks: a?.maks_percobaan ?? 1, acak: a?.acak ?? true, tampil: a?.tampil_hasil ?? true,
   jumlahTampil: a?.jumlah_tampil != null ? String(a.jumlah_tampil) : '', kkm: a?.kkm != null ? String(a.kkm) : '',
 })
 
-function FormAsesmen({ kelasId, pertemuan, awal, selesai }: {
-  kelasId: string; pertemuan: PertemuanRingkas[]; awal: Asesmen | null; selesai: (id: string) => void | Promise<void>
+function FormAsesmen({ kelasId, pertemuan, awal, selesai, jenisAwal }: {
+  kelasId: string; pertemuan: PertemuanRingkas[]; awal: Asesmen | null; selesai: (id: string) => void | Promise<void>; jenisAwal?: Jenis
 }) {
-  const [v, setV] = useState<NilaiForm>(nilaiAwal(awal))
+  const [v, setV] = useState<NilaiForm>(nilaiAwal(awal, jenisAwal))
   const [galat, setGalat] = useState('')
   const [sibuk, setSibuk] = useState(false)
   async function kirim(e: FormEvent) {
@@ -195,6 +198,7 @@ export function DaftarKuis({ kelasId, kelola, pertemuan }: { kelasId: string; ke
   const [daftar, setDaftar] = useState<Asesmen[] | null>(null)
   const [galat, setGalat] = useState('')
   const [form, setForm] = useState(false)
+  const [tab, setTab] = useState<Jenis>('kuis')
   const nav = useNavigate()
   useEffect(() => {
     panggil<Asesmen[]>('lms_asesmen_daftar', { p_kelas: kelasId }).then(setDaftar).catch((e: Error) => setGalat(e.message))
@@ -203,19 +207,26 @@ export function DaftarKuis({ kelasId, kelola, pertemuan }: { kelasId: string; ke
     <>
       <div className="judul-bagian jarak"><h2>Kuis dan ulangan</h2></div>
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
+      <nav className="langkah-bar" aria-label="Jenis penilaian">
+        {urutJenis.map((j) => (
+          <button key={j} type="button" className={`langkah${tab === j ? ' langkah-aktif' : ''}`} onClick={() => { setTab(j); setForm(false) }}>
+            <span className="langkah-teks"><strong>{labelTab[j]}</strong><small>{daftar ? `${daftar.filter((a) => a.jenis === j).length} buah` : '...'}</small></span>
+          </button>
+        ))}
+      </nav>
       {kelola && (
         <div className="aksi">
-          <button className="tombol tombol-isi" onClick={() => setForm(!form)}>{form ? 'Tutup formulir' : 'Buat kuis atau ulangan'}</button>
+          <button className="tombol tombol-isi" onClick={() => setForm(!form)}>{form ? 'Tutup formulir' : `Buat ${labelJenis[tab].toLowerCase()}`}</button>
         </div>
       )}
-      {form && <FormAsesmen kelasId={kelasId} pertemuan={pertemuan} awal={null} selesai={(id) => nav(`/portal/lms/${kelasId}/kuis/${id}`)} />}
+      {form && <FormAsesmen key={tab} kelasId={kelasId} pertemuan={pertemuan} awal={null} jenisAwal={tab} selesai={(id) => nav(`/portal/lms/${kelasId}/kuis/${id}`)} />}
       <div className="tabel-bungkus jarak">
         <table>
           <thead><tr><th>Judul</th><th>Jadwal</th><th>{kelola ? 'Soal dan peserta' : 'Nilai saya'}</th><th></th></tr></thead>
           <tbody>
             {!daftar && <tr><td colSpan={4}>Memuat...</td></tr>}
-            {daftar && daftar.length === 0 && <tr><td colSpan={4}>Belum ada kuis atau ulangan.</td></tr>}
-            {(daftar ?? []).map((a) => (
+            {daftar && daftar.filter((a) => a.jenis === tab).length === 0 && <tr><td colSpan={4}>Belum ada {labelJenis[tab].toLowerCase()}.</td></tr>}
+            {(daftar ?? []).filter((a) => a.jenis === tab).map((a) => (
               <tr key={a.id}>
                 <td>
                   <Link to={`/portal/lms/${kelasId}/kuis/${a.id}`}>{a.judul}</Link><br />
