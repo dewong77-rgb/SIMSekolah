@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { Fragment, useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import Halaman from '../components/Halaman'
+import Ikon from '../components/Ikon'
 import { panggil, tglJam } from '../lib/rpc'
 import { bacaSoalXlsx, unduhTemplateSoal, type SoalImpor } from './lmsSoalXlsx'
 import { biru, dariInputLokal, dua, keInputLokal, merah, nilaiTeks, unduhCsv } from './lmsUtil'
@@ -202,11 +203,16 @@ export function DaftarKuis({ kelasId, kelola, pertemuan, jenisTetap }: { kelasId
   const [galat, setGalat] = useState('')
   const [form, setForm] = useState(false)
   const [tabPilih, setTab] = useState<Jenis>('kuis')
+  const [ubahId, setUbahId] = useState<string | null>(null)
   const tab = jenisTetap ?? tabPilih
   const nav = useNavigate()
-  useEffect(() => {
-    panggil<Asesmen[]>('lms_asesmen_daftar', { p_kelas: kelasId }).then(setDaftar).catch((e: Error) => setGalat(e.message))
-  }, [kelasId])
+  const muatDaftar = useCallback(() => panggil<Asesmen[]>('lms_asesmen_daftar', { p_kelas: kelasId }).then(setDaftar).catch((e: Error) => setGalat(e.message)), [kelasId])
+  useEffect(() => { void muatDaftar() }, [muatDaftar])
+  async function hapus(a: Asesmen) {
+    if (!window.confirm(`Hapus "${a.judul}"? Soal di dalamnya ikut hilang dari daftar.`)) return
+    setGalat('')
+    try { await panggil('lms_asesmen_hapus', { p_asesmen: a.id }); await muatDaftar() } catch (e) { setGalat((e as Error).message) }
+  }
   return (
     <>
       {!jenisTetap && <div className="judul-bagian jarak"><h2>Kuis dan ulangan</h2></div>}
@@ -231,7 +237,8 @@ export function DaftarKuis({ kelasId, kelola, pertemuan, jenisTetap }: { kelasId
             {!daftar && <tr><td colSpan={4}>Memuat...</td></tr>}
             {daftar && daftar.filter((a) => a.jenis === tab).length === 0 && <tr><td colSpan={4}>Belum ada {labelJenis[tab].toLowerCase()}.</td></tr>}
             {(daftar ?? []).filter((a) => a.jenis === tab).map((a) => (
-              <tr key={a.id}>
+              <Fragment key={a.id}>
+              <tr>
                 <td>
                   <Link to={`/portal/lms/${kelasId}/kuis/${a.id}`}>{a.judul}</Link><br />
                   <small>{labelJenis[a.jenis]}{a.pertemuan_nomor ? `, pertemuan ${a.pertemuan_nomor}` : ''}, {a.durasi_menit} menit</small>
@@ -255,8 +262,20 @@ export function DaftarKuis({ kelasId, kelola, pertemuan, jenisTetap }: { kelasId
                           </>
                         : <span className="status status-dibatalkan">Belum dikerjakan</span>}
                 </td>
-                <td><Link to={`/portal/lms/${kelasId}/kuis/${a.id}`}>{kelola ? 'Kelola' : 'Buka'}</Link></td>
+                <td>
+                  {kelola
+                    ? (
+                      <div className="aksi-ikon">
+                        <Link className="tombol-ikon" to={`/portal/lms/${kelasId}/kuis/${a.id}`} title="Kelola soal" aria-label={`Kelola soal ${a.judul}`}><Ikon nama="buku" ukuran={18} /><span>Soal</span></Link>
+                        <button type="button" className="tombol-ikon" title="Ubah pengaturan" aria-label={`Ubah ${a.judul}`} onClick={() => setUbahId(ubahId === a.id ? null : a.id)}><Ikon nama="pena" ukuran={18} /><span>Ubah</span></button>
+                        <button type="button" className="tombol-ikon tombol-ikon-bahaya" title="Hapus" aria-label={`Hapus ${a.judul}`} onClick={() => void hapus(a)}><Ikon nama="sampah" ukuran={18} /><span>Hapus</span></button>
+                      </div>
+                    )
+                    : <Link to={`/portal/lms/${kelasId}/kuis/${a.id}`}>Buka</Link>}
+                </td>
               </tr>
+              {ubahId === a.id && <tr><td colSpan={4}><FormAsesmen kelasId={kelasId} pertemuan={pertemuan} awal={a} selesai={async () => { setUbahId(null); await muatDaftar() }} /></td></tr>}
+              </Fragment>
             ))}
           </tbody>
         </table>

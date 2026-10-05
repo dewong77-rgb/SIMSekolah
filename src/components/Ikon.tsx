@@ -17,6 +17,7 @@ const jalur: Record<string, string> = {
   kalender: 'M4 6h16v14H4zM4 10h16M8 3v5M16 3v5',
   centang: 'M5 12l5 5L20 7',
   pena: 'M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4',
+  sampah: 'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3',
   keluar: 'M10 4H5v16h5M16 8l4 4-4 4M20 12H9',
   kunci: 'M6 11h12v9H6zM8 11V8a4 4 0 0 1 8 0v3',
   menu: 'M4 6h16M4 12h16M4 18h16',
