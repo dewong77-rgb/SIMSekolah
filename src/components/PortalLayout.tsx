@@ -222,12 +222,6 @@ export default function PortalLayout() {
                           )}
                         </div>
                       )}
-                      {profil && !wajibGanti && menu.kelompok.filter((k) => k.judul.startsWith('Tugas tambahan')).map((k) => (
-                        <div key={k.judul}>
-                          <small className="akun-info" style={{ display: 'block', paddingBottom: 0 }}>{k.judul.replace('Tugas tambahan: ', '')}</small>
-                          {k.item.map((i) => <Link key={i.to} role="menuitem" to={i.to}><Ikon nama={i.ikon} />{i.label}</Link>)}
-                        </div>
-                      ))}
                       {profil && !wajibGanti && (
                         <>
                           {profil.peran !== 'siswa' && <Link role="menuitem" to="/portal/profil"><Ikon nama="pengguna" />Profil dan password</Link>}

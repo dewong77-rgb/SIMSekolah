@@ -21,6 +21,7 @@ export default function Portal() {
   const { profil, superAdmin, penugasan } = useAuth()
   const { menu, lencana, nama } = usePortal()
   if (!profil) return null
+  const ikutJam = profil.peran === 'siswa' || profil.peran === 'guru'
 
   const perhatian = [
     { n: lencana.ajuan_masuk ?? 0, teks: 'ajuan perbaikan data menunggu keputusan atau pengerjaan', to: '/portal/ajuan-masuk', ikon: 'kotak' },
@@ -56,9 +57,10 @@ export default function Portal() {
         </section>
       )}
 
-      <div className="grid grid-2 menu-bagian">
+      {/* Jam pelajaran hanya relevan bagi yang mengikuti jam bel. Bilah atas sudah memuat jam untuk semua peran. */}
+      <div className={'menu-bagian' + (ikutJam ? ' grid grid-2' : '')}>
         <AgendaTerdekat semua hari={14} maks={5} judul="Agenda 14 hari ke depan" />
-        <JamSistem varian="kartu" />
+        {ikutJam && <JamSistem varian="kartu" />}
       </div>
 
       {menu.kelompok.map((k) => (
@@ -81,7 +83,7 @@ export default function Portal() {
         </section>
       ))}
 
-      {menu.segera.length > 0 && (
+      {superAdmin && menu.segera.length > 0 && (
         <details className="segera-daftar">
           <summary>Fitur dalam rencana ({menu.segera.length})</summary>
           <ul>
