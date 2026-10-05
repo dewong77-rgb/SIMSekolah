@@ -42,6 +42,8 @@ export function IsiMateri({ m, siswa, selesai, pratinjau }: { m: Materi; siswa: 
   if (siswa && m.tugas_id && m.format === 'html') return <LembarSiswa tugasId={m.tugas_id} html={m.isi ?? ''} judul={m.judul} />
   const yt = m.jenis === 'video' && m.url ? idYoutube(m.url) : null
   const kenaJeda = siswa && !pratinjau && !m.tugas_id && !m.selesai
+  const [ceklis, setCeklis] = useState(false)
+  const [kirim, setKirim] = useState(false)
   const [sisa, setSisa] = useState(() => (kenaJeda ? sisaDetikBaca(m.mulai_pada) : 0))
   useEffect(() => {
     if (!kenaJeda) return
@@ -72,10 +74,19 @@ export function IsiMateri({ m, siswa, selesai, pratinjau }: { m: Materi; siswa: 
       )}
       {m.jenis !== 'teks' && m.url && (!yt || m.jenis !== 'video') && <p><a href={m.url} target="_blank" rel="noopener noreferrer">Buka {m.jenis === 'video' ? 'video' : m.jenis === 'berkas' ? 'berkas' : 'tautan'}</a></p>}
       {siswa && !pratinjau && !m.selesai && (
-        <div className="aksi">
+        <div className="aksi" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
           {kenaJeda && sisa > 0
-            ? <p className="catatan">Baca dulu. Tombol selesai aktif dalam {formatMenitDetik(sisa)}.</p>
-            : <button className="tombol" style={{ color: 'var(--warna-utama)' }} onClick={() => void selesai(m.id)}>Tandai sudah selesai</button>}
+            ? <p className="catatan">Durasi baca {formatMenitDetik(MENIT_BACA_MINIMAL * 60 - sisa)} dari {formatMenitDetik(MENIT_BACA_MINIMAL * 60)}. Konfirmasi aktif dalam {formatMenitDetik(sisa)}.</p>
+            : (
+              <>
+                <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                  <input type="checkbox" checked={ceklis} onChange={(e) => setCeklis(e.target.checked)} style={{ marginTop: 4 }} />
+                  <span>Saya sudah membaca materi bacaan ini.</span>
+                </label>
+                <button className="tombol" disabled={!ceklis || kirim} style={{ color: 'var(--warna-utama)' }}
+                  onClick={() => { setKirim(true); void selesai(m.id).finally(() => setKirim(false)) }}>{kirim ? 'Mengirim...' : 'Kirim'}</button>
+              </>
+            )}
         </div>
       )}
     </div>
