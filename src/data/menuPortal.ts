@@ -32,6 +32,15 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
       ],
     },
     {
+      judul: 'Penilaian',
+      item: [
+        { to: '/portal/penilaian/kuis', label: 'Kuis', ikon: 'centang', ket: 'Kuis semua kelas' },
+        { to: '/portal/penilaian/uh', label: 'Ulangan harian', ikon: 'centang', ket: 'Ulangan harian semua kelas' },
+        { to: '/portal/penilaian/uts', label: 'UTS', ikon: 'centang', ket: 'Ulangan tengah semester' },
+        { to: '/portal/penilaian/uas', label: 'UAS', ikon: 'centang', ket: 'Ulangan akhir semester' },
+      ],
+    },
+    {
       judul: 'Data diri',
       item: [
         { to: '/portal/data-saya', label: 'Data saya', ikon: 'pengguna', ket: 'Identitas, alamat, orang tua, dan kelas' },
@@ -47,6 +56,15 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
         { to: '/portal/lms/dashboard', label: 'Dashboard pembelajaran', ikon: 'grafik', ket: 'Absen serentak dan pantauan semua kelas dalam satu layar' },
         { to: '/portal/absensi', label: 'Absensi', ikon: 'centang', ket: 'Jumlah siswa yang diajar dan rekap kehadiran per kelas' },
         { to: '/portal/lms/administrasi', label: 'Administrasi guru', ikon: 'dokumen', ket: 'ATP, modul ajar, program, dan perangkat ajar lain' },
+      ],
+    },
+    {
+      judul: 'Penilaian',
+      item: [
+        { to: '/portal/penilaian/kuis', label: 'Kuis', ikon: 'centang', ket: 'Kuis semua kelas' },
+        { to: '/portal/penilaian/uh', label: 'Ulangan harian', ikon: 'centang', ket: 'Ulangan harian semua kelas' },
+        { to: '/portal/penilaian/uts', label: 'UTS', ikon: 'centang', ket: 'Ulangan tengah semester' },
+        { to: '/portal/penilaian/uas', label: 'UAS', ikon: 'centang', ket: 'Ulangan akhir semester' },
       ],
     },
     {

@@ -194,26 +194,30 @@ export function LatihanPertemuan({ kelasId, pertemuanId, judul, kelola, perbarui
   )
 }
 
-export function DaftarKuis({ kelasId, kelola, pertemuan }: { kelasId: string; kelola: boolean; pertemuan: PertemuanRingkas[] }) {
+export const labelJenisAsesmen = labelJenis
+export type JenisAsesmen = Jenis
+
+export function DaftarKuis({ kelasId, kelola, pertemuan, jenisTetap }: { kelasId: string; kelola: boolean; pertemuan: PertemuanRingkas[]; jenisTetap?: Jenis }) {
   const [daftar, setDaftar] = useState<Asesmen[] | null>(null)
   const [galat, setGalat] = useState('')
   const [form, setForm] = useState(false)
-  const [tab, setTab] = useState<Jenis>('kuis')
+  const [tabPilih, setTab] = useState<Jenis>('kuis')
+  const tab = jenisTetap ?? tabPilih
   const nav = useNavigate()
   useEffect(() => {
     panggil<Asesmen[]>('lms_asesmen_daftar', { p_kelas: kelasId }).then(setDaftar).catch((e: Error) => setGalat(e.message))
   }, [kelasId])
   return (
     <>
-      <div className="judul-bagian jarak"><h2>Kuis dan ulangan</h2></div>
+      {!jenisTetap && <div className="judul-bagian jarak"><h2>Kuis dan ulangan</h2></div>}
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
-      <nav className="langkah-bar" aria-label="Jenis penilaian">
+      {!jenisTetap && <nav className="langkah-bar" aria-label="Jenis penilaian">
         {urutJenis.map((j) => (
           <button key={j} type="button" className={`langkah${tab === j ? ' langkah-aktif' : ''}`} onClick={() => { setTab(j); setForm(false) }}>
             <span className="langkah-teks"><strong>{labelTab[j]}</strong><small>{daftar ? `${daftar.filter((a) => a.jenis === j).length} buah` : '...'}</small></span>
           </button>
         ))}
-      </nav>
+      </nav>}
       {kelola && (
         <div className="aksi">
           <button className="tombol tombol-isi" onClick={() => setForm(!form)}>{form ? 'Tutup formulir' : `Buat ${labelJenis[tab].toLowerCase()}`}</button>

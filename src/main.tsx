@@ -47,6 +47,7 @@ const JurnalKelas = lazy(() => import('./pages/LmsGuru').then((m) => ({ default:
 const BukuNilai = lazy(() => import('./pages/LmsGuru').then((m) => ({ default: m.BukuNilai })))
 const LmsAnak = lazy(() => import('./pages/LmsGuru').then((m) => ({ default: m.LmsAnak })))
 const DashboardPembelajaran = lazy(() => import('./pages/LmsDashboard'))
+const Penilaian = lazy(() => import('./pages/Penilaian'))
 const RencanaAjar = lazy(() => import('./pages/RencanaAjar'))
 const PerangkatAjar = lazy(() => import('./pages/PerangkatAjar'))
 const PanduanLms = lazy(() => import('./pages/PanduanLms'))
@@ -266,6 +267,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="portal/disposisi" element={<RequireRole peran={['admin_tu', 'guru', 'staf']}><Suspense fallback={null}><KotakDisposisi /></Suspense></RequireRole>} />
           <Route path="portal/lms" element={<RequireRole peran={['admin_tu', 'guru', 'siswa']}><Suspense fallback={null}><DaftarKelas /></Suspense></RequireRole>} />
           <Route path="portal/lms/perangkat/:jenis" element={<RequireRole peran={['guru']}><Suspense fallback={null}><PerangkatAjar /></Suspense></RequireRole>} />
+          <Route path="portal/penilaian/:jenis" element={<RequireRole peran={['guru', 'siswa']}><Suspense fallback={null}><Penilaian /></Suspense></RequireRole>} />
           <Route path="portal/lms/rencana" element={<RequireRole peran={['guru']}><Suspense fallback={null}><RencanaAjar /></Suspense></RequireRole>} />
           <Route path="portal/lms/dashboard" element={<RequireRole peran={['admin_tu', 'guru']}><Suspense fallback={null}><DashboardPembelajaran /></Suspense></RequireRole>} />
           <Route path="portal/lms/:kelasId" element={<RequireRole peran={['admin_tu', 'guru', 'siswa']}><Suspense fallback={null}><DetailKelas /></Suspense></RequireRole>} />
