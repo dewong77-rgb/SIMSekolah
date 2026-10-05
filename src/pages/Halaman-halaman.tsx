@@ -134,7 +134,7 @@ export function Lms() {
     <Halaman judul="LMS" lead="Ruang belajar daring untuk siswa dan guru. Perlu masuk dengan akun sekolah.">
       <div className="kartu">
         <h3>Ruang belajar</h3>
-        <p>Absen per pertemuan, materi, dan video pelajaran. Tahap awal berjalan untuk Informatika kelas X.</p>
+        <p>Setiap pertemuan berisi bahan bacaan, lembar kerja, dan diskusi, dilengkapi kuis, ulangan, dan tugas. Kehadiran tercatat dari aktivitas belajar. Orang tua dapat memantau kehadiran dan progres anak.</p>
         <Link to="/portal/lms" className="tombol tombol-isi">Buka ruang belajar</Link>
       </div>
     </Halaman>

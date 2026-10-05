@@ -33,8 +33,8 @@ export default function Beranda() {
           </p>
           <JamSistem varian="hero" />
           <div className="aksi">
-            <Link to="/ppdb" className="tombol tombol-isi">Informasi PPDB</Link>
-            <Link to={pintuPortal} className="tombol tombol-garis">{session ? 'Buka portal' : 'Masuk ke portal'}</Link>
+            <Link to={pintuPortal} className="tombol tombol-isi">{session ? 'Buka portal' : 'Masuk ke portal'}</Link>
+            <Link to="/jurusan" className="tombol tombol-garis">Kenali kompetensi keahlian</Link>
           </div>
         </div>
       </section>
@@ -51,34 +51,6 @@ export default function Beranda() {
       </section>
 
       <section className="wadah bagian">
-        <AgendaTerdekat hari={30} judul="Agenda sekolah" />
-      </section>
-
-      <section className="wadah bagian">
-        <div className="judul-bagian">
-          <h2>Layanan cepat</h2>
-        </div>
-        <div className="grid grid-4">
-          <Link to={session ? '/portal/lms' : '/masuk'} className="kartu tautan">
-            <h3>LMS</h3>
-            <p>Ruang belajar daring untuk siswa dan guru. {session ? 'Buka kelas Anda.' : 'Masuk untuk membuka kelas.'}</p>
-          </Link>
-          <Link to="/perpustakaan" className="kartu tautan">
-            <h3>Perpustakaan</h3>
-            <p>Telusuri koleksi dan panduan layanan.</p>
-          </Link>
-          <Link to="/alumni" className="kartu tautan">
-            <h3>Cek Data Alumni</h3>
-            <p>Periksa data kelulusan dengan NISN dan tanggal lahir.</p>
-          </Link>
-          <Link to="/akademik" className="kartu tautan">
-            <h3>Kalender Akademik</h3>
-            <p>Jadwal kegiatan dan asesmen sepanjang tahun ajaran.</p>
-          </Link>
-        </div>
-      </section>
-
-      <section className="wadah bagian">
         <div className="judul-bagian">
           <h2>Kompetensi keahlian</h2>
           <Link to="/jurusan">Lihat semua</Link>
@@ -91,6 +63,42 @@ export default function Beranda() {
             </Link>
           ))}
         </div>
+      </section>
+
+      <section className="wadah bagian">
+        <div className="judul-bagian">
+          <h2>Layanan sekolah</h2>
+        </div>
+        <div className="grid grid-3">
+          <Link to={pintuPortal} className="kartu tautan">
+            <h3>Portal dan LMS</h3>
+            <p>Kelas daring, lembar kerja, kuis, dan progres belajar untuk siswa, guru, dan orang tua. {session ? 'Buka portal Anda.' : 'Masuk dengan akun sekolah.'}</p>
+          </Link>
+          <Link to="/akademik" className="kartu tautan">
+            <h3>Kalender Akademik</h3>
+            <p>Jadwal kegiatan, libur, dan asesmen. Bisa dilanggan di Google Kalender.</p>
+          </Link>
+          <Link to="/hubungan-industri" className="kartu tautan">
+            <h3>Hubungan Industri</h3>
+            <p>Mitra dunia usaha dan industri untuk praktik kerja dan penyerapan lulusan.</p>
+          </Link>
+          <Link to="/alumni" className="kartu tautan">
+            <h3>Cek Data Alumni</h3>
+            <p>Periksa data kelulusan dengan NISN dan tanggal lahir.</p>
+          </Link>
+          <Link to="/alumni/tracer" className="kartu tautan">
+            <h3>Tracer Study</h3>
+            <p>Alumni melaporkan kelanjutan studi dan pekerjaan untuk perbaikan pembelajaran.</p>
+          </Link>
+          <Link to="/struktur-organisasi" className="kartu tautan">
+            <h3>Struktur Organisasi</h3>
+            <p>Kepala sekolah, wakil kepala, dan pembagian tugas.</p>
+          </Link>
+        </div>
+      </section>
+
+      <section className="wadah bagian">
+        <AgendaTerdekat hari={30} judul="Agenda sekolah" />
       </section>
 
       <section className="wadah bagian">
