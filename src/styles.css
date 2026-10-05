@@ -506,3 +506,22 @@ input[type="search"] { font: inherit; padding: 8px 12px; border: 1px solid #b9c1
 .syarat-sandi li.ok { color: #1b5e20; }
 .syarat-sandi li.ok::before { content: '✓'; color: #1b5e20; font-weight: 700; }
 .kotak-hitung { border-left: 4px solid var(--warna-aksen); background: #fffaf0; padding: 8px 12px; border-radius: 0 8px 8px 0; }
+
+/* Lembar kerja di HP: status simpan, tombol Kumpulkan menempel, tabel jadi kartu */
+.aksi-lekat { position: sticky; bottom: 0; z-index: 5; align-items: center; justify-content: space-between; background: #fff; border-top: 1px solid var(--garis,#d4d8de); padding: .6rem 0; margin-top: 16px; }
+.aksi-lekat .tombol-isi { min-width: 9rem; }
+.status-simpan { font-size: .9rem; color: #5b6572; }
+.status-simpan-tersimpan::before { content: '✓ '; color: #17692f; font-weight: 700; }
+.status-simpan-tersimpan { color: #17692f; font-weight: 600; }
+.status-simpan-gagal { color: #8a4b00; font-weight: 600; }
+@media (max-width: 640px) {
+  .tabel-kartu, .tabel-kartu tbody, .tabel-kartu tr, .tabel-kartu td { display: block; width: 100%; box-sizing: border-box; }
+  .tabel-kartu .tabel-kepala { display: none; }
+  .tabel-kartu tr { border: 1px solid var(--garis,#d4d8de); border-radius: 10px; margin: 0 0 .7rem; padding: .3rem .5rem; }
+  .tabel-kartu td { border: 0; padding: 4px 0; min-width: 0; }
+  .tabel-kartu td[data-label]::before { content: attr(data-label); display: block; font-size: .8rem; font-weight: 700; color: #5b6572; }
+}
+
+.langkah-berikut { border-left: 4px solid var(--warna-utama,#1a3e6f); display: grid; gap: .3rem; }
+.langkah-berikut h3 { margin: 0; }
+.langkah-berikut p { margin: 0 0 .4rem; }

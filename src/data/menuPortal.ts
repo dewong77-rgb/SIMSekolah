@@ -37,9 +37,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
     {
       judul: 'Data diri',
       item: [
-        { to: '/portal/data-saya', label: 'Data saya', ikon: 'pengguna', ket: 'Identitas, alamat, orang tua, dan kelas' },
-        { to: '/portal/catatan-saya', label: 'Catatan kesiswaan', ikon: 'centang', ket: 'Kehadiran, prestasi, pelanggaran terverifikasi, ekskul, dan pengajuan izin' },
-        ajuanSaya,
+        { to: '/portal/data-saya', label: 'Data saya', ikon: 'pengguna', ket: 'Identitas, catatan kesiswaan, dan ajuan perbaikan data', lencana: 'ajuan_saya' },
       ],
     },
   ],
