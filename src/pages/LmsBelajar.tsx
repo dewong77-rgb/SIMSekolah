@@ -37,9 +37,9 @@ function idYoutube(url: string): string | null {
   } catch { return null }
 }
 
-export function IsiMateri({ m, siswa, selesai, pratinjau }: { m: Materi; siswa: boolean; selesai: (id: string) => Promise<void>; pratinjau?: boolean }) {
+export function IsiMateri({ m, siswa, selesai, pratinjau, setelah }: { m: Materi; siswa: boolean; selesai: (id: string) => Promise<void>; pratinjau?: boolean; setelah?: () => void }) {
   if (pratinjau && m.tugas_id && m.format === 'html') return <LembarPratinjau html={m.isi ?? ''} judul={m.judul} />
-  if (siswa && m.tugas_id && m.format === 'html') return <LembarSiswa tugasId={m.tugas_id} html={m.isi ?? ''} judul={m.judul} />
+  if (siswa && m.tugas_id && m.format === 'html') return <LembarSiswa tugasId={m.tugas_id} html={m.isi ?? ''} judul={m.judul} setelah={setelah} />
   const yt = m.jenis === 'video' && m.url ? idYoutube(m.url) : null
   const kenaJeda = siswa && !pratinjau && !m.tugas_id && !m.selesai
   const [ceklis, setCeklis] = useState(false)
@@ -159,10 +159,10 @@ export function PertemuanSiswa({ kelasId, id }: { kelasId: string; id: string })
   type ItemLangkah = { k: Kunci; nama: string; ket: string; selesai: boolean; ada: boolean; wajib: boolean }
   const bacaSelesai = !!l && l.materi.selesai >= l.materi.total
   const langkah: ItemLangkah[] = l ? ([
-    { k: 'materi', nama: 'Bahan bacaan', wajib: true, ada: l.materi.total > 0, selesai: l.materi.total > 0 && bacaSelesai, ket: `${l.materi.selesai} dari ${l.materi.total} dibaca` },
-    { k: 'lembar', nama: 'Lembar kerja', wajib: true, ada: l.lembar.total > 0, selesai: l.lembar.total > 0 && l.lembar.terkumpul >= l.lembar.total, ket: bacaSelesai ? `${l.lembar.terkumpul} dari ${l.lembar.total} terkumpul` : 'Baca bahan bacaan dulu' },
-    { k: 'forum', nama: 'Diskusi', wajib: false, ada: l.forum.topik > 0, selesai: l.forum.ikut, ket: l.forum.ikut ? 'Sudah ikut' : 'Tanya atau komentar' },
-    { k: 'latihan', nama: 'Kuis (opsional)', wajib: false, ada: l.latihan.total > 0, selesai: l.latihan.total > 0 && l.latihan.selesai >= l.latihan.total, ket: l.latihan.selesai > 0 ? 'Sudah dikerjakan' : 'Nilai tambah' },
+    { k: 'materi', nama: 'Bahan bacaan', wajib: true, ada: l.materi.total > 0, selesai: l.materi.total > 0 && bacaSelesai, ket: bacaSelesai ? 'Materi sudah dibaca' : `Belum dibaca (${l.materi.selesai} dari ${l.materi.total})` },
+    { k: 'lembar', nama: 'Lembar kerja', wajib: true, ada: l.lembar.total > 0, selesai: l.lembar.total > 0 && l.lembar.terkumpul >= l.lembar.total, ket: l.lembar.total > 0 && l.lembar.terkumpul >= l.lembar.total ? 'Lembar kerja sudah dikirim' : bacaSelesai ? `Belum dikirim (${l.lembar.terkumpul} dari ${l.lembar.total})` : 'Baca bahan bacaan dulu' },
+    { k: 'forum', nama: 'Diskusi', wajib: false, ada: l.forum.topik > 0, selesai: l.forum.ikut, ket: l.forum.ikut ? 'Forum sudah dibuat' : 'Belum ikut, tulis pertanyaan atau komentar' },
+    { k: 'latihan', nama: 'Kuis (opsional)', wajib: false, ada: l.latihan.total > 0, selesai: l.latihan.total > 0 && l.latihan.selesai >= l.latihan.total, ket: l.latihan.total > 0 && l.latihan.selesai >= l.latihan.total ? 'Kuis sudah dikirim' : l.latihan.selesai > 0 ? `Baru ${l.latihan.selesai} dari ${l.latihan.total} dikirim` : 'Belum dikerjakan, nilai tambah' },
   ] as ItemLangkah[]).filter((x) => x.ada) : []
   const wajibItem = langkah.filter((x) => x.wajib)
   const nomorSaatIni = aktif ?? wajibItem.find((x) => !x.selesai)?.k ?? langkah.find((x) => !x.selesai)?.k ?? langkah[0]?.k ?? null
@@ -234,13 +234,13 @@ export function PertemuanSiswa({ kelasId, id }: { kelasId: string; id: string })
       {!butuhAbsen && nomorSaatIni === 'lembar' && bacaSelesai && (
         <>
           <p className="catatan">Isi langsung di bawah. Jawaban tersimpan otomatis. Tekan Kumpulkan bila sudah selesai.</p>
-          {lembar.map((m) => <IsiMateri key={m.id} m={m} siswa selesai={selesai} />)}
+          {lembar.map((m) => <IsiMateri key={m.id} m={m} siswa selesai={selesai} setelah={() => void muat()} />)}
         </>
       )}
       {!butuhAbsen && nomorSaatIni === 'latihan' && <p className="catatan">Kuis ini opsional. Nilainya menjadi tambahan di nilai pertemuan.</p>}
       {!butuhAbsen && nomorSaatIni === 'latihan' && <LatihanPertemuan kelasId={kelasId} pertemuanId={id} judul={p?.judul ?? ''} kelola={false} perbarui={() => void muat()} versi={versi} />}
       {!butuhAbsen && nomorSaatIni === 'forum' && <p className="catatan">Tanyakan atau komentari bahan bacaan dan lembar kerja di sini.</p>}
-      {!butuhAbsen && nomorSaatIni === 'forum' && <Forum pertemuanId={id} kelola={false} />}
+      {!butuhAbsen && nomorSaatIni === 'forum' && <Forum pertemuanId={id} kelola={false} setelah={() => void muat()} />}
 
       <p className="catatan jarak"><Link to={`/portal/lms/${kelasId}`}>Semua pertemuan {kelas?.mapel ?? ''}</Link></p>
     </Halaman>
