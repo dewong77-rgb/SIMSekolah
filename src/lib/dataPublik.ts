@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
+import type { JurusanLengkap } from './hubin'
 
 export type Jurusan = {
   slug: string
@@ -8,6 +9,13 @@ export type Jurusan = {
   program: string
   ringkas: string
   prospek: string[]
+  /** Dari profil jurusan yang dikelola Waka Hubinmas. Kosong bila memakai data cadangan Dapodik. */
+  deskripsi?: string | null
+  kompetensi_lulusan?: string | null
+  mapel_kejuruan?: string | null
+  fasilitas?: string | null
+  kepala_program?: string | null
+  jumlah_siswa?: number
 }
 
 type Baris = { bidang_keahlian: string; program_keahlian: string; kompetensi_keahlian: string }
@@ -43,7 +51,7 @@ export function useJurusan() {
   const [galat, setGalat] = useState(false)
   useEffect(() => {
     let batal = false
-    supabase.rpc('jurusan_publik').then(({ data: d, error }) => {
+    const cadangan = () => supabase.rpc('jurusan_publik').then(({ data: d, error }) => {
       if (batal) return
       if (error || !d) return setGalat(true)
       setData(
@@ -56,6 +64,17 @@ export function useJurusan() {
           prospek: uraian[b.kompetensi_keahlian]?.prospek ?? [],
         })),
       )
+    })
+    // Profil jurusan dari Waka Hubinmas didahulukan. Bila kosong atau gagal, pakai data Dapodik.
+    supabase.rpc('jurusan_profil_publik').then(({ data: d, error }) => {
+      if (batal) return
+      const baris = (d ?? []) as JurusanLengkap[]
+      if (error || baris.length === 0) return void cadangan()
+      setData(baris.map((b) => ({
+        slug: slug(b.nama), nama: b.nama, bidang: b.bidang ?? '', program: b.program ?? '', ringkas: b.ringkas ?? '', prospek: b.prospek ?? [],
+        deskripsi: b.deskripsi, kompetensi_lulusan: b.kompetensi_lulusan, mapel_kejuruan: b.mapel_kejuruan, fasilitas: b.fasilitas,
+        kepala_program: b.kepala_program, jumlah_siswa: b.jumlah_siswa,
+      })))
     })
     return () => { batal = true }
   }, [])

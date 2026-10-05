@@ -1,5 +1,6 @@
 import Halaman, { Segera } from '../components/Halaman'
-import { berita, koleksiPerpustakaan, mitraIndustri } from '../data/contoh'
+import { koleksiPerpustakaan } from '../data/contoh'
+import { useKerjasama } from '../lib/hubin'
 import { bersihWilayah, nomorWa, useSekolah } from '../lib/profilSekolah'
 import { tanggalPanjang } from '../lib/format'
 import { useJurusan } from '../lib/dataPublik'
@@ -59,6 +60,12 @@ export function Jurusan() {
             <h3>{j.nama}</h3>
             <p className="catatan">Program keahlian: {j.program}</p>
             {j.ringkas && <p>{j.ringkas}</p>}
+            {j.deskripsi && <p style={{ whiteSpace: 'pre-line' }}>{j.deskripsi}</p>}
+            {j.jumlah_siswa ? <p className="catatan">{j.jumlah_siswa} siswa aktif</p> : null}
+            {j.kompetensi_lulusan && <><strong>Kompetensi lulusan</strong><ul>{j.kompetensi_lulusan.split('\n').map((x) => x.trim()).filter(Boolean).map((x) => <li key={x}>{x}</li>)}</ul></>}
+            {j.mapel_kejuruan && <><strong>Mata pelajaran kejuruan</strong><p style={{ whiteSpace: 'pre-line' }}>{j.mapel_kejuruan}</p></>}
+            {j.fasilitas && <><strong>Fasilitas</strong><p style={{ whiteSpace: 'pre-line' }}>{j.fasilitas}</p></>}
+            {j.kepala_program && <p className="catatan">Kepala program keahlian: {j.kepala_program}</p>}
             {j.prospek.length > 0 && (
               <>
                 <strong>Prospek</strong>
@@ -75,20 +82,36 @@ export function Jurusan() {
 }
 
 export function HubunganIndustri() {
+  const { data: k, galat } = useKerjasama()
   return (
-    <Halaman judul="Hubungan Industri" lead="Mitra dunia usaha dan dunia industri (DUDI), MoU, dan praktik industri.">
-      <div className="tabel-bungkus">
-        <table>
-          <thead>
-            <tr><th>Mitra</th><th>Bidang</th><th>Status</th></tr>
-          </thead>
-          <tbody>
-            {mitraIndustri.map((m) => (
-              <tr key={m.nama}><td>{m.nama}</td><td>{m.bidang}</td><td>{m.status}</td></tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <Halaman judul="Hubungan Industri" lead="Mitra dunia usaha dan dunia industri (DUDI) yang bekerja sama dengan sekolah untuk praktik kerja, kunjungan industri, dan penyerapan lulusan.">
+      {galat && <p className="catatan">Data mitra belum dapat dimuat. Coba muat ulang halaman.</p>}
+      {!k && !galat && <p className="catatan" aria-live="polite">Memuat...</p>}
+      {k && (
+        <>
+          <div className="grid grid-3">
+            <div className="kartu"><small>Mitra industri</small><h2>{k.jumlah_mitra}</h2></div>
+            <div className="kartu"><small>Perjanjian kerja sama</small><h2>{k.jumlah_mou}</h2></div>
+            <div className="kartu"><small>Bermitra sejak</small><h2>{k.sejak_tahun ?? '-'}</h2></div>
+          </div>
+          {k.jenis.length > 0 && (
+            <div className="lencana-baris jarak">
+              {k.jenis.map((j) => <span key={j.jenis} className="lencana">{j.jenis} ({j.jumlah})</span>)}
+            </div>
+          )}
+          <div className="tabel-bungkus jarak">
+            <table>
+              <thead><tr><th>Mitra</th><th>Bidang usaha</th><th>Wilayah</th><th>Bentuk kerja sama</th></tr></thead>
+              <tbody>
+                {k.mitra.map((m) => (
+                  <tr key={m.nama}><td>{m.nama}</td><td>{m.bidang_usaha ?? '-'}</td><td>{m.wilayah ?? '-'}</td><td>{m.jenis?.length ? m.jenis.join(', ') : '-'}</td></tr>
+                ))}
+                {k.mitra.length === 0 && <tr><td colSpan={4} className="catatan">Daftar mitra belum dipublikasikan.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
       <div className="jarak"><Segera nama="Bursa kerja" /></div>
     </Halaman>
   )
@@ -183,6 +206,7 @@ export function Alumni() {
             {memuat ? 'Memeriksa...' : 'Periksa data'}
           </button>
           <p className="catatan">Pemeriksaan dibatasi jumlah percobaannya demi keamanan data.</p>
+          <p><Link to="/alumni/tracer">Isi Tracer Study alumni</Link></p>
         </form>
 
         <div aria-live="polite">
@@ -211,23 +235,6 @@ export function Alumni() {
             </div>
           )}
         </div>
-      </div>
-    </Halaman>
-  )
-}
-
-export function BeritaHalaman() {
-  return (
-    <Halaman judul="Berita" lead="Kabar kegiatan, prestasi, dan pengumuman sekolah.">
-      <div className="grid grid-3">
-        {berita.map((b) => (
-          <article key={b.slug} className="kartu">
-            <span className="lencana">{b.kategori}</span>
-            <h3>{b.judul}</h3>
-            <p>{b.ringkas}</p>
-            <small>{tanggalPanjang(b.tanggal)}</small>
-          </article>
-        ))}
       </div>
     </Halaman>
   )
