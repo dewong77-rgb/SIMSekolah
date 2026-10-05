@@ -6,6 +6,7 @@ import { htmlAman } from '../lib/dokumen'
 import { LembarSiswa, LembarPratinjau } from './LmsLembar'
 import { LatihanPertemuan } from './LmsKuis'
 import { Forum } from './LmsForum'
+import { PengingatNilai } from './LmsProgres'
 
 export type Materi = { id: string; urutan: number; jenis: 'teks' | 'video' | 'tautan' | 'berkas'; judul: string; isi: string | null; url: string | null; selesai: boolean; format: 'teks' | 'html'; untuk: 'siswa' | 'guru'; tugas_id?: string | null; mulai_pada?: string | null }
 
@@ -185,11 +186,12 @@ export function PertemuanSiswa({ kelasId, id }: { kelasId: string; id: string })
           {nl?.nilai != null
             ? <>Nilai pertemuan: <strong>{nl.nilai}</strong> (KKTP {nl.kktp ?? 70}{(nl.bonus ?? 0) > 0 ? ` + bonus ${nl.bonus}` : ''}).</>
             : 'Nilai keluar otomatis sebesar KKTP begitu tiga tahap wajib selesai.'}
-          {' '}Diskusi di forum dan kuis bisa menambah nilai ini lebih tinggi lagi.
+          {' '}Kuis (maksimal +10) dan pertanyaan atau tanggapan di forum (+2 per tulisan, maksimal +5) menambah nilai ini.
         </div>
       )}
       {p?.tujuan && <div className="kartu"><small>Tujuan belajar</small><p style={{ marginBottom: 0, whiteSpace: 'pre-line' }}>{p.tujuan}</p></div>}
       <KartuKriteria pertemuanId={id} nilai={nl?.nilai ?? null} />
+      {!selesaiSemua && <PengingatNilai ringkas />}
 
       {!butuhAbsen && <nav className="langkah-bar" aria-label="Langkah belajar">
         {langkah.map((x, i) => (
