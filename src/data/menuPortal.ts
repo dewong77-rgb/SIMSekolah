@@ -6,6 +6,8 @@ export type ItemPortal = {
   ikon: string
   /** Satu kalimat untuk kartu di halaman utama portal. */
   ket?: string
+  /** Awalan alamat untuk penanda menu aktif bila satu menu mencakup beberapa halaman. Bawaan: `to`. */
+  cocok?: string
   /** Kunci lencana (angka di samping menu), lihat PortalLayout. */
   lencana?: 'ajuan_masuk' | 'ajuan_saya' | 'disposisi' | 'surat' | 'sarpras' | 'kesiswaan'
 }
@@ -27,17 +29,9 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
     {
       judul: 'Belajar',
       item: [
-        { to: '/portal/lms', label: 'Kelas saya', ikon: 'buku', ket: 'Materi, absen per pertemuan, kuis, dan tugas' },
+        { to: '/portal/lms', label: 'Kelas saya', ikon: 'buku', ket: 'Materi, lembar kerja, dan diskusi per pertemuan' },
+        { to: '/portal/penilaian/kuis', cocok: '/portal/penilaian', label: 'Kuis dan ulangan', ikon: 'centang', ket: 'Kuis, ulangan harian, UTS, dan UAS dari semua kelas' },
         { to: '/portal/progres-lms', label: 'Progres belajar', ikon: 'grafik', ket: 'Kehadiran, materi, nilai kuis, dan tugas semua mapel' },
-      ],
-    },
-    {
-      judul: 'Penilaian',
-      item: [
-        { to: '/portal/penilaian/kuis', label: 'Kuis', ikon: 'centang', ket: 'Kuis semua kelas' },
-        { to: '/portal/penilaian/uh', label: 'Ulangan harian', ikon: 'centang', ket: 'Ulangan harian semua kelas' },
-        { to: '/portal/penilaian/uts', label: 'UTS', ikon: 'centang', ket: 'Ulangan tengah semester' },
-        { to: '/portal/penilaian/uas', label: 'UAS', ikon: 'centang', ket: 'Ulangan akhir semester' },
       ],
     },
     {
@@ -53,32 +47,17 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
     {
       judul: 'Mengajar',
       item: [
-        { to: '/portal/lms', label: 'Ruang belajar', ikon: 'buku', ket: 'Kelas, materi, absensi per pertemuan, kuis, tugas' },
+        { to: '/portal/lms', label: 'Ruang belajar', ikon: 'buku', ket: 'Kelas, pertemuan, materi, lembar kerja, dan tugas' },
         { to: '/portal/lms/dashboard', label: 'Dashboard pembelajaran', ikon: 'grafik', ket: 'Absen serentak dan pantauan semua kelas dalam satu layar' },
+        { to: '/portal/penilaian/kuis', cocok: '/portal/penilaian', label: 'Kuis dan ulangan', ikon: 'centang', ket: 'Kuis, ulangan harian, UTS, dan UAS semua kelas' },
         { to: '/portal/absensi', label: 'Absensi', ikon: 'centang', ket: 'Jumlah siswa yang diajar dan rekap kehadiran per kelas' },
-        { to: '/portal/lms/administrasi', label: 'Administrasi guru', ikon: 'dokumen', ket: 'ATP, modul ajar, program, dan perangkat ajar lain' },
-      ],
-    },
-    {
-      judul: 'Penilaian',
-      item: [
-        { to: '/portal/penilaian/kuis', label: 'Kuis', ikon: 'centang', ket: 'Kuis semua kelas' },
-        { to: '/portal/penilaian/uh', label: 'Ulangan harian', ikon: 'centang', ket: 'Ulangan harian semua kelas' },
-        { to: '/portal/penilaian/uts', label: 'UTS', ikon: 'centang', ket: 'Ulangan tengah semester' },
-        { to: '/portal/penilaian/uas', label: 'UAS', ikon: 'centang', ket: 'Ulangan akhir semester' },
       ],
     },
     {
       judul: 'Perangkat ajar',
       item: [
         { to: '/portal/lms/rencana', label: 'Rencana ajar (Excel)', ikon: 'dokumen', ket: 'Sumber data TP, ATP, KKTP, dan Promes. Template bisa diunduh dan diunggah' },
-        { to: '/portal/lms/perangkat/tp', label: 'TP', ikon: 'dokumen', ket: 'Tujuan Pembelajaran' },
-        { to: '/portal/lms/perangkat/atp', label: 'ATP', ikon: 'dokumen', ket: 'Alur Tujuan Pembelajaran' },
-        { to: '/portal/lms/perangkat/silabus', label: 'Silabus', ikon: 'dokumen', ket: 'Tujuan, materi, asesmen, alokasi waktu' },
-        { to: '/portal/lms/perangkat/prota', label: 'Prota', ikon: 'dokumen', ket: 'Program Tahunan' },
-        { to: '/portal/lms/perangkat/promes', label: 'Promes', ikon: 'dokumen', ket: 'Program Semester' },
-        { to: '/portal/lms/perangkat/modul_ajar', label: 'Modul Ajar', ikon: 'dokumen', ket: 'Unggah atau tautkan modul ajar' },
-        { to: '/portal/lms/perangkat/rpp', label: 'RPP', ikon: 'dokumen', ket: 'Unggah atau tautkan RPP' },
+        { to: '/portal/lms/perangkat/tp', cocok: '/portal/lms/perangkat', label: 'Dokumen perangkat ajar', ikon: 'dokumen', ket: 'TP, ATP, KKTP, Silabus, Prota, Promes, Modul Ajar, dan RPP' },
       ],
     },
     {
@@ -89,20 +68,20 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
         { to: '/portal/ptk', label: 'Data PTK', ikon: 'tas', ket: 'Pendidik dan tenaga kependidikan' },
       ],
     },
-    { judul: 'Persuratan', item: [disposisi] },
     {
       judul: 'Data diri',
       item: [
         { to: '/portal/data-saya', label: 'Profil saya', ikon: 'pengguna', ket: 'Data pribadi dan kepegawaian seperti di Dapodik' },
+        disposisi,
         ajuanSaya,
       ],
     },
   ],
   staf: [
-    { judul: 'Persuratan', item: [disposisi] },
     {
       judul: 'Data diri',
       item: [
+        disposisi,
         { to: '/portal/data-saya', label: 'Profil saya', ikon: 'pengguna', ket: 'Data pribadi dan kepegawaian seperti di Dapodik' },
         ajuanSaya,
       ],
@@ -163,14 +142,16 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
   ],
 }
 
-const khususSuper: ItemPortal[] = [
+const akunSuper: ItemPortal[] = [
   { to: '/portal/pengguna', label: 'Kelola pengguna', ikon: 'perisai', ket: 'Lihat akun guru dan siswa, ubah peran, nonaktifkan' },
   { to: '/portal/penugasan', label: 'Penugasan', ikon: 'tas', ket: 'Jabatan tambahan, lingkup, dan struktur organisasi' },
+  { to: '/portal/sambungan-drive', label: 'Sambungan Drive', ikon: 'unggah', ket: 'Uji sambungan ke Google Drive sekolah dan lihat kuota' },
+]
+const pengaturanSuper: ItemPortal[] = [
   { to: '/portal/profil-sekolah', label: 'Profil sekolah', ikon: 'sekolah', ket: 'Alamat, koordinat, kontak, media sosial, visi dan misi' },
   { to: '/portal/kalender', label: 'Kalender sekolah', ikon: 'kalender', ket: 'Kalender pendidikan, kegiatan, libur, dan ujian' },
   { to: '/portal/jam-pelajaran', label: 'Jam pelajaran', ikon: 'kalender', ket: 'Jam masuk, jam pelajaran, dan istirahat' },
   { to: '/portal/sarpras/buku', label: 'Sarana dan prasarana', ikon: 'tas', ket: 'Inventaris, usulan bertingkat, dan pembukuan bengkel dan aset' },
-  { to: '/portal/sambungan-drive', label: 'Sambungan Drive', ikon: 'unggah', ket: 'Uji sambungan ke Google Drive sekolah dan lihat kuota' },
 ]
 
 /** Menu dari izin penugasan. Item tanpa `to` belum punya halaman. */
@@ -196,21 +177,6 @@ const menuIzin: { izin: string; nama: string; bidang: string; ikon: string; to?:
   { izin: 'ekskul.lihat', nama: 'Kesiswaan', bidang: 'Kesiswaan', ikon: 'kelompok', to: '/portal/kesiswaan' },
   { izin: 'bk.kelola', nama: 'Kesiswaan', bidang: 'Kesiswaan', ikon: 'kelompok', to: '/portal/kesiswaan' },
   { izin: 'bk.baca', nama: 'Kesiswaan', bidang: 'Kesiswaan', ikon: 'kelompok', to: '/portal/kesiswaan' },
-  { izin: 'kesiswaan.catat', nama: 'Pelanggaran siswa', bidang: 'Kesiswaan', ikon: 'kotak', to: '/portal/kesiswaan/pelanggaran' },
-  { izin: 'kesiswaan.pantau', nama: 'Pelanggaran siswa', bidang: 'Kesiswaan', ikon: 'kotak', to: '/portal/kesiswaan/pelanggaran' },
-  { izin: 'kesiswaan.verifikasi', nama: 'Pelanggaran siswa', bidang: 'Kesiswaan', ikon: 'kotak', to: '/portal/kesiswaan/pelanggaran' },
-  { izin: 'kesiswaan.catat', nama: 'Prestasi siswa', bidang: 'Kesiswaan', ikon: 'centang', to: '/portal/kesiswaan/prestasi' },
-  { izin: 'kesiswaan.pantau', nama: 'Prestasi siswa', bidang: 'Kesiswaan', ikon: 'centang', to: '/portal/kesiswaan/prestasi' },
-  { izin: 'kesiswaan.verifikasi', nama: 'Prestasi siswa', bidang: 'Kesiswaan', ikon: 'centang', to: '/portal/kesiswaan/prestasi' },
-  { izin: 'kesiswaan.izin', nama: 'Izin siswa', bidang: 'Kesiswaan', ikon: 'surat', to: '/portal/kesiswaan/izin' },
-  { izin: 'kesiswaan.izin', nama: 'Kehadiran harian', bidang: 'Kesiswaan', ikon: 'kalender', to: '/portal/kesiswaan/kehadiran' },
-  { izin: 'kesiswaan.pantau', nama: 'Kehadiran harian', bidang: 'Kesiswaan', ikon: 'kalender', to: '/portal/kesiswaan/kehadiran' },
-  { izin: 'kesiswaan.pantau', nama: 'Risiko siswa', bidang: 'Kesiswaan', ikon: 'grafik', to: '/portal/kesiswaan/risiko' },
-  { izin: 'ekskul.kelola', nama: 'Ekskul dan OSIS', bidang: 'Kesiswaan', ikon: 'kelompok', to: '/portal/kesiswaan/ekskul' },
-  { izin: 'ekskul.lihat', nama: 'Ekskul dan OSIS', bidang: 'Kesiswaan', ikon: 'kelompok', to: '/portal/kesiswaan/ekskul' },
-  { izin: 'bk.kelola', nama: 'Bimbingan konseling', bidang: 'Kesiswaan', ikon: 'centang', to: '/portal/kesiswaan/bk' },
-  { izin: 'bk.baca', nama: 'Bimbingan konseling', bidang: 'Kesiswaan', ikon: 'centang', to: '/portal/kesiswaan/bk' },
-  { izin: 'kesiswaan.beasiswa', nama: 'Beasiswa dan PIP', bidang: 'Kesiswaan', ikon: 'tas', to: '/portal/kesiswaan/beasiswa' },
   { izin: 'kelas.kelola', nama: 'Kelas saya', bidang: 'Kelas', ikon: 'sekolah' },
   { izin: 'sarpras.kelola', nama: 'Inventaris sarpras', bidang: 'Sarana dan prasarana', ikon: 'tas', to: '/portal/sarpras/inventaris' },
   { izin: 'sarpras.catat_lab', nama: 'Inventaris sarpras', bidang: 'Sarana dan prasarana', ikon: 'tas', to: '/portal/sarpras/inventaris' },
@@ -254,8 +220,9 @@ export function susunMenu(peran: Peran, superAdmin: boolean, tugas: TugasMenu[])
   const kelompok: KelompokPortal[] = menuPeran[peran].map((k) => ({ judul: k.judul, item: [...k.item] }))
   if (superAdmin) {
     const akun = kelompok.find((k) => k.judul === 'Akun dan akses')
-    if (akun) akun.item.push(...khususSuper)
-    else kelompok.push({ judul: 'Akun dan akses', item: [...khususSuper] })
+    if (akun) akun.item.push(...akunSuper)
+    else kelompok.push({ judul: 'Akun dan akses', item: [...akunSuper] })
+    kelompok.push({ judul: 'Pengaturan sekolah', item: [...pengaturanSuper] })
   }
   const sudah = new Set(kelompok.flatMap((k) => k.item.map((i) => i.to)))
   const segera: { nama: string; bidang: string }[] = []
@@ -288,7 +255,7 @@ export function itemAktif(kelompok: KelompokPortal[], pathname: string): ItemPor
   let terbaik: ItemPortal | null = null
   for (const k of kelompok)
     for (const i of k.item)
-      if (pathname === i.to || pathname.startsWith(i.to + '/'))
-        if (!terbaik || i.to.length > terbaik.to.length) terbaik = i
+      if (pathname === i.to || pathname.startsWith((i.cocok ?? i.to) + '/') || pathname === i.cocok)
+        if (!terbaik || (i.cocok ?? i.to).length > (terbaik.cocok ?? terbaik.to).length) terbaik = i
   return terbaik
 }
