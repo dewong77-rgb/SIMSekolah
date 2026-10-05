@@ -43,15 +43,25 @@ Deno.serve(async (req) => {
         .eq('kunci', kunci).eq('berhasil', false).gte('dibuat_pada', sejak)
       return count ?? 0
     }
-    if ((await hitungGagal(kUser)) >= BATAS_USERNAME || (await hitungGagal(kIp)) >= BATAS_IP) {
-      return json({ ok: false, dibatasi: true }, 429)
+    const menitTunggu = async (kunci: string, batas: number) => {
+      const { data } = await db.from('percobaan_masuk').select('dibuat_pada').eq('kunci', kunci).eq('berhasil', false)
+        .gte('dibuat_pada', sejak).order('dibuat_pada', { ascending: false }).limit(batas)
+      const t = data?.[batas - 1]?.dibuat_pada as string | undefined
+      if (!t) return JENDELA_MENIT
+      return Math.min(JENDELA_MENIT, Math.max(1, Math.ceil(JENDELA_MENIT - (Date.now() - new Date(t).getTime()) / 60_000)))
+    }
+    const gagalUser = await hitungGagal(kUser)
+    const gagalIp = await hitungGagal(kIp)
+    if (gagalUser >= BATAS_USERNAME || gagalIp >= BATAS_IP) {
+      const tunggu = Math.max(gagalUser >= BATAS_USERNAME ? await menitTunggu(kUser, BATAS_USERNAME) : 0, gagalIp >= BATAS_IP ? await menitTunggu(kIp, BATAS_IP) : 0)
+      return json({ ok: false, dibatasi: true, tunggu_menit: tunggu }, 429)
     }
     const anon = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, { auth: { persistSession: false, autoRefreshToken: false } })
     const { data, error } = await anon.auth.signInWithPassword({ email: `${username}@ortu.invalid`, password })
     if (error || !data.session) {
       if (error && (error.code === 'user_banned' || /banned/i.test(error.message))) return json({ ok: false, nonaktif: true })
       await db.from('percobaan_masuk').insert([{ kunci: kUser }, { kunci: kIp }])
-      return json({ ok: false })
+      return json({ ok: false, sisa: Math.max(0, BATAS_USERNAME - gagalUser - 1) })
     }
     await db.from('percobaan_masuk').insert({ kunci: kUser, berhasil: true })
     return json({

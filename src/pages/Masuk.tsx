@@ -3,6 +3,7 @@ import { Navigate, useLocation, useSearchParams } from 'react-router-dom'
 import Halaman from '../components/Halaman'
 import { useAuth } from '../auth/AuthContext'
 import { supabase } from '../lib/supabase'
+import KolomSandi from '../components/KolomSandi'
 
 type PeranMasuk = 'guru' | 'siswa' | 'alumni' | 'admin' | 'orang_tua'
 
@@ -16,6 +17,14 @@ const peranMasuk: { id: PeranMasuk; nama: string; usernameLabel: string; petunju
 
 const adaTautanEmail: PeranMasuk[] = ['guru', 'admin', 'orang_tua']
 
+/** Satu kalimat pendek tepat di bawah kolom password, supaya format password awal tidak terlewat. */
+const formatAwal: Partial<Record<PeranMasuk, string>> = {
+  siswa: 'Belum pernah ganti password? Isi tanggal lahir DDMMYYYY, contoh 17082009.',
+  alumni: 'Belum pernah ganti password? Isi tanggal lahir DDMMYYYY, contoh 17082009.',
+  guru: 'Belum pernah ganti password? Isi NPSN sekolah.',
+  orang_tua: 'Belum pernah ganti password? Isi NPSN sekolah.',
+}
+
 export default function Masuk() {
   const { session } = useAuth()
   const lokasi = useLocation()
@@ -27,6 +36,8 @@ export default function Masuk() {
   const [username, setUsername] = useState('')
   const [sandi, setSandi] = useState('')
   const [status, setStatus] = useState<'diam' | 'kirim' | 'galat' | 'dibatasi' | 'nonaktif'>('diam')
+  const [sisa, setSisa] = useState<number | null>(null)
+  const [tunggu, setTunggu] = useState(15)
   const [email, setEmail] = useState('')
   const [statusEmail, setStatusEmail] = useState<'diam' | 'kirim' | 'terkirim' | 'galat'>('diam')
   const [pesanEmail, setPesanEmail] = useState('')
@@ -36,7 +47,7 @@ export default function Masuk() {
 
   function pilih(p: PeranMasuk) {
     setParams({ sebagai: p }, { replace: true })
-    setUsername(''); setSandi(''); setStatus('diam'); setBukaEmail(false); setStatusEmail('diam')
+    setUsername(''); setSandi(''); setStatus('diam'); setSisa(null); setBukaEmail(false); setStatusEmail('diam')
   }
 
   async function masuk(e: FormEvent) {
@@ -46,7 +57,7 @@ export default function Masuk() {
       ? await supabase.functions.invoke('ortu', { body: { aksi: 'masuk', username: username.trim(), password: sandi } })
       : await supabase.functions.invoke('masuk', { body: { peran, username: username.trim(), password: sandi } })
     // Pada status 429 supabase-js mengembalikan error; badan jawabannya ada di error.context.
-    let hasil = data as { ok?: boolean; access_token?: string; refresh_token?: string; dibatasi?: boolean; nonaktif?: boolean } | null
+    let hasil = data as { ok?: boolean; access_token?: string; refresh_token?: string; dibatasi?: boolean; nonaktif?: boolean; sisa?: number; tunggu_menit?: number } | null
     if (error && 'context' in error) {
       try { hasil = await (error as { context: Response }).context.json() } catch { hasil = null }
     }
@@ -55,7 +66,10 @@ export default function Masuk() {
       if (!es) return // sesi terbentuk, halaman berpindah sendiri ke /portal
     }
     setSandi('')
-    setStatus(hasil?.dibatasi ? 'dibatasi' : hasil?.nonaktif ? 'nonaktif' : 'galat')
+    setSisa(typeof hasil?.sisa === 'number' ? hasil.sisa : null)
+    setTunggu(hasil?.tunggu_menit ?? 15)
+    // Percobaan terakhir sudah terpakai: langsung tampilkan keadaan terkunci beserta lamanya.
+    setStatus(hasil?.dibatasi || hasil?.sisa === 0 ? 'dibatasi' : hasil?.nonaktif ? 'nonaktif' : 'galat')
   }
 
   async function kirimEmail(e: FormEvent) {
@@ -114,17 +128,29 @@ export default function Masuk() {
                 disabled={status === 'kirim'}
               />
             </label>
-            <label>
-              Password
-              <input type="password" required autoComplete="current-password" value={sandi} onChange={(e) => setSandi(e.target.value)} disabled={status === 'kirim'} />
-            </label>
+            <KolomSandi
+              label="Password" required autoComplete="current-password" value={sandi} onChange={(e) => setSandi(e.target.value)}
+              disabled={status === 'kirim'} petunjuk={formatAwal[peran]}
+            />
             <button className="tombol tombol-isi" disabled={status === 'kirim' || !username || !sandi}>
               {status === 'kirim' ? 'Memeriksa...' : `Masuk sebagai ${info.nama.toLowerCase()}`}
             </button>
             <div aria-live="polite">
-              {status === 'galat' && <p className="catatan" role="alert">Username atau password tidak cocok. Hubungi admin sekolah bila lupa password.</p>}
+              {status === 'galat' && (
+                <div className="kotak-hitung" role="alert">
+                  <p style={{ margin: 0 }}><strong>Username atau password tidak cocok.</strong></p>
+                  {sisa !== null && <p style={{ margin: '4px 0 0' }}>Sisa percobaan: <strong>{sisa}</strong>. Periksa lagi sebelum menekan Masuk.</p>}
+                  {formatAwal[peran] && <p style={{ margin: '4px 0 0' }}>{formatAwal[peran]}</p>}
+                  <p style={{ margin: '4px 0 0' }}>Lupa password? Hubungi guru atau admin sekolah.</p>
+                </div>
+              )}
               {status === 'nonaktif' && <p className="catatan" role="alert">Akun ini dinonaktifkan. Hubungi admin sekolah.</p>}
-              {status === 'dibatasi' && <p className="catatan" role="alert">Terlalu banyak percobaan. Coba lagi dalam 15 menit.</p>}
+              {status === 'dibatasi' && (
+                <div className="kotak-hitung" role="alert">
+                  <p style={{ margin: 0 }}><strong>Percobaan habis. Coba lagi dalam {tunggu} menit.</strong></p>
+                  <p style={{ margin: '4px 0 0' }}>Tidak perlu menekan Masuk berulang kali. Hubungi admin sekolah bila perlu membuka kunci akun Anda lebih cepat.</p>
+                </div>
+              )}
             </div>
             <p className="catatan">{info.petunjuk}</p>
           </form>

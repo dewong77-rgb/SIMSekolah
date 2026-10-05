@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import Halaman from '../components/Halaman'
 import { useAuth } from '../auth/AuthContext'
 import { supabase } from '../lib/supabase'
+import KolomSandi from '../components/KolomSandi'
 
 // Dipakai dua cara: wajib saat masuk dengan password awal, dan sukarela dari menu portal.
 export default function GantiSandi() {
@@ -45,9 +46,14 @@ export default function GantiSandi() {
       lead={wajib ? 'Anda masuk dengan password awal. Ganti dulu sebelum melanjutkan.' : 'Password baru berlaku untuk masuk berikutnya.'}
     >
       <form className="kartu form" style={{ maxWidth: 480 }} onSubmit={kirim}>
-        <label>Password baru<input type="password" autoComplete="new-password" value={baru} onChange={(e) => setBaru(e.target.value)} /></label>
-        <label>Ulangi password<input type="password" autoComplete="new-password" value={ulang} onChange={(e) => setUlang(e.target.value)} /></label>
-        <p className="catatan">Minimal 8 karakter. Jangan pakai tanggal lahir, NISN, NIP, atau NPSN.</p>
+        <KolomSandi label="Password baru" autoComplete="new-password" value={baru} onChange={(e) => setBaru(e.target.value)} />
+        <KolomSandi label="Ulangi password" autoComplete="new-password" value={ulang} onChange={(e) => setUlang(e.target.value)} />
+        <ul className="syarat-sandi" aria-label="Syarat password">
+          <li className={baru.length >= 8 ? 'ok' : ''}>Minimal 8 karakter</li>
+          <li className={baru.length > 0 && !/^(.)\1+$/.test(baru) ? 'ok' : ''}>Bukan satu karakter yang diulang</li>
+          <li className={baru.length > 0 && baru === ulang ? 'ok' : ''}>Isian kedua sama dengan yang pertama</li>
+        </ul>
+        <p className="catatan">Jangan pakai tanggal lahir, NISN, NIP, atau NPSN. Catat password baru Anda di tempat yang aman.</p>
         <button className="tombol tombol-isi" disabled={sibuk || !baru || !ulang}>{sibuk ? 'Menyimpan...' : 'Simpan password'}</button>
         <div aria-live="polite">{galat && <p className="catatan" role="alert">{galat}</p>}</div>
         <div className="aksi">

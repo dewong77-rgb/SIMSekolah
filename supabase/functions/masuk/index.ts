@@ -51,14 +51,28 @@ Deno.serve(async (req) => {
       .eq('kunci', kunci).eq('berhasil', false).gte('dibuat_pada', sejak)
     return count ?? 0
   }
-  if ((await hitungGagal(kUser)) >= BATAS_USERNAME || (await hitungGagal(kIp)) >= BATAS_IP) {
-    return json({ ok: false, dibatasi: true }, 429)
+  // Menit sampai kunci terbuka: saat catatan gagal tertua dari deretan BATAS terbaru keluar dari jendela.
+  const menitTunggu = async (kunci: string, batas: number) => {
+    const { data } = await db.from('percobaan_masuk').select('dibuat_pada').eq('kunci', kunci).eq('berhasil', false)
+      .gte('dibuat_pada', sejak).order('dibuat_pada', { ascending: false }).limit(batas)
+    const t = data?.[batas - 1]?.dibuat_pada as string | undefined
+    if (!t) return JENDELA_MENIT
+    return Math.min(JENDELA_MENIT, Math.max(1, Math.ceil(JENDELA_MENIT - (Date.now() - new Date(t).getTime()) / 60_000)))
+  }
+  const gagalUser = await hitungGagal(kUser)
+  const gagalIp = await hitungGagal(kIp)
+  if (gagalUser >= BATAS_USERNAME || gagalIp >= BATAS_IP) {
+    const tunggu = Math.max(gagalUser >= BATAS_USERNAME ? await menitTunggu(kUser, BATAS_USERNAME) : 0, gagalIp >= BATAS_IP ? await menitTunggu(kIp, BATAS_IP) : 0)
+    return json({ ok: false, dibatasi: true, tunggu_menit: tunggu }, 429)
   }
   const catatGagal = () => db.from('percobaan_masuk').insert([{ kunci: kUser }, { kunci: kIp }])
+  // Jawaban gagal tetap seragam, ditambah sisa percobaan. Username yang tidak ada ikut dihitung sama, jadi tidak membocorkan apa pun.
+  const sisa = Math.max(0, BATAS_USERNAME - gagalUser - 1)
+  const gagal = async () => { await catatGagal(); return json({ ok: false, sisa }) }
 
   // Cari akun yang cocok dengan username pada peran yang dipilih.
   const { data: sk } = await db.from('sekolah').select('npsn').limit(1).maybeSingle()
-  if (!sk) { await catatGagal(); return json(GAGAL) }
+  if (!sk) { return await gagal() }
   let userIds: string[] = []
   if (peran === 'siswa' || peran === 'alumni') {
     const { data: pds } = await db.from('peserta_didik').select('id').eq('npsn', sk.npsn).eq('nisn', username)
@@ -83,7 +97,7 @@ Deno.serve(async (req) => {
     }
   }
   userIds = userIds.slice(0, 3)
-  if (!userIds.length) { await catatGagal(); return json(GAGAL) }
+  if (!userIds.length) { return await gagal() }
 
   const anon = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, { auth: { persistSession: false, autoRefreshToken: false } })
   let nonaktif = false
@@ -107,6 +121,5 @@ Deno.serve(async (req) => {
     })
   }
   if (nonaktif) return json({ ok: false, nonaktif: true })
-  await catatGagal()
-  return json(GAGAL)
+  return await gagal()
 })

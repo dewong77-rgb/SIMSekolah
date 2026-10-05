@@ -236,6 +236,22 @@ Deno.serve(async (req) => {
     return error ? json({ galat: error.message }, 400) : json({ ok: true })
   }
 
+  if (aksi === 'buka_kunci') {
+    // Buka kunci masuk (batas percobaan gagal) untuk satu akun. Hanya catatan gagal milik akun itu yang dibersihkan.
+    const { data: pr } = await db.from('profil_pengguna')
+      .select('user_id,peserta_didik(nisn),ptk(nip,nuptk)').eq('user_id', target).eq('npsn', me.npsn).maybeSingle()
+    if (!pr) return json({ galat: 'akun tidak ditemukan' }, 404)
+    const pd = pr.peserta_didik as unknown as { nisn: string | null } | null
+    const pt = pr.ptk as unknown as { nip: string | null; nuptk: string | null } | null
+    const kunci: string[] = []
+    if (pd?.nisn) kunci.push(`siswa:${pd.nisn}`, `alumni:${pd.nisn}`)
+    if (pt?.nip) kunci.push(`guru:${pt.nip}`)
+    if (pt?.nuptk) kunci.push(`guru:${pt.nuptk}`)
+    if (!kunci.length) return json({ galat: 'akun ini tidak memakai kunci masuk' }, 400)
+    const { error, count } = await db.from('percobaan_masuk').delete({ count: 'exact' }).in('kunci', kunci).eq('berhasil', false)
+    return error ? json({ galat: error.message }, 400) : json({ ok: true, dibuka: count ?? 0 })
+  }
+
   if (aksi === 'hapus') {
     if (diri) return json({ galat: 'tidak dapat menghapus akun sendiri' }, 400)
     const { data: ada } = await db.from('profil_pengguna').select('user_id').eq('user_id', target).eq('npsn', me.npsn).maybeSingle()

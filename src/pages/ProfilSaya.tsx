@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import KolomSandi from '../components/KolomSandi'
 import { Link } from 'react-router-dom'
 import Halaman from '../components/Halaman'
 import { useAuth } from '../auth/AuthContext'
@@ -101,8 +102,8 @@ export default function ProfilSaya() {
         </form>
         <form className="kartu form" onSubmit={gantiSandi}>
           <h3>{ada ? 'Ganti password' : 'Atur password'}</h3>
-          <label>Password baru<input type="password" autoComplete="new-password" value={sandiBaru} onChange={(e) => setSandiBaru(e.target.value)} /></label>
-          <label>Ulangi password<input type="password" autoComplete="new-password" value={ulangi} onChange={(e) => setUlangi(e.target.value)} /></label>
+          <KolomSandi label="Password baru" autoComplete="new-password" value={sandiBaru} onChange={(e) => setSandiBaru(e.target.value)} />
+          <KolomSandi label="Ulangi password" autoComplete="new-password" value={ulangi} onChange={(e) => setUlangi(e.target.value)} />
           <button className="tombol tombol-isi" disabled={sibuk || !sandiBaru}>Simpan password</button>
           <div aria-live="polite">{pesanSandi && <p className="catatan" role={pesanSandi.ok ? 'status' : 'alert'}>{pesanSandi.teks}</p>}</div>
           <p className="catatan">Setelah username dan password tersimpan, masuk lewat tab Admin di halaman masuk. Tautan email tetap berfungsi.</p>
