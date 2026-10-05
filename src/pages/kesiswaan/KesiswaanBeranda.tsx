@@ -30,7 +30,7 @@ function Isi({ izin }: { izin: string[] }) {
     punya('kesiswaan.izin') && { to: '/portal/kesiswaan/izin', nama: 'Izin siswa', ket: 'Sakit, izin, dispensasi, dan izin keluar sekolah', n: r?.lencana.izin },
     punya('kesiswaan.izin', 'kesiswaan.pantau') && { to: '/portal/kesiswaan/kehadiran', nama: 'Kehadiran harian', ket: 'Isi dan rekap kehadiran per hari sekolah', n: 0 },
     punya('kesiswaan.pantau') && { to: '/portal/kesiswaan/risiko', nama: 'Risiko siswa', ket: 'Siswa yang perlu dilihat lebih dulu dan tindak lanjutnya', n: 0 },
-    punya('ekskul.kelola') && { to: '/portal/kesiswaan/ekskul', nama: 'Ekskul dan OSIS', ket: 'Anggota, pertemuan, dan predikat', n: 0 },
+    punya('ekskul.kelola', 'ekskul.lihat') && { to: '/portal/kesiswaan/ekskul', nama: 'Ekskul dan OSIS', ket: 'Anggota, pertemuan, dan predikat', n: 0 },
     punya('kesiswaan.beasiswa') && { to: '/portal/kesiswaan/beasiswa', nama: 'Beasiswa dan PIP', ket: 'Program, calon, berkas, dan pencairan', n: 0 },
   ].filter(Boolean) as { to: string; nama: string; ket: string; n?: number }[]
 
@@ -70,5 +70,5 @@ function Isi({ izin }: { izin: string[] }) {
 }
 
 export default function KesiswaanBeranda() {
-  return <Gerbang perlu={['kesiswaan.catat', 'kesiswaan.verifikasi', 'kesiswaan.pantau', 'kesiswaan.izin', 'kesiswaan.beasiswa', 'ekskul.kelola']} judul="Kesiswaan">{(izin) => <Isi izin={izin} />}</Gerbang>
+  return <Gerbang perlu={['kesiswaan.catat', 'kesiswaan.verifikasi', 'kesiswaan.pantau', 'kesiswaan.izin', 'kesiswaan.beasiswa', 'ekskul.kelola', 'ekskul.lihat']} judul="Kesiswaan">{(izin) => <Isi izin={izin} />}</Gerbang>
 }
