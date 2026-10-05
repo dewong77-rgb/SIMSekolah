@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { panggil } from './rpc'
 
-export type IzinKes = 'kesiswaan.catat' | 'kesiswaan.verifikasi' | 'kesiswaan.pantau' | 'kesiswaan.izin' | 'kesiswaan.beasiswa' | 'ekskul.kelola'
+export type IzinKes = 'kesiswaan.catat' | 'kesiswaan.verifikasi' | 'kesiswaan.pantau' | 'kesiswaan.izin' | 'kesiswaan.beasiswa' | 'ekskul.kelola' | 'ekskul.lihat' | 'bk.kelola' | 'bk.baca'
 
 /** Izin kesiswaan yang berlaku bagi pengguna (seluruh sekolah atau rombel sendiri). Basis data tetap memeriksa ulang. */
 export function useIzinKes() {
@@ -62,3 +62,19 @@ export const akhirPekan = (iso: string) => { const h = new Date(iso + 'T00:00:00
 
 export type SiswaCari = { id: string; nama: string; nisn: string | null; rombel: string | null }
 export type RombelPilih = { id: string; nama: string; tingkat: number; jumlah: number }
+
+export const STATUS_KASUS = [
+  ['rujukan', 'Rujukan baru'], ['terbuka', 'Ditangani'], ['pemantauan', 'Dipantau'], ['selesai_bertahan', 'Selesai, siswa bertahan'],
+  ['pindah', 'Pindah sekolah'], ['putus_sekolah', 'Putus sekolah (ATS)'], ['ditutup', 'Ditutup'],
+] as const
+export const STATUS_KASUS_TUTUP = ['selesai_bertahan', 'pindah', 'putus_sekolah', 'ditutup']
+export const ALASAN_KASUS = [
+  ['ekonomi', 'Kesulitan ekonomi'], ['kehadiran', 'Kehadiran rendah'], ['perilaku', 'Perilaku'], ['keluarga', 'Masalah keluarga'],
+  ['bekerja', 'Bekerja'], ['pernikahan', 'Pernikahan'], ['minat', 'Kurang minat belajar'], ['lainnya', 'Lainnya'],
+] as const
+export const PEMICU_KASUS = [['risiko', 'Dashboard risiko'], ['rujukan', 'Rujukan guru'], ['orang_tua', 'Orang tua'], ['manual', 'Temuan BK']] as const
+export const JENIS_BK = [
+  ['konseling_individu', 'Konseling individu'], ['konseling_kelompok', 'Konseling kelompok'], ['kunjungan_rumah', 'Kunjungan rumah'],
+  ['panggilan_orang_tua', 'Panggilan orang tua'], ['mediasi', 'Mediasi'], ['observasi', 'Observasi'], ['koordinasi', 'Koordinasi'], ['lainnya', 'Lainnya'],
+] as const
+export const BIDANG_BK = [['pribadi', 'Pribadi'], ['sosial', 'Sosial'], ['belajar', 'Belajar'], ['karier', 'Karier'], ['keluarga', 'Keluarga']] as const

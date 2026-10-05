@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import Halaman from '../../components/Halaman'
 import { panggil, tgl } from '../../lib/rpc'
 import { unduhCsv } from '../../lib/hubin'
-import { BIDANG_PRESTASI, JENIS_IZIN, KATEGORI, STATUS_CATATAN, STATUS_HADIR, STATUS_IZIN, TINDAK_LANJUT, TINGKAT, hariIni, label, tambahHari, type RombelPilih } from '../../lib/kesiswaan'
+import { ALASAN_KASUS, BIDANG_PRESTASI, JENIS_IZIN, KATEGORI, STATUS_CATATAN, STATUS_HADIR, STATUS_IZIN, TINDAK_LANJUT, TINGKAT, hariIni, label, tambahHari, type RombelPilih } from '../../lib/kesiswaan'
 import Gerbang from './Gerbang'
 
 type Baris = {
@@ -24,13 +24,16 @@ type Riwayat = {
 
 const warna: Record<string, string> = { tinggi: '#f8d7da', sedang: '#fdf1d8', rendah: '#e8edf3' }
 
-function Detail({ pd, bisaTindak, tutup, ubah }: { pd: Baris; bisaTindak: boolean; tutup: () => void; ubah: () => void }) {
+function Detail({ pd, bisaTindak, bisaRujuk, tutup, ubah }: { pd: Baris; bisaTindak: boolean; bisaRujuk: boolean; tutup: () => void; ubah: () => void }) {
   const [r, setR] = useState<Riwayat | null>(null)
   const [galat, setGalat] = useState('')
   const [jenis, setJenis] = useState('teguran_lisan')
   const [tanggal, setTanggal] = useState(hariIni())
   const [catatan, setCatatan] = useState('')
   const [sibuk, setSibuk] = useState(false)
+  const [rujukAlasan, setRujukAlasan] = useState('kehadiran')
+  const [rujukCatatan, setRujukCatatan] = useState('')
+  const [rujukInfo, setRujukInfo] = useState('')
   const muat = useCallback(() => { panggil<Riwayat>('kesiswaan_siswa_riwayat', { p_pd: pd.pd }).then(setR).catch((e: Error) => setGalat(e.message)) }, [pd.pd])
   useEffect(() => { muat() }, [muat])
 
@@ -38,6 +41,12 @@ function Detail({ pd, bisaTindak, tutup, ubah }: { pd: Baris; bisaTindak: boolea
     e.preventDefault()
     setSibuk(true); setGalat('')
     try { await panggil('tindak_lanjut_catat', { p_pd: pd.pd, p_pelanggaran_id: null, p_jenis: jenis, p_tanggal: tanggal, p_catatan: catatan.trim() || null }); setCatatan(''); muat(); ubah() }
+    catch (x) { setGalat((x as Error).message) } finally { setSibuk(false) }
+  }
+  async function rujuk(e: React.FormEvent) {
+    e.preventDefault()
+    setSibuk(true); setGalat(''); setRujukInfo('')
+    try { await panggil('bk_rujuk', { p_pd: pd.pd, p_alasan: rujukAlasan, p_ringkasan: rujukCatatan.trim() || pd.sinyal.join('; ') || null }); setRujukInfo('Rujukan terkirim ke Guru BK.'); setRujukCatatan('') }
     catch (x) { setGalat((x as Error).message) } finally { setSibuk(false) }
   }
   async function hapus(id: string) {
@@ -78,6 +87,16 @@ function Detail({ pd, bisaTindak, tutup, ubah }: { pd: Baris; bisaTindak: boolea
                 <label>Tanggal<input type="date" value={tanggal} min={tambahHari(hariIni(), -120)} max={hariIni()} onChange={(e) => setTanggal(e.target.value)} required /></label>
                 <label>Catatan<textarea rows={2} maxLength={1000} value={catatan} onChange={(e) => setCatatan(e.target.value)} /></label>
                 <button className="tombol tombol-isi" disabled={sibuk}>Simpan tindak lanjut</button>
+              </form>
+            )}
+            {bisaRujuk && (
+              <form className="form" onSubmit={rujuk}>
+                <h4>Rujuk ke Guru BK</h4>
+                <label>Alasan<select value={rujukAlasan} onChange={(e) => setRujukAlasan(e.target.value)}>{ALASAN_KASUS.map(([key, n]) => <option key={key} value={key}>{n}</option>)}</select></label>
+                <label>Keterangan singkat<textarea rows={2} maxLength={1000} value={rujukCatatan} onChange={(e) => setRujukCatatan(e.target.value)} placeholder="Kosongkan untuk memakai alasan masuk daftar" /></label>
+                <button className="tombol" disabled={sibuk}>Kirim rujukan</button>
+                {rujukInfo && <p role="status">{rujukInfo}</p>}
+                <p className="catatan">Setelah dirujuk, isi penanganan BK bersifat rahasia dan tidak tampil di sini.</p>
               </form>
             )}
             <h4>Prestasi</h4>
@@ -144,7 +163,7 @@ function Isi({ izin }: { izin: string[] }) {
         <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}><input type="checkbox" checked={semua} onChange={(e) => { setSemua(e.target.checked); setHalaman(0) }} />Tampilkan juga yang tanpa sinyal</label>
         <button className="tombol" onClick={ekspor}>Unduh CSV</button>
       </div>
-      {pilih && <Detail pd={pilih} bisaTindak={izin.includes('kesiswaan.pantau')} tutup={() => setPilih(null)} ubah={() => void muat()} />}
+      {pilih && <Detail pd={pilih} bisaTindak={izin.includes('kesiswaan.pantau')} bisaRujuk={izin.includes('kesiswaan.catat')} tutup={() => setPilih(null)} ubah={() => void muat()} />}
       <div className="tabel-bungkus jarak">
         <table>
           <thead><tr><th>Siswa</th><th>Level</th><th>Alasan</th><th>Poin</th><th>Tindak lanjut</th><th /></tr></thead>

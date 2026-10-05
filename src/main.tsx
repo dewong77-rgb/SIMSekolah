@@ -36,6 +36,8 @@ const KesKehadiran = lazy(() => import('./pages/kesiswaan/KehadiranHarian'))
 const KesRisiko = lazy(() => import('./pages/kesiswaan/Risiko'))
 const KesEkskul = lazy(() => import('./pages/kesiswaan/Ekskul'))
 const KesBeasiswa = lazy(() => import('./pages/kesiswaan/Beasiswa'))
+const KesBK = lazy(() => import('./pages/kesiswaan/BK'))
+const KesBKKasus = lazy(() => import('./pages/kesiswaan/BKKasus'))
 const CatatanSaya = lazy(() => import('./pages/kesiswaan/CatatanSaya'))
 const SarprasInventaris = lazy(() => import('./pages/sarpras/SarprasInventaris'))
 const SarprasUsulan = lazy(() => import('./pages/sarpras/SarprasUsulan'))
@@ -263,6 +265,22 @@ createRoot(document.getElementById('root')!).render(
             element={
               <RequireRole peran={['admin_tu', 'guru', 'staf']}>
                 <Suspense fallback={null}><KesRisiko /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/kesiswaan/bk"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf']}>
+                <Suspense fallback={null}><KesBK /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/kesiswaan/bk/:id"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf']}>
+                <Suspense fallback={null}><KesBKKasus /></Suspense>
               </RequireRole>
             }
           />
