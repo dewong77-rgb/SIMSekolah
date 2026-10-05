@@ -20,9 +20,10 @@ export default function Footer() {
           <ul>
             <li><Link to="/portal">Portal sekolah</Link></li>
             <li><Link to="/lms">LMS</Link></li>
-            <li><Link to="/perpustakaan">Perpustakaan</Link></li>
+            <li><Link to="/akademik">Kalender Akademik</Link></li>
+            <li><Link to="/hubungan-industri">Hubungan Industri</Link></li>
             <li><Link to="/alumni">Cek Data Alumni</Link></li>
-            <li><Link to="/ppdb">PPDB</Link></li>
+            <li><Link to="/alumni/tracer">Tracer Study</Link></li>
           </ul>
         </div>
         <div>

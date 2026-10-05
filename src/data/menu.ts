@@ -4,6 +4,7 @@ export type ItemMenu = {
   anak?: { label: string; to: string }[]
 }
 
+// Hanya fitur yang sudah berjalan dengan data sungguhan. Halaman contoh (PPDB, Perpustakaan) tidak ditautkan.
 export const menuUtama: ItemMenu[] = [
   { label: 'Beranda', to: '/' },
   {
@@ -12,19 +13,23 @@ export const menuUtama: ItemMenu[] = [
       { label: 'Profil dan Visi Misi', to: '/profil' },
       { label: 'Struktur Organisasi', to: '/struktur-organisasi' },
       { label: 'Jurusan', to: '/jurusan' },
-      { label: 'Hubungan Industri', to: '/hubungan-industri' },
     ],
   },
   {
-    label: 'Informasi Akademik',
+    label: 'Akademik',
     anak: [
       { label: 'Kalender Akademik', to: '/akademik' },
-      { label: 'PPDB', to: '/ppdb' },
+      { label: 'LMS', to: '/lms' },
     ],
   },
-  { label: 'LMS', to: '/lms' },
-  { label: 'Perpustakaan', to: '/perpustakaan' },
-  { label: 'Alumni', to: '/alumni' },
+  {
+    label: 'Industri dan Alumni',
+    anak: [
+      { label: 'Hubungan Industri', to: '/hubungan-industri' },
+      { label: 'Cek Data Alumni', to: '/alumni' },
+      { label: 'Tracer Study', to: '/alumni/tracer' },
+    ],
+  },
   { label: 'Berita', to: '/berita' },
   { label: 'Kontak', to: '/kontak' },
 ]
