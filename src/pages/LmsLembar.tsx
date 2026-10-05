@@ -35,6 +35,17 @@ export function DokumenIsian({ html, isian, terkunci, onUbah }: { html: string; 
       if (terkunci && x instanceof HTMLInputElement && x.type === 'checkbox') x.disabled = true
     })
   }, [hasil, isian, terkunci])
+  // Tabel di HP ditumpuk jadi kartu: judul kolom dari baris pertama dipasang sebagai label tiap sel.
+  useEffect(() => {
+    ref.current?.querySelectorAll('table').forEach((t) => {
+      const baris = Array.from(t.querySelectorAll('tr'))
+      if (baris.length < 2) return
+      const judul = Array.from(baris[0].children).map((c) => (c.textContent ?? '').trim())
+      if (judul.every((x) => !x)) return
+      t.classList.add('tabel-kartu'); baris[0].classList.add('tabel-kepala')
+      baris.slice(1).forEach((tr) => Array.from(tr.children).forEach((c, i) => { if (judul[i]) c.setAttribute('data-label', judul[i]) }))
+    })
+  }, [hasil])
   function saatUbah(e: React.FormEvent<HTMLDivElement>) {
     const x = e.target as HTMLInputElement | HTMLTextAreaElement
     const k = x.dataset?.f
@@ -85,6 +96,10 @@ export function LembarSiswa({ tugasId, html, judul, setelah }: { tugasId: string
   const catRef = useRef(''); const urlRef = useRef('')
   const jam = useRef<number | undefined>(undefined)
   const [awal, setAwal] = useState<Isian>({})
+  const [simpanStatus, setSimpanStatus] = useState<'' | 'menyimpan' | 'tersimpan' | 'gagal'>('')
+  const kunciCadangan = `lembar-draf:${tugasId}`
+  const cadangkan = () => { try { localStorage.setItem(kunciCadangan, JSON.stringify({ isian: isian.current, catatan: catRef.current, url: urlRef.current })) } catch { /* penyimpanan perangkat penuh atau dimatikan */ } }
+  const hapusCadangan = () => { try { localStorage.removeItem(kunciCadangan) } catch { /* abaikan */ } }
 
   const muat = useCallback(async () => {
     try {
@@ -93,26 +108,56 @@ export function LembarSiswa({ tugasId, html, judul, setelah }: { tugasId: string
       setCatatan(r.catatan ?? ''); catRef.current = r.catatan ?? ''
       setUrl(r.url ?? ''); urlRef.current = r.url ?? ''
       setKotor(false); setGalat('')
+      // Draf di perangkat yang belum sempat terkirim (sinyal putus, tab tertutup) dipulihkan.
+      let pulih = false
+      if (!r.terkunci) {
+        try {
+          const raw = localStorage.getItem(kunciCadangan)
+          if (raw) {
+            const c = JSON.parse(raw) as { isian?: Isian; catatan?: string; url?: string }
+            isian.current = { ...r.isian, ...(c.isian ?? {}) }; setAwal({ ...isian.current })
+            catRef.current = c.catatan ?? r.catatan ?? ''; setCatatan(catRef.current)
+            urlRef.current = c.url ?? r.url ?? ''; setUrl(urlRef.current)
+            pulih = true
+          }
+        } catch { /* cadangan rusak, abaikan */ }
+      }
+      if (pulih) { setKotor(true); setInfo('Draf di perangkat ini dipulihkan, sedang dikirim ulang.'); jam.current = window.setTimeout(() => { void simpanDraf() }, 800) }
     } catch (e) { setGalat((e as Error).message) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tugasId])
   useEffect(() => { void muat() }, [muat])
 
   const simpanDraf = useCallback(async (diam = false) => {
     window.clearTimeout(jam.current)
+    setSimpanStatus('menyimpan')
     try {
       await panggil('lms_lembar_simpan_draf', { p_tugas: tugasId, p_isian: isian.current, p_catatan: catRef.current, p_url: urlRef.current })
-      setKotor(false)
-      if (!diam) setInfo(`Draf tersimpan ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`)
+      setKotor(false); hapusCadangan(); setSimpanStatus('tersimpan'); setGalat('')
+      if (!diam) setInfo('')
       return true
-    } catch (e) { setGalat((e as Error).message); return false }
+    } catch (e) {
+      // Jawaban aman di perangkat; dicoba lagi otomatis saat sinyal kembali.
+      cadangkan(); setSimpanStatus('gagal')
+      if (navigator.onLine) setGalat((e as Error).message)
+      return false
+    }
   }, [tugasId])
 
   function tandai() {
-    setKotor(true); setInfo('')
+    setKotor(true); setInfo(''); cadangkan()
     window.clearTimeout(jam.current)
     jam.current = window.setTimeout(() => { void simpanDraf() }, 1500)
   }
   useEffect(() => () => window.clearTimeout(jam.current), [])
+  // Kirim ulang draf yang gagal: saat sinyal kembali dan tiap 20 detik selama masih ada yang belum tersimpan.
+  const gagalRef = useRef(false); gagalRef.current = simpanStatus === 'gagal'
+  useEffect(() => {
+    const ulang = () => { if (gagalRef.current) void simpanDraf(true) }
+    window.addEventListener('online', ulang)
+    const iv = window.setInterval(ulang, 20_000)
+    return () => { window.removeEventListener('online', ulang); window.clearInterval(iv) }
+  }, [simpanDraf])
   // simpan bila pindah tab atau halaman disembunyikan
   const kotorRef = useRef(false); kotorRef.current = kotor
   useEffect(() => {
@@ -125,6 +170,7 @@ export function LembarSiswa({ tugasId, html, judul, setelah }: { tugasId: string
     setSibuk(true); setGalat(''); setInfo('')
     try {
       await panggil('lms_lembar_kumpul', { p_tugas: tugasId, p_isian: isian.current, p_catatan: catRef.current, p_url: urlRef.current })
+      hapusCadangan(); setSimpanStatus('')
       await muat()
       setInfo('Lembar kerja sudah dikirim.')
       setelah?.()
@@ -200,10 +246,11 @@ export function LembarSiswa({ tugasId, html, judul, setelah }: { tugasId: string
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
       {info && <p className="catatan" role="status">{info}</p>}
       {!d.terkunci && (
-        <div className="aksi">
-          <button type="button" className="tombol" disabled={sibuk || !kotor} onClick={() => void simpanDraf()}>Simpan draf</button>
+        <div className="aksi aksi-lekat">
+          <span className={`status-simpan status-simpan-${simpanStatus || (kotor ? 'menyimpan' : 'diam')}`} role="status" aria-live="polite">
+            {simpanStatus === 'gagal' ? 'Belum terkirim, jawaban aman di HP ini. Dicoba lagi otomatis.' : simpanStatus === 'menyimpan' || kotor ? 'Menyimpan...' : simpanStatus === 'tersimpan' ? 'Tersimpan' : ''}
+          </span>
           <button type="button" className="tombol tombol-isi" disabled={sibuk} onClick={() => void kumpul()}>{sibuk ? 'Memproses...' : d.dikumpul ? 'Kumpulkan ulang' : 'Kumpulkan'}</button>
-          {kotor && <small className="catatan">Perubahan belum tersimpan...</small>}
         </div>
       )}
       {d.terkunci && <p className="catatan">Lembar sudah dinilai, tidak bisa diubah lagi.</p>}

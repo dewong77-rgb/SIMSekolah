@@ -213,6 +213,12 @@ export function ProfilSendiri() {
   const { hasil, galat } = useProfil()
   return (
     <Halaman judul={profil?.peran === 'siswa' ? 'Data saya' : 'Profil saya'} lead="Data pribadi Anda seperti tercatat di Dapodik.">
+      {profil?.peran === 'siswa' && (
+        <div className="grid grid-2">
+          <Link to="/portal/catatan-saya" className="kartu tautan"><h3>Catatan kesiswaan</h3><small>Kehadiran, prestasi, pelanggaran terverifikasi, ekskul, dan izin</small></Link>
+          <Link to="/portal/ajuan" className="kartu tautan"><h3>Ajuan saya</h3><small>Perbaikan data yang diajukan dan keputusannya</small></Link>
+        </div>
+      )}
       <Isi hasil={hasil} galat={galat} ajukan />
       <p className="catatan jarak"><Link to="/portal">Kembali ke portal</Link></p>
     </Halaman>

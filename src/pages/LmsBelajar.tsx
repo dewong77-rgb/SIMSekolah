@@ -43,7 +43,6 @@ export function IsiMateri({ m, siswa, selesai, pratinjau, setelah }: { m: Materi
   if (siswa && m.tugas_id && m.format === 'html') return <LembarSiswa tugasId={m.tugas_id} html={m.isi ?? ''} judul={m.judul} setelah={setelah} />
   const yt = m.jenis === 'video' && m.url ? idYoutube(m.url) : null
   const kenaJeda = siswa && !pratinjau && !m.tugas_id && !m.selesai
-  const [ceklis, setCeklis] = useState(false)
   const [kirim, setKirim] = useState(false)
   const [sisa, setSisa] = useState(() => (kenaJeda ? sisaDetikBaca(m.mulai_pada) : 0))
   useEffect(() => {
@@ -77,16 +76,15 @@ export function IsiMateri({ m, siswa, selesai, pratinjau, setelah }: { m: Materi
       {siswa && !pratinjau && !m.selesai && (
         <div className="aksi" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
           {kenaJeda && sisa > 0
-            ? <p className="catatan">Durasi baca {formatMenitDetik(MENIT_BACA_MINIMAL * 60 - sisa)} dari {formatMenitDetik(MENIT_BACA_MINIMAL * 60)}. Konfirmasi aktif dalam {formatMenitDetik(sisa)}.</p>
-            : (
+            ? (
               <>
-                <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                  <input type="checkbox" checked={ceklis} onChange={(e) => setCeklis(e.target.checked)} style={{ marginTop: 4 }} />
-                  <span>Saya sudah membaca materi bacaan ini.</span>
-                </label>
-                <button className="tombol" disabled={!ceklis || kirim} style={{ color: 'var(--warna-utama)' }}
-                  onClick={() => { setKirim(true); void selesai(m.id).finally(() => setKirim(false)) }}>{kirim ? 'Mengirim...' : 'Kirim'}</button>
+                <button type="button" className="tombol tombol-besar" disabled>Bisa ditandai selesai dalam {formatMenitDetik(sisa)}</button>
+                <small className="catatan">Baca dulu pelan-pelan. Waktu berjalan sendiri dan tombol aktif saat habis.</small>
               </>
+            )
+            : (
+              <button type="button" className="tombol tombol-isi tombol-besar" disabled={kirim}
+                onClick={() => { setKirim(true); void selesai(m.id).finally(() => setKirim(false)) }}>{kirim ? 'Mengirim...' : 'Saya sudah membaca, tandai selesai'}</button>
             )}
         </div>
       )}
@@ -193,8 +191,21 @@ export function PertemuanSiswa({ kelasId, id }: { kelasId: string; id: string })
       <KartuKriteria pertemuanId={id} nilai={nl?.nilai ?? null} />
       {!selesaiSemua && <PengingatNilai ringkas />}
 
+      {!butuhAbsen && !selesaiSemua && wajibItem.length > 0 && (() => {
+        const next = wajibItem.find((x) => !x.selesai) ?? wajibItem[0]
+        const no = wajibItem.indexOf(next) + 1
+        return (
+          <div className="kartu langkah-berikut">
+            <small>Langkah berikutnya, {no} dari {wajibItem.length}</small>
+            <h3>{next.nama}</h3>
+            <p>{next.ket}</p>
+            {nomorSaatIni !== next.k && <button type="button" className="tombol tombol-isi tombol-besar" onClick={() => setAktif(next.k)}>Lanjut ke {next.nama.toLowerCase()}</button>}
+          </div>
+        )
+      })()}
+      {!butuhAbsen && selesaiSemua && langkah.some((x) => !x.wajib) && <p className="catatan">Mau nilai lebih? Kuis dan forum menambah nilai pertemuan.</p>}
       {!butuhAbsen && <nav className="langkah-bar" aria-label="Langkah belajar">
-        {langkah.map((x, i) => (
+        {(selesaiSemua ? langkah : wajibItem).map((x, i) => (
           <button key={x.k} type="button" className={`langkah${nomorSaatIni === x.k ? ' langkah-aktif' : ''}${x.selesai ? ' langkah-selesai' : ''}${!x.wajib ? ' langkah-opsi' : ''}`} onClick={() => setAktif(x.k)}>
             <span className="langkah-no">{x.selesai ? '✓' : i + 1}</span>
             <span className="langkah-teks"><strong>{x.nama}</strong><small>{x.ket}</small></span>
@@ -212,7 +223,7 @@ export function PertemuanSiswa({ kelasId, id }: { kelasId: string; id: string })
           ) : l?.akses?.sebelumnya ? (
             <>
               <h3>Selesaikan pertemuan {l.akses.sebelumnya.nomor} dulu</h3>
-              <p>Pertemuan ini terbuka setelah bahan bacaan dan lembar kerja pertemuan {l.akses.sebelumnya.nomor}, {l.akses.sebelumnya.judul}, selesai.</p>
+              <p>Pertemuan ini terbuka setelah bacaan dan lembar kerja pertemuan {l.akses.sebelumnya.nomor} selesai.</p>
               <div className="aksi"><Link to={`/portal/lms/${kelasId}/pertemuan/${l.akses.sebelumnya.id}`} className="tombol tombol-isi tombol-besar">Ke pertemuan {l.akses.sebelumnya.nomor}</Link></div>
             </>
           ) : <p>Pertemuan ini belum bisa dibuka.</p>}
@@ -229,7 +240,7 @@ export function PertemuanSiswa({ kelasId, id }: { kelasId: string; id: string })
       {!butuhAbsen && nomorSaatIni === 'lembar' && !bacaSelesai && (
         <div className="kartu jarak">
           <h3>Baca dulu</h3>
-          <p>Lembar kerja terbuka setelah semua bahan bacaan Anda tandai selesai dibaca.</p>
+          <p>Lembar kerja terbuka setelah bacaan ditandai selesai.</p>
           <div className="aksi"><button type="button" className="tombol tombol-isi" onClick={() => setAktif('materi')}>Ke bahan bacaan</button></div>
         </div>
       )}
