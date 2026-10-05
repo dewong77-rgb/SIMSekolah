@@ -488,3 +488,10 @@ input[type="search"] { font: inherit; padding: 8px 12px; border: 1px solid #b9c1
   .dokumen-ajar table { font-size: 10pt; }
   .dokumen-ajar h3 { break-after: avoid; }
 }
+
+.aksi-ikon{display:flex;gap:6px;flex-wrap:wrap}
+.tombol-ikon{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--warna-utama,#1a3e6f);border-radius:8px;background:#fff;color:var(--warna-utama,#1a3e6f);font:inherit;font-size:.85rem;text-decoration:none;cursor:pointer}
+.tombol-ikon:hover{background:#eef3fa}
+.tombol-ikon-bahaya{color:#8a1f1f;border-color:#8a1f1f}
+.tombol-ikon-bahaya:hover{background:#fbeeee}
+@media (max-width:640px){.tombol-ikon span{display:none}}
