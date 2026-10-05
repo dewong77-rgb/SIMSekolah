@@ -28,6 +28,9 @@ const HubinJurusan = lazy(() => import('./pages/hubin/HubinJurusan'))
 const HubinBerita = lazy(() => import('./pages/hubin/HubinBerita'))
 const HubinTracer = lazy(() => import('./pages/hubin/HubinTracer'))
 const ProfilSekolahHubin = lazy(() => import('./pages/hubin/ProfilSekolahHubin'))
+const SarprasInventaris = lazy(() => import('./pages/sarpras/SarprasInventaris'))
+const SarprasUsulan = lazy(() => import('./pages/sarpras/SarprasUsulan'))
+const SarprasBuku = lazy(() => import('./pages/sarpras/SarprasBuku'))
 const RegisterSurat = lazy(() => import('./pages/Persuratan').then((m) => ({ default: m.RegisterSurat })))
 const DetailSurat = lazy(() => import('./pages/Persuratan').then((m) => ({ default: m.DetailSurat })))
 const KotakDisposisi = lazy(() => import('./pages/Persuratan').then((m) => ({ default: m.KotakDisposisi })))
@@ -179,6 +182,30 @@ createRoot(document.getElementById('root')!).render(
             element={
               <RequireRole peran={['admin_tu', 'guru', 'staf']}>
                 <Suspense fallback={null}><HubinTracer /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/sarpras/inventaris"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf']}>
+                <Suspense fallback={null}><SarprasInventaris /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/sarpras/usulan"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf']}>
+                <Suspense fallback={null}><SarprasUsulan /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/sarpras/buku"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf']}>
+                <Suspense fallback={null}><SarprasBuku /></Suspense>
               </RequireRole>
             }
           />
