@@ -7,7 +7,7 @@ export type ItemPortal = {
   /** Satu kalimat untuk kartu di halaman utama portal. */
   ket?: string
   /** Kunci lencana (angka di samping menu), lihat PortalLayout. */
-  lencana?: 'ajuan_masuk' | 'ajuan_saya' | 'disposisi' | 'surat'
+  lencana?: 'ajuan_masuk' | 'ajuan_saya' | 'disposisi' | 'surat' | 'sarpras'
 }
 export type KelompokPortal = { judul: string; item: ItemPortal[] }
 
@@ -166,6 +166,7 @@ const khususSuper: ItemPortal[] = [
   { to: '/portal/profil-sekolah', label: 'Profil sekolah', ikon: 'sekolah', ket: 'Alamat, koordinat, kontak, media sosial, visi dan misi' },
   { to: '/portal/kalender', label: 'Kalender sekolah', ikon: 'kalender', ket: 'Kalender pendidikan, kegiatan, libur, dan ujian' },
   { to: '/portal/jam-pelajaran', label: 'Jam pelajaran', ikon: 'kalender', ket: 'Jam masuk, jam pelajaran, dan istirahat' },
+  { to: '/portal/sarpras/buku', label: 'Sarana dan prasarana', ikon: 'tas', ket: 'Inventaris, usulan bertingkat, dan pembukuan bengkel dan aset' },
   { to: '/portal/sambungan-drive', label: 'Sambungan Drive', ikon: 'unggah', ket: 'Uji sambungan ke Google Drive sekolah dan lihat kuota' },
 ]
 
@@ -186,8 +187,15 @@ const menuIzin: { izin: string; nama: string; bidang: string; ikon: string; to?:
   { izin: 'kesiswaan.kelola', nama: 'Kesiswaan', bidang: 'Kesiswaan', ikon: 'kelompok' },
   { izin: 'kelas.kelola', nama: 'Kelas saya', bidang: 'Kelas', ikon: 'sekolah' },
   { izin: 'ekskul.kelola', nama: 'Ekstrakurikuler saya', bidang: 'Kesiswaan', ikon: 'kelompok' },
-  { izin: 'sarpras.kelola', nama: 'Sarana dan prasarana', bidang: 'Sarpras', ikon: 'tas' },
-  { izin: 'lab.kelola', nama: 'Bengkel dan laboratorium', bidang: 'Sarpras', ikon: 'tas' },
+  { izin: 'sarpras.kelola', nama: 'Inventaris sarpras', bidang: 'Sarana dan prasarana', ikon: 'tas', to: '/portal/sarpras/inventaris' },
+  { izin: 'sarpras.catat_lab', nama: 'Inventaris sarpras', bidang: 'Sarana dan prasarana', ikon: 'tas', to: '/portal/sarpras/inventaris' },
+  { izin: 'sarpras.lihat', nama: 'Inventaris sarpras', bidang: 'Sarana dan prasarana', ikon: 'tas', to: '/portal/sarpras/inventaris' },
+  { izin: 'sarpras.kelola', nama: 'Usulan sarpras', bidang: 'Sarana dan prasarana', ikon: 'kotak', to: '/portal/sarpras/usulan' },
+  { izin: 'sarpras.catat_lab', nama: 'Usulan sarpras', bidang: 'Sarana dan prasarana', ikon: 'kotak', to: '/portal/sarpras/usulan' },
+  { izin: 'sarpras.verifikasi_program', nama: 'Usulan sarpras', bidang: 'Sarana dan prasarana', ikon: 'kotak', to: '/portal/sarpras/usulan' },
+  { izin: 'sarpras.lihat', nama: 'Usulan sarpras', bidang: 'Sarana dan prasarana', ikon: 'kotak', to: '/portal/sarpras/usulan' },
+  { izin: 'sarpras.kelola', nama: 'Pembukuan sarpras', bidang: 'Sarana dan prasarana', ikon: 'grafik', to: '/portal/sarpras/buku' },
+  { izin: 'sarpras.lihat', nama: 'Pembukuan sarpras', bidang: 'Sarana dan prasarana', ikon: 'grafik', to: '/portal/sarpras/buku' },
   { izin: 'perpus.kelola', nama: 'Perpustakaan', bidang: 'Perpustakaan', ikon: 'buku' },
   { izin: 'laporan.lihat', nama: 'Laporan sekolah', bidang: 'Pimpinan', ikon: 'grafik' },
   { izin: 'profil.setujui_guru', nama: 'Ajuan perbaikan data', bidang: 'Tata usaha', ikon: 'kotak', to: '/portal/ajuan-masuk' },
@@ -235,7 +243,7 @@ export function susunMenu(peran: Peran, superAdmin: boolean, tugas: TugasMenu[])
       if (m.to) {
         if (sudah.has(m.to)) continue
         sudah.add(m.to)
-        const lencana = m.to === '/portal/ajuan-masuk' ? 'ajuan_masuk' : m.to === '/portal/surat' ? 'surat' : undefined
+        const lencana = m.to === '/portal/ajuan-masuk' ? 'ajuan_masuk' : m.to === '/portal/surat' ? 'surat' : m.to === '/portal/sarpras/usulan' ? 'sarpras' : undefined
         item.push({ to: m.to, label: m.nama, ikon: m.ikon, ket: m.bidang, lencana })
       } else if (!segera.some((s) => s.nama === m.nama)) {
         segera.push({ nama: m.nama, bidang: m.bidang })
