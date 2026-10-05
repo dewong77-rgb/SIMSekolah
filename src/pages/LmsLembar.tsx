@@ -72,7 +72,7 @@ function Miniatur({ l, lepas }: { l: Lampiran; lepas?: () => void }) {
 }
 
 /** Tampilan siswa: isi, lampirkan foto, simpan draf, kumpulkan. */
-export function LembarSiswa({ tugasId, html, judul }: { tugasId: string; html: string; judul: string }) {
+export function LembarSiswa({ tugasId, html, judul, setelah }: { tugasId: string; html: string; judul: string; setelah?: () => void }) {
   const [d, setD] = useState<Saya | null>(null)
   const [galat, setGalat] = useState('')
   const [info, setInfo] = useState('')
@@ -126,7 +126,8 @@ export function LembarSiswa({ tugasId, html, judul }: { tugasId: string; html: s
     try {
       await panggil('lms_lembar_kumpul', { p_tugas: tugasId, p_isian: isian.current, p_catatan: catRef.current, p_url: urlRef.current })
       await muat()
-      setInfo('Lembar kerja terkumpul.')
+      setInfo('Lembar kerja sudah dikirim.')
+      setelah?.()
     } catch (e) { setGalat((e as Error).message) }
     setSibuk(false)
   }

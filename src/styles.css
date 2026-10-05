@@ -470,6 +470,7 @@ input[type="search"] { font: inherit; padding: 8px 12px; border: 1px solid #b9c1
 .langkah-teks{display:grid;line-height:1.25}
 .langkah-teks small{color:#5b6572}
 .langkah-aktif{border-color:var(--warna-utama,#1a3e6f);box-shadow:0 0 0 2px rgba(26,62,111,.12)}
+.langkah-selesai .langkah-teks small{color:#17692f;font-weight:600}
 .langkah-selesai .langkah-no{background:#dff3e4;color:#17692f}
 .tombol-besar{width:100%;padding:.9rem 1rem;font-size:1.1rem}
 .kode-besar{font-size:1.6rem;letter-spacing:.4em;text-align:center}
