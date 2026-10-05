@@ -26,13 +26,8 @@
       "permanent": false
     },
     {
-      "source": "/prestasi",
-      "destination": "/berita",
-      "permanent": false
-    },
-    {
-      "source": "/prestasi/:path*",
-      "destination": "/berita",
+      "source": "/prestasi/:path+",
+      "destination": "/prestasi",
       "permanent": false
     },
     {
@@ -56,13 +51,8 @@
       "permanent": false
     },
     {
-      "source": "/ekstrakurikuler",
-      "destination": "/profil",
-      "permanent": false
-    },
-    {
-      "source": "/ekstrakurikuler/:path*",
-      "destination": "/profil",
+      "source": "/ekstrakurikuler/:path+",
+      "destination": "/ekstrakurikuler",
       "permanent": false
     },
     {

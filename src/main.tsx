@@ -31,6 +31,9 @@ const ProfilSekolahHubin = lazy(() => import('./pages/hubin/ProfilSekolahHubin')
 const KesiswaanBeranda = lazy(() => import('./pages/kesiswaan/KesiswaanBeranda'))
 const KesPelanggaran = lazy(() => import('./pages/kesiswaan/Pelanggaran'))
 const KesPrestasi = lazy(() => import('./pages/kesiswaan/Prestasi'))
+const KesPrestasiPublik = lazy(() => import('./pages/kesiswaan/PrestasiPublik'))
+const EkskulPublik = lazy(() => import('./pages/EkskulPrestasiPublik').then((m) => ({ default: m.EkstrakurikulerPublik })))
+const PrestasiPublikHal = lazy(() => import('./pages/EkskulPrestasiPublik').then((m) => ({ default: m.PrestasiPublikHalaman })))
 const KesIzin = lazy(() => import('./pages/kesiswaan/IzinSiswa'))
 const KesKehadiran = lazy(() => import('./pages/kesiswaan/KehadiranHarian'))
 const KesRisiko = lazy(() => import('./pages/kesiswaan/Risiko'))
@@ -91,6 +94,8 @@ createRoot(document.getElementById('root')!).render(
           <Route index element={<Beranda />} />
           <Route path="profil" element={<Profil />} />
           <Route path="jurusan" element={<Jurusan />} />
+          <Route path="ekstrakurikuler" element={<Suspense fallback={null}><EkskulPublik /></Suspense>} />
+          <Route path="prestasi" element={<Suspense fallback={null}><PrestasiPublikHal /></Suspense>} />
           <Route path="struktur-organisasi" element={<Suspense fallback={null}><Struktur /></Suspense>} />
           <Route path="hubungan-industri" element={<HubunganIndustri />} />
           <Route path="akademik" element={<Suspense fallback={null}><Akademik /></Suspense>} />
@@ -241,6 +246,14 @@ createRoot(document.getElementById('root')!).render(
             element={
               <RequireRole peran={['admin_tu', 'guru', 'staf']}>
                 <Suspense fallback={null}><KesPrestasi /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/kesiswaan/prestasi-publik"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf']}>
+                <Suspense fallback={null}><KesPrestasiPublik /></Suspense>
               </RequireRole>
             }
           />
