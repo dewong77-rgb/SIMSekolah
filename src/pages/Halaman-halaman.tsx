@@ -119,12 +119,13 @@ export function HubunganIndustri() {
 
 export function Ppdb() {
   return (
-    <Halaman judul="PPDB" lead="Informasi penerimaan peserta didik baru. Pendaftaran daring belum tersedia.">
-      <div className="grid grid-3">
-        <div className="kartu"><h3>Jadwal</h3><p>Contoh: jadwal tahap pendaftaran, seleksi, dan pengumuman.</p></div>
-        <div className="kartu"><h3>Syarat</h3><p>Contoh: syarat usia, berkas, dan jalur penerimaan.</p></div>
-        <div className="kartu"><h3>Alur</h3><p>Contoh: langkah dari pendaftaran sampai daftar ulang.</p></div>
+    <Halaman judul="Penerimaan Peserta Didik Baru" lead="Pendaftaran SMA dan SMK negeri di Jawa Barat dikelola Pemerintah Provinsi lewat satu portal, bukan oleh masing-masing sekolah.">
+      <div className="kartu">
+        <h3>SPMB Jawa Barat</h3>
+        <p>Jadwal, syarat, jalur, dan pendaftaran resmi diumumkan di portal SPMB Jabar. Pilih SMKN 1 Gunung Sindur dan kompetensi keahlian saat mendaftar.</p>
+        <a className="tombol tombol-isi" href="https://spmb.jabarprov.go.id/" rel="noopener noreferrer" target="_blank">Buka portal SPMB Jabar</a>
       </div>
+      <p className="catatan jarak">Pertanyaan tentang kompetensi keahlian atau kunjungan ke sekolah dapat disampaikan lewat halaman <Link to="/kontak">Kontak</Link>.</p>
     </Halaman>
   )
 }

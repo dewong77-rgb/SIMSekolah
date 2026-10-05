@@ -27,6 +27,7 @@ function Isi({ izin }: { izin: string[] }) {
   const menu = [
     punya('kesiswaan.catat', 'kesiswaan.pantau', 'kesiswaan.verifikasi') && { to: '/portal/kesiswaan/pelanggaran', nama: 'Pelanggaran', ket: 'Catat, verifikasi, katalog poin, dan ambang sanksi', n: r?.lencana.pelanggaran },
     punya('kesiswaan.catat', 'kesiswaan.pantau', 'kesiswaan.verifikasi') && { to: '/portal/kesiswaan/prestasi', nama: 'Prestasi', ket: 'Prestasi akademik, non-akademik, dan kejuruan', n: r?.lencana.prestasi },
+    punya('kesiswaan.verifikasi') && { to: '/portal/kesiswaan/prestasi-publik', nama: 'Prestasi di situs publik', ket: 'Pilih prestasi yang tampil di situs sekolah', n: 0 },
     punya('kesiswaan.izin') && { to: '/portal/kesiswaan/izin', nama: 'Izin siswa', ket: 'Sakit, izin, dispensasi, dan izin keluar sekolah', n: r?.lencana.izin },
     punya('kesiswaan.izin', 'kesiswaan.pantau') && { to: '/portal/kesiswaan/kehadiran', nama: 'Kehadiran harian', ket: 'Isi dan rekap kehadiran per hari sekolah', n: 0 },
     punya('kesiswaan.pantau') && { to: '/portal/kesiswaan/risiko', nama: 'Risiko siswa', ket: 'Siswa yang perlu dilihat lebih dulu dan tindak lanjutnya', n: 0 },

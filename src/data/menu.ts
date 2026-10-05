@@ -13,6 +13,8 @@ export const menuUtama: ItemMenu[] = [
       { label: 'Profil dan Visi Misi', to: '/profil' },
       { label: 'Struktur Organisasi', to: '/struktur-organisasi' },
       { label: 'Jurusan', to: '/jurusan' },
+      { label: 'Ekstrakurikuler', to: '/ekstrakurikuler' },
+      { label: 'Prestasi', to: '/prestasi' },
     ],
   },
   {
