@@ -334,15 +334,15 @@ type Nilai = {
   bobot: Record<string, number>
   siswa: { peserta_didik_id: string; nama: string; nisn: string | null; no_urut: number | null; nilai: Record<string, number>; rata: Record<string, number>; akhir: number | null }[]
 }
-const labelGrup: Record<string, string> = { kuis: 'Kuis', tugas: 'Tugas', uh: 'Ulangan harian', uas: 'Ulangan semester' }
-const grupUrut = ['kuis', 'tugas', 'uh', 'uas']
+const labelGrup: Record<string, string> = { kuis: 'Kuis', tugas: 'Tugas', uh: 'Ulangan harian', uts: 'UTS', uas: 'UAS' }
+const grupUrut = ['kuis', 'tugas', 'uh', 'uts', 'uas']
 
-/** Buku nilai satu kelas: kuis, tugas, ulangan harian dan semester, dengan nilai akhir berbobot. */
+/** Buku nilai satu kelas: kuis, tugas, ulangan harian, UTS dan UAS, dengan nilai akhir berbobot. */
 export function BukuNilai() {
   const { kelasId = '' } = useParams()
   const [data, setData] = useState<Nilai | null>(null)
   const [galat, setGalat] = useState('')
-  const [bobot, setBobot] = useState<Record<string, number>>({ kuis: 20, tugas: 20, uh: 30, uas: 30 })
+  const [bobot, setBobot] = useState<Record<string, number>>({ kuis: 20, tugas: 20, uh: 20, uts: 20, uas: 20 })
   const [terapan, setTerapan] = useState(bobot)
   useEffect(() => {
     panggil<Nilai>('lms_nilai_kelas', { p_kelas: kelasId, p_bobot: terapan }).then(setData).catch((e: Error) => setGalat(e.message))

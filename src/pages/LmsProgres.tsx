@@ -22,7 +22,7 @@ const namaAkun = (email: string) => {
 }
 
 const labelTugas: Record<string, string> = { belum: 'Belum', terkumpul: 'Terkumpul', terlambat: 'Terlambat', dinilai: 'Dinilai' }
-const labelJenis: Record<string, string> = { kuis: 'Kuis', ulangan_harian: 'Ulangan harian', ulangan_semester: 'Ulangan semester' }
+const labelJenis: Record<string, string> = { kuis: 'Kuis', ulangan_harian: 'Ulangan harian', ulangan_tengah: 'UTS', ulangan_semester: 'UAS' }
 
 function teksKuis(q: KelasRingkas['kuis'][number]): string {
   if (q.status === 'belum') return 'Belum dikerjakan'
