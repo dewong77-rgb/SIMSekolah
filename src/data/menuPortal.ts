@@ -7,7 +7,7 @@ export type ItemPortal = {
   /** Satu kalimat untuk kartu di halaman utama portal. */
   ket?: string
   /** Kunci lencana (angka di samping menu), lihat PortalLayout. */
-  lencana?: 'ajuan_masuk' | 'ajuan_saya' | 'disposisi' | 'surat' | 'sarpras'
+  lencana?: 'ajuan_masuk' | 'ajuan_saya' | 'disposisi' | 'surat' | 'sarpras' | 'kesiswaan'
 }
 export type KelompokPortal = { judul: string; item: ItemPortal[] }
 
@@ -44,6 +44,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
       judul: 'Data diri',
       item: [
         { to: '/portal/data-saya', label: 'Data saya', ikon: 'pengguna', ket: 'Identitas, alamat, orang tua, dan kelas' },
+        { to: '/portal/catatan-saya', label: 'Catatan kesiswaan', ikon: 'centang', ket: 'Kehadiran, prestasi, pelanggaran terverifikasi, ekskul, dan pengajuan izin' },
         ajuanSaya,
       ],
     },
@@ -113,6 +114,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
       item: [
         { to: '/portal/anak', label: 'Data anak', ikon: 'pengguna', ket: 'Profil anak yang ditautkan ke akun Anda' },
         { to: '/portal/anak-lms', label: 'Belajar anak', ikon: 'grafik', ket: 'Kehadiran, nilai kuis, dan status tugas anak' },
+        { to: '/portal/catatan-anak', label: 'Catatan kesiswaan anak', ikon: 'centang', ket: 'Kehadiran harian, prestasi, pelanggaran terverifikasi, dan pengajuan izin' },
         ajuanSaya,
       ],
     },
@@ -149,6 +151,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
         disposisi,
       ],
     },
+    { judul: 'Kesiswaan', item: [{ to: '/portal/kesiswaan', label: 'Kesiswaan', ikon: 'kelompok', ket: 'Pelanggaran, prestasi, izin, kehadiran, ekskul, dan beasiswa', lencana: 'kesiswaan' }] },
     { judul: 'Layanan sekolah', item: [{ to: '/portal/buku-tamu', label: 'Buku tamu', ikon: 'kelompok', ket: 'Catat pengunjung, jam pulang, rekap asal dan tujuan' }] },
     {
       judul: 'Akun dan akses',
@@ -184,9 +187,25 @@ const menuIzin: { izin: string; nama: string; bidang: string; ikon: string; to?:
   { izin: 'kegiatan.kelola', nama: 'Kalender sekolah', bidang: 'Kegiatan sekolah', ikon: 'kalender', to: '/portal/kalender' },
   { izin: 'kurikulum.kelola_info', nama: 'Informasi akademik', bidang: 'Kurikulum', ikon: 'dokumen' },
   { izin: 'program.kelola', nama: 'Program keahlian', bidang: 'Kurikulum', ikon: 'sekolah' },
-  { izin: 'kesiswaan.kelola', nama: 'Kesiswaan', bidang: 'Kesiswaan', ikon: 'kelompok' },
+  { izin: 'kesiswaan.catat', nama: 'Kesiswaan', bidang: 'Kesiswaan', ikon: 'kelompok', to: '/portal/kesiswaan' },
+  { izin: 'kesiswaan.pantau', nama: 'Kesiswaan', bidang: 'Kesiswaan', ikon: 'kelompok', to: '/portal/kesiswaan' },
+  { izin: 'kesiswaan.izin', nama: 'Kesiswaan', bidang: 'Kesiswaan', ikon: 'kelompok', to: '/portal/kesiswaan' },
+  { izin: 'kesiswaan.verifikasi', nama: 'Kesiswaan', bidang: 'Kesiswaan', ikon: 'kelompok', to: '/portal/kesiswaan' },
+  { izin: 'kesiswaan.beasiswa', nama: 'Kesiswaan', bidang: 'Kesiswaan', ikon: 'kelompok', to: '/portal/kesiswaan' },
+  { izin: 'ekskul.kelola', nama: 'Kesiswaan', bidang: 'Kesiswaan', ikon: 'kelompok', to: '/portal/kesiswaan' },
+  { izin: 'kesiswaan.catat', nama: 'Pelanggaran siswa', bidang: 'Kesiswaan', ikon: 'kotak', to: '/portal/kesiswaan/pelanggaran' },
+  { izin: 'kesiswaan.pantau', nama: 'Pelanggaran siswa', bidang: 'Kesiswaan', ikon: 'kotak', to: '/portal/kesiswaan/pelanggaran' },
+  { izin: 'kesiswaan.verifikasi', nama: 'Pelanggaran siswa', bidang: 'Kesiswaan', ikon: 'kotak', to: '/portal/kesiswaan/pelanggaran' },
+  { izin: 'kesiswaan.catat', nama: 'Prestasi siswa', bidang: 'Kesiswaan', ikon: 'centang', to: '/portal/kesiswaan/prestasi' },
+  { izin: 'kesiswaan.pantau', nama: 'Prestasi siswa', bidang: 'Kesiswaan', ikon: 'centang', to: '/portal/kesiswaan/prestasi' },
+  { izin: 'kesiswaan.verifikasi', nama: 'Prestasi siswa', bidang: 'Kesiswaan', ikon: 'centang', to: '/portal/kesiswaan/prestasi' },
+  { izin: 'kesiswaan.izin', nama: 'Izin siswa', bidang: 'Kesiswaan', ikon: 'surat', to: '/portal/kesiswaan/izin' },
+  { izin: 'kesiswaan.izin', nama: 'Kehadiran harian', bidang: 'Kesiswaan', ikon: 'kalender', to: '/portal/kesiswaan/kehadiran' },
+  { izin: 'kesiswaan.pantau', nama: 'Kehadiran harian', bidang: 'Kesiswaan', ikon: 'kalender', to: '/portal/kesiswaan/kehadiran' },
+  { izin: 'kesiswaan.pantau', nama: 'Risiko siswa', bidang: 'Kesiswaan', ikon: 'grafik', to: '/portal/kesiswaan/risiko' },
+  { izin: 'ekskul.kelola', nama: 'Ekskul dan OSIS', bidang: 'Kesiswaan', ikon: 'kelompok', to: '/portal/kesiswaan/ekskul' },
+  { izin: 'kesiswaan.beasiswa', nama: 'Beasiswa dan PIP', bidang: 'Kesiswaan', ikon: 'tas', to: '/portal/kesiswaan/beasiswa' },
   { izin: 'kelas.kelola', nama: 'Kelas saya', bidang: 'Kelas', ikon: 'sekolah' },
-  { izin: 'ekskul.kelola', nama: 'Ekstrakurikuler saya', bidang: 'Kesiswaan', ikon: 'kelompok' },
   { izin: 'sarpras.kelola', nama: 'Inventaris sarpras', bidang: 'Sarana dan prasarana', ikon: 'tas', to: '/portal/sarpras/inventaris' },
   { izin: 'sarpras.catat_lab', nama: 'Inventaris sarpras', bidang: 'Sarana dan prasarana', ikon: 'tas', to: '/portal/sarpras/inventaris' },
   { izin: 'sarpras.lihat', nama: 'Inventaris sarpras', bidang: 'Sarana dan prasarana', ikon: 'tas', to: '/portal/sarpras/inventaris' },
@@ -243,7 +262,7 @@ export function susunMenu(peran: Peran, superAdmin: boolean, tugas: TugasMenu[])
       if (m.to) {
         if (sudah.has(m.to)) continue
         sudah.add(m.to)
-        const lencana = m.to === '/portal/ajuan-masuk' ? 'ajuan_masuk' : m.to === '/portal/surat' ? 'surat' : m.to === '/portal/sarpras/usulan' ? 'sarpras' : undefined
+        const lencana = m.to === '/portal/ajuan-masuk' ? 'ajuan_masuk' : m.to === '/portal/surat' ? 'surat' : m.to === '/portal/sarpras/usulan' ? 'sarpras' : m.to === '/portal/kesiswaan' ? 'kesiswaan' : undefined
         item.push({ to: m.to, label: m.nama, ikon: m.ikon, ket: m.bidang, lencana })
       } else if (!segera.some((s) => s.nama === m.nama)) {
         segera.push({ nama: m.nama, bidang: m.bidang })

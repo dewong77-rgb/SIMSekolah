@@ -7,7 +7,7 @@ import JamSistem from './JamSistem'
 import { panggil } from '../lib/rpc'
 import Ikon from './Ikon'
 
-export type Lencana = Partial<Record<'ajuan_masuk' | 'ajuan_saya' | 'disposisi' | 'surat' | 'sarpras', number>>
+export type Lencana = Partial<Record<'ajuan_masuk' | 'ajuan_saya' | 'disposisi' | 'surat' | 'sarpras' | 'kesiswaan', number>>
 
 type NilaiPortal = { menu: MenuPortal; lencana: Lencana; nama: string | null }
 const KonteksPortal = createContext<NilaiPortal | null>(null)
@@ -63,16 +63,18 @@ export default function PortalLayout() {
     if (!punyaMenu) return
     let batal = false
     void (async () => {
-      const [aj, sr, sp] = await Promise.allSettled([
+      const [aj, sr, sp, ks] = await Promise.allSettled([
         panggil<{ menunggu: number; antrean: number; saya: number }>('ajuan_ringkasan'),
         panggil<{ disposisi_menunggu: number; belum_disposisi: number }>('surat_ringkasan'),
         panggil<{ perlu_aksi: number }>('sarpras_ringkasan'),
+        panggil<{ pelanggaran: number; prestasi: number; izin: number }>('kesiswaan_lencana'),
       ])
       if (batal) return
       const l: Lencana = {}
       if (aj.status === 'fulfilled') { l.ajuan_masuk = aj.value.menunggu + aj.value.antrean; l.ajuan_saya = aj.value.saya }
       if (sr.status === 'fulfilled') { l.disposisi = sr.value.disposisi_menunggu; l.surat = sr.value.belum_disposisi }
       if (sp.status === 'fulfilled' && sp.value) l.sarpras = sp.value.perlu_aksi
+      if (ks.status === 'fulfilled' && ks.value) l.kesiswaan = ks.value.pelanggaran + ks.value.prestasi + ks.value.izin
       setLencana(l)
     })()
     return () => { batal = true }
