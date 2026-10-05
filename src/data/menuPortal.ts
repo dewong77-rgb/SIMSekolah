@@ -198,6 +198,9 @@ const menuIzin: { izin: string; nama: string; bidang: string; ikon: string; to?:
   { izin: 'surat.catat', nama: 'Persuratan', bidang: 'Persuratan', ikon: 'surat', to: '/portal/surat' },
   { izin: 'surat.baca_semua', nama: 'Persuratan', bidang: 'Persuratan', ikon: 'surat', to: '/portal/surat' },
   { izin: 'surat.disposisi', nama: 'Persuratan dan disposisi', bidang: 'Persuratan', ikon: 'surat', to: '/portal/surat' },
+  { izin: 'surat.teruskan', nama: 'Persuratan', bidang: 'Persuratan', ikon: 'surat', to: '/portal/surat' },
+  { izin: 'siswa.lihat_pribadi', nama: 'Daftar siswa', bidang: 'Kesiswaan', ikon: 'kelompok', to: '/portal/peserta-didik' },
+  { izin: 'dapodik.unggah', nama: 'Unggah Dapodik (operator)', bidang: 'Dapodik', ikon: 'unggah' },
   { izin: 'keuangan.kelola', nama: 'Keuangan', bidang: 'Tata usaha', ikon: 'uang' },
 ]
 
@@ -207,7 +210,14 @@ export type MenuPortal = {
   segera: { nama: string; bidang: string }[]
 }
 
-export function susunMenu(peran: Peran, superAdmin: boolean, izin: Set<string>): MenuPortal {
+/** Penugasan ringkas yang dibutuhkan menu: nama jabatan dan izin yang dibawanya. */
+export type TugasMenu = { jabatan_nama: string; lingkup_label: string | null; izin: string[] }
+
+/**
+ * Menu dasar sesuai peran, lalu satu kelompok per tugas tambahan (jabatan) berisi halaman kerja dari izin jabatan itu.
+ * Halaman yang sudah ada di menu peran atau di tugas sebelumnya tidak diulang. Izin tanpa halaman masuk daftar "segera".
+ */
+export function susunMenu(peran: Peran, superAdmin: boolean, tugas: TugasMenu[]): MenuPortal {
   const kelompok: KelompokPortal[] = menuPeran[peran].map((k) => ({ judul: k.judul, item: [...k.item] }))
   if (superAdmin) {
     const akun = kelompok.find((k) => k.judul === 'Akun dan akses')
@@ -215,20 +225,28 @@ export function susunMenu(peran: Peran, superAdmin: boolean, izin: Set<string>):
     else kelompok.push({ judul: 'Akun dan akses', item: [...khususSuper] })
   }
   const sudah = new Set(kelompok.flatMap((k) => k.item.map((i) => i.to)))
-  const tambahan: ItemPortal[] = []
   const segera: { nama: string; bidang: string }[] = []
-  for (const m of menuIzin) {
-    if (!izin.has(m.izin)) continue
-    if (m.to) {
-      if (sudah.has(m.to)) continue
-      sudah.add(m.to)
-      const lencana = m.to === '/portal/ajuan-masuk' ? 'ajuan_masuk' : m.to === '/portal/surat' ? 'surat' : undefined
-      tambahan.push({ to: m.to, label: m.nama, ikon: m.ikon, ket: m.bidang, lencana })
-    } else if (!segera.some((s) => s.nama === m.nama)) {
-      segera.push({ nama: m.nama, bidang: m.bidang })
+  const judulPakai = new Map<string, number>()
+  for (const t of tugas) {
+    const izin = new Set(t.izin)
+    const item: ItemPortal[] = []
+    for (const m of menuIzin) {
+      if (!izin.has(m.izin)) continue
+      if (m.to) {
+        if (sudah.has(m.to)) continue
+        sudah.add(m.to)
+        const lencana = m.to === '/portal/ajuan-masuk' ? 'ajuan_masuk' : m.to === '/portal/surat' ? 'surat' : undefined
+        item.push({ to: m.to, label: m.nama, ikon: m.ikon, ket: m.bidang, lencana })
+      } else if (!segera.some((s) => s.nama === m.nama)) {
+        segera.push({ nama: m.nama, bidang: m.bidang })
+      }
     }
+    if (!item.length) continue
+    const dasar = `Tugas tambahan: ${t.jabatan_nama}${t.lingkup_label ? ` (${t.lingkup_label})` : ''}`
+    const n = (judulPakai.get(dasar) ?? 0) + 1
+    judulPakai.set(dasar, n)
+    kelompok.push({ judul: n > 1 ? `${dasar} ${n}` : dasar, item })
   }
-  if (tambahan.length) kelompok.push({ judul: 'Tugas jabatan', item: tambahan })
   return { kelompok, segera }
 }
 
