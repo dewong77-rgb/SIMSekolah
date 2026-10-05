@@ -32,7 +32,7 @@ revoke all on function private.lms_kktp_pertemuan(uuid) from public, anon, authe
 
 -- lms_materi_buka: mencatat jam mulai baca (sekali, saat pertama dibuka) dan membawanya ke siswa untuk hitung mundur.
 create or replace function public.lms_materi_buka(p_pertemuan uuid)
-returns jsonb language plpgsql stable security definer set search_path = '' as $$
+returns jsonb language plpgsql volatile security definer set search_path = '' as $$
 declare t public.pertemuan%rowtype; v_kelola boolean; v_pd uuid;
 begin
   select * into t from public.pertemuan where id = p_pertemuan;
