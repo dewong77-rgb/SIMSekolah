@@ -20,7 +20,7 @@ type Mou = {
 const DAPODIK = (k: string) => !k.startsWith('manual:')
 const kosong = (s: string | undefined) => (s ?? '').trim() || null
 
-function Isi() {
+function Isi({ bolehHapus }: { bolehHapus: boolean }) {
   const { profil } = useAuth()
   const npsn = profil?.npsn ?? ''
   const [tab, setTab] = useState<'mitra' | 'mou'>('mitra')
@@ -91,6 +91,14 @@ function Isi() {
     setFormM(null); setInfo('MoU tersimpan.'); void baca()
   }
 
+  async function hapus(jenis: 'dudi' | 'mou', id: string, nm: string) {
+    if (!window.confirm(`Hapus permanen ${nm}? Data tidak dapat dikembalikan. Gunakan Arsip bila hanya ingin menyembunyikan.`)) return
+    setGalat(''); setInfo('')
+    const r = await supabase.from(jenis === 'dudi' ? 'dudi' : 'mou_kerjasama').delete().eq('id', id)
+    if (r.error) return setGalat(r.error.code === '23503' ? 'Mitra ini masih memiliki MoU. Hapus MoU-nya lebih dulu, atau arsipkan mitra.' : r.error.message)
+    setFormD(null); setFormM(null); setInfo('Data dihapus.'); void baca()
+  }
+
   const D = (k: keyof Dudi, label: string, tipe = 'text') => (
     <label>{label}<input type={tipe} value={(formD?.[k] as string | null | undefined) ?? ''} onChange={(e) => setFormD((x) => ({ ...x, [k]: e.target.value }))} /></label>
   )
@@ -132,7 +140,7 @@ function Isi() {
           <label>Catatan internal<textarea rows={2} value={formD.catatan ?? ''} onChange={(e) => setFormD((x) => ({ ...x, catatan: e.target.value }))} /></label>
           <label style={{ display: 'flex', gap: 8 }}><input type="checkbox" checked={formD.tampil_publik ?? true} onChange={(e) => setFormD((x) => ({ ...x, tampil_publik: e.target.checked }))} /> Tampilkan di situs publik</label>
           <label style={{ display: 'flex', gap: 8 }}><input type="checkbox" checked={formD.diarsipkan ?? false} onChange={(e) => setFormD((x) => ({ ...x, diarsipkan: e.target.checked }))} /> Arsipkan (sembunyikan dari daftar dan situs)</label>
-          <div className="aksi"><button className="tombol tombol-isi" disabled={sibuk}>{sibuk ? 'Menyimpan...' : 'Simpan'}</button><button type="button" className="tombol" onClick={() => setFormD(null)}>Batal</button></div>
+          <div className="aksi"><button className="tombol tombol-isi" disabled={sibuk}>{sibuk ? 'Menyimpan...' : 'Simpan'}</button><button type="button" className="tombol" onClick={() => setFormD(null)}>Batal</button>{bolehHapus && formD.id && <button type="button" className="tombol-ikon tombol-ikon-bahaya" onClick={() => hapus('dudi', formD.id!, formD.nama ?? 'mitra')}>Hapus</button>}</div>
         </form>
       )}
 
@@ -152,7 +160,7 @@ function Isi() {
           {M('berkas_url', 'Tautan berkas MoU (https)', 'url')}
           <label>Catatan internal<textarea rows={2} value={formM.catatan ?? ''} onChange={(e) => setFormM((x) => ({ ...x, catatan: e.target.value }))} /></label>
           <label style={{ display: 'flex', gap: 8 }}><input type="checkbox" checked={formM.diarsipkan ?? false} onChange={(e) => setFormM((x) => ({ ...x, diarsipkan: e.target.checked }))} /> Arsipkan</label>
-          <div className="aksi"><button className="tombol tombol-isi" disabled={sibuk}>{sibuk ? 'Menyimpan...' : 'Simpan'}</button><button type="button" className="tombol" onClick={() => setFormM(null)}>Batal</button></div>
+          <div className="aksi"><button className="tombol tombol-isi" disabled={sibuk}>{sibuk ? 'Menyimpan...' : 'Simpan'}</button><button type="button" className="tombol" onClick={() => setFormM(null)}>Batal</button>{bolehHapus && formM.id && <button type="button" className="tombol-ikon tombol-ikon-bahaya" onClick={() => hapus('mou', formM.id!, 'MoU ini')}>Hapus</button>}</div>
         </form>
       )}
 
@@ -195,5 +203,5 @@ function Isi() {
 }
 
 export default function HubinKerjasama() {
-  return <Gerbang perlu={['hubin.kelola_dudi']} judul="Mitra industri dan MoU">{() => <Isi />}</Gerbang>
+  return <Gerbang perlu={['hubin.kelola_dudi']} judul="Mitra industri dan MoU">{(izin) => <Isi bolehHapus={izin.includes('hubin.kelola_dudi') && izin.includes('hubin.kelola_humas')} />}</Gerbang>
 }
