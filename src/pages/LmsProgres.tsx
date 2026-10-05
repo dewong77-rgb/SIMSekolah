@@ -7,10 +7,20 @@ import { biru, nilaiTeks } from './lmsUtil'
 // Progres belajar: untuk siswa (milik sendiri) dan orang tua (anak yang ditautkan). Hanya baca.
 // Tambahan: halaman admin TU untuk menautkan akun orang tua ke anak.
 
+export type NilaiPertemuanSiswa = {
+  id: string; nomor: number | null; judul: string
+  nilai: {
+    tuntas: boolean; nilai: number | null; kktp: number
+    bacaan_total: number; bacaan_selesai: number; lembar_total: number; lembar_terkumpul: number; lembar_dinilai: number
+    kuis: number | null; bonus_kuis: number; bonus_forum: number
+  }
+}
+
 export type KelasRingkas = {
   kelas_id: string; mapel: string; rombel: string; guru: string
   sesi: number; hadir: number; izin: number; sakit: number; alpa: number
   materi_total: number; materi_selesai: number
+  pertemuan?: NilaiPertemuanSiswa[]
   kuis: { judul: string; jenis: string; kkm: number | null; status: 'belum' | 'disembunyikan' | 'menunggu' | 'nilai'; nilai: number | null }[]
   tugas: { judul: string; tenggat: string | null; nilai_maks: number; status: string; nilai: number | null }[]
 }
@@ -32,6 +42,56 @@ function teksKuis(q: KelasRingkas['kuis'][number]): string {
   return `${nilaiTeks(q.nilai)}${lulus}`
 }
 
+/** Pengingat cara nilai pertemuan terbentuk: yang wajib dan yang menambah nilai. Aturan mengikuti lms_nilai_pertemuan_pd. */
+export function PengingatNilai({ ringkas = false }: { ringkas?: boolean }) {
+  if (ringkas) {
+    return (
+      <p className="catatan">
+        <strong>Wajib:</strong> baca bahan bacaan (minimal 10 menit) dan kirim lembar kerja. <strong>Mau nilai lebih tinggi:</strong> kerjakan kuis dan tulis pertanyaan di forum.
+      </p>
+    )
+  }
+  return (
+    <div className="kartu">
+      <strong>Cara nilai pertemuan terbentuk</strong>
+      <ul style={{ margin: '6px 0 0', paddingLeft: '1.2rem' }}>
+        <li><strong>Wajib:</strong> baca bahan bacaan (minimal 10 menit) dan kirim lembar kerja. Setelah dua-duanya selesai, nilai pertemuan keluar sebesar KKTP.</li>
+        <li><strong>Nilai lebih tinggi:</strong> kerjakan kuis (maksimal +10) dan tulis pertanyaan atau tanggapan di forum (+2 per tulisan minimal 20 karakter, maksimal +5). Guru yang menilai lembar kerja juga bisa menaikkan nilai dasar di atas KKTP.</li>
+        <li>Nilai maksimal 100. Kuis dan forum baru dihitung setelah dua tahap wajib selesai.</li>
+      </ul>
+    </div>
+  )
+}
+
+const ringkasJudul = (j: string) => {
+  const t = j.replace(/^M\d+\s*[:.]\s*/i, '')
+  return t.length > 60 ? `${t.slice(0, 60).trimEnd()}...` : t
+}
+
+function TabelNilaiPertemuan({ daftar }: { daftar: NilaiPertemuanSiswa[] }) {
+  return (
+    <div className="tabel-bungkus jarak"><table>
+      <thead><tr><th>Pertemuan</th><th>Tahap wajib</th><th>Tambahan</th><th>Nilai</th></tr></thead>
+      <tbody>{daftar.map((p) => {
+        const n = p.nilai
+        const wajib = n.tuntas ? 'Selesai' : `Bacaan ${n.bacaan_selesai}/${n.bacaan_total}, lembar ${n.lembar_terkumpul}/${n.lembar_total}`
+        const tambahan = !n.tuntas
+          ? (n.kuis !== null ? `Kuis ${nilaiTeks(n.kuis)}, dihitung setelah tahap wajib` : 'Dihitung setelah tahap wajib')
+          : [n.kuis !== null ? `Kuis +${nilaiTeks(n.bonus_kuis)}` : 'Kuis belum', n.bonus_forum > 0 ? `Forum +${nilaiTeks(n.bonus_forum)}` : 'Forum belum'].join(', ')
+        const bisaNaik = n.tuntas && n.lembar_total > 0 && n.lembar_dinilai < n.lembar_total
+        return (
+          <tr key={p.id}>
+            <td>M{p.nomor ?? '-'}<br /><small>{ringkasJudul(p.judul)}</small></td>
+            <td>{wajib}</td>
+            <td>{tambahan}</td>
+            <td>{n.nilai === null ? 'Belum' : <strong>{nilaiTeks(n.nilai)}</strong>}{bisaNaik && <><br /><small>Bisa naik setelah guru menilai lembar</small></>}</td>
+          </tr>
+        )
+      })}</tbody>
+    </table></div>
+  )
+}
+
 export function KartuKelas({ k, tautan }: { k: KelasRingkas; tautan: boolean }) {
   const persen = k.sesi > 0 ? Math.round((k.hadir / k.sesi) * 100) : null
   const tugasSelesai = k.tugas.filter((t) => t.status !== 'belum').length
@@ -48,6 +108,7 @@ export function KartuKelas({ k, tautan }: { k: KelasRingkas; tautan: boolean }) 
         <div><small>Tugas dikumpulkan</small><p style={{ margin: 0, fontSize: '1.2rem' }}>{tugasSelesai} dari {k.tugas.length}</p>
           <small>Tugas yang sudah terbit</small></div>
       </div>
+      {(k.pertemuan ?? []).length > 0 && <TabelNilaiPertemuan daftar={k.pertemuan ?? []} />}
       {k.kuis.length > 0 && (
         <div className="tabel-bungkus jarak"><table>
           <thead><tr><th>Kuis dan ulangan</th><th>Hasil</th></tr></thead>
@@ -73,9 +134,10 @@ export function ProgresSaya() {
   const [galat, setGalat] = useState('')
   useEffect(() => { panggil<{ nama: string; kelas: KelasRingkas[] }>('lms_progres_saya').then(setData).catch((e: Error) => setGalat(e.message)) }, [])
   return (
-    <Halaman judul="Progres saya" lead="Kehadiran, materi, nilai kuis, dan tugas di semua mata pelajaran.">
+    <Halaman judul="Progres saya" lead="Nilai tiap pertemuan, kehadiran, materi, kuis, dan tugas di semua mata pelajaran.">
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
       {!data && !galat && <p className="catatan">Memuat...</p>}
+      {data && data.kelas.length > 0 && <PengingatNilai />}
       {data && data.kelas.length === 0 && <div className="kartu"><p>Belum ada kelas ajar untuk rombel Anda.</p></div>}
       {(data?.kelas ?? []).map((k) => <KartuKelas key={k.kelas_id} k={k} tautan />)}
       <p className="catatan jarak"><Link to="/portal">Kembali ke portal</Link></p>
