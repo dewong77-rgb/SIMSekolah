@@ -28,6 +28,15 @@ const HubinJurusan = lazy(() => import('./pages/hubin/HubinJurusan'))
 const HubinBerita = lazy(() => import('./pages/hubin/HubinBerita'))
 const HubinTracer = lazy(() => import('./pages/hubin/HubinTracer'))
 const ProfilSekolahHubin = lazy(() => import('./pages/hubin/ProfilSekolahHubin'))
+const KesiswaanBeranda = lazy(() => import('./pages/kesiswaan/KesiswaanBeranda'))
+const KesPelanggaran = lazy(() => import('./pages/kesiswaan/Pelanggaran'))
+const KesPrestasi = lazy(() => import('./pages/kesiswaan/Prestasi'))
+const KesIzin = lazy(() => import('./pages/kesiswaan/IzinSiswa'))
+const KesKehadiran = lazy(() => import('./pages/kesiswaan/KehadiranHarian'))
+const KesRisiko = lazy(() => import('./pages/kesiswaan/Risiko'))
+const KesEkskul = lazy(() => import('./pages/kesiswaan/Ekskul'))
+const KesBeasiswa = lazy(() => import('./pages/kesiswaan/Beasiswa'))
+const CatatanSaya = lazy(() => import('./pages/kesiswaan/CatatanSaya'))
 const SarprasInventaris = lazy(() => import('./pages/sarpras/SarprasInventaris'))
 const SarprasUsulan = lazy(() => import('./pages/sarpras/SarprasUsulan'))
 const SarprasBuku = lazy(() => import('./pages/sarpras/SarprasBuku'))
@@ -206,6 +215,86 @@ createRoot(document.getElementById('root')!).render(
             element={
               <RequireRole peran={['admin_tu', 'guru', 'staf']}>
                 <Suspense fallback={null}><SarprasBuku /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/kesiswaan"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf']}>
+                <Suspense fallback={null}><KesiswaanBeranda /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/kesiswaan/pelanggaran"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf']}>
+                <Suspense fallback={null}><KesPelanggaran /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/kesiswaan/prestasi"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf']}>
+                <Suspense fallback={null}><KesPrestasi /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/kesiswaan/izin"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf']}>
+                <Suspense fallback={null}><KesIzin /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/kesiswaan/kehadiran"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf']}>
+                <Suspense fallback={null}><KesKehadiran /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/kesiswaan/risiko"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf']}>
+                <Suspense fallback={null}><KesRisiko /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/kesiswaan/ekskul"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf']}>
+                <Suspense fallback={null}><KesEkskul /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/kesiswaan/beasiswa"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf']}>
+                <Suspense fallback={null}><KesBeasiswa /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/catatan-saya"
+            element={
+              <RequireRole peran={['siswa']}>
+                <Suspense fallback={null}><CatatanSaya orangTua={false} /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/catatan-anak"
+            element={
+              <RequireRole peran={['orang_tua']}>
+                <Suspense fallback={null}><CatatanSaya orangTua /></Suspense>
               </RequireRole>
             }
           />
