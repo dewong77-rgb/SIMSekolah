@@ -8,10 +8,10 @@ import { panggil, tgl } from '../../lib/rpc'
 import { PERAN_EKSKUL, PREDIKAT, hariIni, label, tambahHari, type SiswaCari } from '../../lib/kesiswaan'
 import Gerbang from './Gerbang'
 
-type Ekskul = { id: string; nama: string; jenis: string; deskripsi: string | null; jadwal: string | null; aktif: boolean; pembina_ptk_id: string | null; pembina: string | null; anggota: number; pertemuan: number }
+type Ekskul = { id: string; nama: string; jenis: string; deskripsi: string | null; jadwal: string | null; aktif: boolean; pembina_ptk_id: string | null; pembina: string | null; bisa_ubah: boolean; anggota: number; pertemuan: number }
 type Anggota = { id: string; pd: string; nama: string; nisn: string | null; rombel: string | null; peran: string; predikat: string | null; catatan_nilai: string | null; aktif: boolean; hadir: number; pertemuan: number }
 type Pertemuan = { id: string; tanggal: string; topik: string | null; hadir: number; total: number }
-type Detail = { id: string; nama: string; jenis: string; deskripsi: string | null; jadwal: string | null; tahun_ajaran: string; anggota: Anggota[]; pertemuan: Pertemuan[] }
+type Detail = { bisa_ubah: boolean; id: string; nama: string; jenis: string; deskripsi: string | null; jadwal: string | null; tahun_ajaran: string; anggota: Anggota[]; pertemuan: Pertemuan[] }
 
 function FormEkskul({ e, ptk, simpan, batal }: { e: Ekskul | null; ptk: { id: string; nama: string }[]; simpan: (e: Ekskul | null, f: FormData) => Promise<void>; batal: () => void }) {
   return (
@@ -68,6 +68,7 @@ function Rincian({ id, kembali, ubahDaftar }: { id: string; kembali: () => void;
 
   if (!d) return <div>{galat ? <p className="kartu galat" role="alert">{galat}</p> : <p className="catatan">Memuat...</p>}<button className="tombol" onClick={kembali}>Kembali</button></div>
   const aktif = d.anggota.filter((a) => a.aktif)
+  const ubahBoleh = d.bisa_ubah
   return (
     <div>
       <div className="aksi" style={{ marginTop: 0, alignItems: 'center' }}><button className="tombol" onClick={kembali}>Kembali ke daftar</button><h2 style={{ margin: 0 }}>{d.nama}</h2><small className="catatan">Tahun ajaran {d.tahun_ajaran}</small></div>
@@ -75,8 +76,8 @@ function Rincian({ id, kembali, ubahDaftar }: { id: string; kembali: () => void;
       {info && <p className="kartu" role="status">{info}</p>}
       <div className="grid grid-2 jarak">
         <div className="kartu">
-          <h3>Catat pertemuan</h3>
-          <div className="form">
+          <h3>{ubahBoleh ? 'Catat pertemuan' : 'Pertemuan'}</h3>
+          {ubahBoleh && <><div className="form">
             <label>Tanggal<input type="date" value={tanggal} min={tambahHari(hariIni(), -60)} max={hariIni()} onChange={(e) => setTanggal(e.target.value)} /></label>
             <label>Topik atau kegiatan<input value={topik} maxLength={200} onChange={(e) => setTopik(e.target.value)} /></label>
           </div>
@@ -85,17 +86,18 @@ function Rincian({ id, kembali, ubahDaftar }: { id: string; kembali: () => void;
             {aktif.map((a) => <li key={a.id}><label style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input type="checkbox" checked={hadir[a.id] ?? false} onChange={(e) => setHadir((h) => ({ ...h, [a.id]: e.target.checked }))} />{a.nama}</label></li>)}
             {aktif.length === 0 && <li className="catatan">Belum ada anggota aktif.</li>}
           </ul>
-          <button className="tombol tombol-isi" disabled={sibuk || aktif.length === 0} onClick={simpanPertemuan}>Simpan pertemuan</button>
+          <button className="tombol tombol-isi" disabled={sibuk || aktif.length === 0} onClick={simpanPertemuan}>Simpan pertemuan</button></>}
+          {!ubahBoleh && <p className="catatan">Anda dapat melihat anggota dan pertemuan, tidak dapat mengubahnya.</p>}
           <h4>Pertemuan terakhir</h4>
           <ul>{d.pertemuan.map((p) => <li key={p.id}>{tgl(p.tanggal)}{p.topik && `: ${p.topik}`} <small className="catatan">({p.hadir}/{p.total} hadir)</small> <button className="tombol-ikon" onClick={() => bukaPertemuan(p.id)}>Buka</button></li>)}{d.pertemuan.length === 0 && <li className="catatan">Belum ada.</li>}</ul>
         </div>
         <div className="kartu">
           <h3>Anggota ({aktif.length})</h3>
-          <div className="form">
+          {ubahBoleh && <div className="form">
             <CariSiswa untuk="ekskul" pilih={setSiswa} dipilih={siswa} />
             <label>Peran<select value={peran} onChange={(e) => setPeran(e.target.value)}>{PERAN_EKSKUL.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></label>
             <button className="tombol" disabled={!siswa || sibuk} onClick={tambah}>Tambah anggota</button>
-          </div>
+          </div>}
           <div className="tabel-bungkus jarak">
             <table>
               <thead><tr><th>Nama</th><th>Peran</th><th>Hadir</th><th>Predikat</th><th /></tr></thead>
@@ -117,7 +119,7 @@ function Rincian({ id, kembali, ubahDaftar }: { id: string; kembali: () => void;
                     <td>{label(PERAN_EKSKUL, a.peran)}</td>
                     <td>{a.pertemuan ? `${Math.round((a.hadir / a.pertemuan) * 100)}%` : '-'}<br /><small className="catatan">{a.hadir}/{a.pertemuan}</small></td>
                     <td>{a.predikat ? label(PREDIKAT, a.predikat) : '-'}</td>
-                    <td><button className="tombol-ikon" onClick={() => setSunting(a.id)}>Ubah</button></td>
+                    <td>{ubahBoleh && <button className="tombol-ikon" onClick={() => setSunting(a.id)}>Ubah</button>}</td>
                   </tr>
                 ))}
                 {d.anggota.length === 0 && <tr><td colSpan={5} className="catatan">Belum ada anggota.</td></tr>}
@@ -164,7 +166,7 @@ function Isi() {
                 <p className="catatan">Pembina: {e.pembina ?? 'belum ditunjuk'}{e.jadwal && <><br />{e.jadwal}</>}</p>
                 <p>{e.anggota} anggota aktif · {e.pertemuan} pertemuan (120 hari)</p>
                 <div className="aksi" style={{ marginTop: 0 }}>
-                  <button className="tombol tombol-isi" onClick={() => setBuka(e.id)}>Kelola</button>
+                  <button className="tombol tombol-isi" onClick={() => setBuka(e.id)}>{e.bisa_ubah ? 'Kelola' : 'Lihat'}</button>
                   {data.bisa_atur && <button className="tombol" onClick={() => setUbah(e)}>Ubah</button>}
                 </div>
               </div>
@@ -180,5 +182,5 @@ function Isi() {
 }
 
 export default function EkskulHalaman() {
-  return <Gerbang perlu={['ekskul.kelola']} judul="Ekstrakurikuler dan OSIS">{() => <Isi />}</Gerbang>
+  return <Gerbang perlu={['ekskul.kelola', 'ekskul.lihat']} judul="Ekstrakurikuler dan OSIS">{() => <Isi />}</Gerbang>
 }
