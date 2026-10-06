@@ -1,4 +1,5 @@
 // Profil jurusan (Waka Hubinmas): teks yang tampil di halaman Jurusan situs publik.
+import TombolIkon from '../../components/TombolIkon'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import Halaman from '../../components/Halaman'
@@ -107,7 +108,7 @@ function Isi() {
           <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input type="checkbox" checked={tampil} onChange={(e) => setTampil(e.target.checked)} /> Tampilkan di situs publik</label>
           <div className="aksi">
             <button className="tombol tombol-isi" disabled={sibuk}>{sibuk ? 'Menyimpan...' : 'Simpan'}</button>
-            <button type="button" className="tombol" onClick={() => setPilih(null)}>Batal</button>
+            <TombolIkon ikon="tutup" label="Batal" onClick={() => setPilih(null)} />
           </div>
         </form>
       )}

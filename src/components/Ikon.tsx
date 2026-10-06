@@ -26,6 +26,21 @@ const jalur: Record<string, string> = {
   luar: 'M14 4h6v6M20 4l-9 9M18 14v6H4V6h6',
   lonceng: 'M6 17V11a6 6 0 0 1 12 0v6l2 2H4l2-2zM10 21h4',
   uang: 'M3 7h18v10H3zM12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
+  unduh: 'M12 4v12M7 11l5 5 5-5M4 20h16',
+  salin: 'M9 9h11v11H9zM5 15H4V4h11v1',
+  buka: 'M6 11h12v9H6zM8 11V8a4 4 0 0 1 7.5-2',
+  mata: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
+  simpan: 'M5 4h12l2 2v14H5zM8 4v5h7V4M8 20v-6h8v6',
+  tambah: 'M12 5v14M5 12h14',
+  jam: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2',
+  tolak: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9 9l6 6M15 9l-6 6',
+  setuju: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM8 12l3 3 5-6',
+  kembali: 'M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3',
+  kirim: 'M4 12l16-8-6 16-3-7-7-1z',
+  cetak: 'M7 8V3h10v5M7 17H4v-7h16v7h-3M7 14h10v7H7z',
+  muat: 'M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5',
+  cari: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-5-5',
+  info: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5M12 8h.01',
 }
 
 export type NamaIkon = keyof typeof jalur

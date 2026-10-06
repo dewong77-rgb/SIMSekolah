@@ -1,4 +1,5 @@
 // Dashboard risiko siswa: siswa yang perlu dilihat lebih dulu, dengan alasan yang bisa ditelusuri, plus riwayat dan tindak lanjut.
+import TombolIkon from '../../components/TombolIkon'
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Halaman from '../../components/Halaman'
@@ -79,7 +80,7 @@ function Detail({ pd, bisaTindak, bisaRujuk, tutup, ubah }: { pd: Baris; bisaTin
             <h4>Tindak lanjut tahun ini</h4>
             <ul>{r.tindak_lanjut.map((t) => (
               <li key={t.id}>{tgl(t.tanggal)}: {label(TINDAK_LANJUT, t.jenis)}{t.dicatat_nama && <small className="catatan"> oleh {t.dicatat_nama}</small>}{t.catatan && <><br /><small className="catatan">{t.catatan}</small></>}
-                {bisaTindak && <> <button className="tombol-ikon" onClick={() => hapus(t.id)}>Hapus</button></>}</li>
+                {bisaTindak && <> <TombolIkon ikon="sampah" label="Hapus" varian="bahaya" onClick={() => hapus(t.id)} /></>}</li>
             ))}{r.tindak_lanjut.length === 0 && <li className="catatan">Belum ada.</li>}</ul>
             {bisaTindak && (
               <form className="form" onSubmit={simpan}>
@@ -161,7 +162,7 @@ function Isi({ izin }: { izin: string[] }) {
         </select>
         <input type="search" placeholder="Cari nama atau NISN" value={cari} onChange={(e) => { setCari(e.target.value); setHalaman(0) }} />
         <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}><input type="checkbox" checked={semua} onChange={(e) => { setSemua(e.target.checked); setHalaman(0) }} />Tampilkan juga yang tanpa sinyal</label>
-        <button className="tombol" onClick={ekspor}>Unduh CSV</button>
+        <TombolIkon ikon="unduh" label="Unduh CSV" onClick={ekspor} />
       </div>
       {pilih && <Detail pd={pilih} bisaTindak={izin.includes('kesiswaan.pantau')} bisaRujuk={izin.includes('kesiswaan.catat')} tutup={() => setPilih(null)} ubah={() => void muat()} />}
       <div className="tabel-bungkus jarak">

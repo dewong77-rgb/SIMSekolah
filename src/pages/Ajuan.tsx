@@ -1,6 +1,7 @@
 // Ajuan perubahan profil: formulir pengaju, riwayat "Ajuan saya", dan layar keputusan admin TU.
 // Alur: menunggu -> diteruskan (TU bagian setuju) -> dikerjakan (operator Dapodik) -> selesai (otomatis saat unggahan Dapodik cocok).
 // Persetujuan tidak mengubah data SIMS. Data berubah hanya lewat unggahan Dapodik.
+import TombolIkon from '../components/TombolIkon'
 import { Fragment, useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import Halaman from '../components/Halaman'
@@ -184,7 +185,7 @@ export function FormAjuan() {
             <div aria-live="polite">{galat && <p className="catatan galat" role="alert">{galat}</p>}</div>
             <div className="aksi">
               <button className="tombol tombol-isi" disabled={sibuk || diubah.length === 0}>{sibuk ? 'Mengirim...' : `Kirim ajuan${diubah.length ? ` (${diubah.length} kolom)` : ''}`}</button>
-              <button type="button" className="tombol" onClick={() => nav(-1)}>Batal</button>
+              <TombolIkon ikon="tutup" label="Batal" onClick={() => nav(-1)} />
             </div>
           </section>
         </form>
@@ -360,7 +361,7 @@ export function AjuanMasuk() {
                           {a.aksi?.includes('putuskan') && (
                             <>
                               <button className="tombol tombol-isi" disabled={sibuk} onClick={() => jalankan('putuskan_ajuan', { p_id: a.id, p_setuju: true, p_catatan: catatan }, `Ajuan ${a.subjek_nama} diteruskan ke operator Dapodik.`)}>Setujui dan teruskan</button>
-                              <button className="tombol" disabled={sibuk || catatan.trim().length < 3} onClick={() => jalankan('putuskan_ajuan', { p_id: a.id, p_setuju: false, p_catatan: catatan }, `Ajuan ${a.subjek_nama} ditolak.`)}>Tolak</button>
+                              <TombolIkon ikon="tolak" label="Tolak" varian="bahaya" disabled={sibuk || catatan.trim().length < 3} onClick={() => jalankan('putuskan_ajuan', { p_id: a.id, p_setuju: false, p_catatan: catatan }, `Ajuan ${a.subjek_nama} ditolak.`)} />
                             </>
                           )}
                           {a.aksi?.includes('kerjakan') && (

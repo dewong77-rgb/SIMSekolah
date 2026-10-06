@@ -1,4 +1,5 @@
 // Usulan sarana dan prasarana bertingkat: kepala bengkel mengusulkan, kepala program memeriksa, Waka Sarpras memutuskan.
+import TombolIkon from '../../components/TombolIkon'
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import Halaman from '../../components/Halaman'
@@ -176,7 +177,7 @@ function Isi() {
           <div className="aksi">
             <button className="tombol" disabled={sibuk}>{sibuk ? 'Menyimpan...' : 'Simpan draf'}</button>
             <button type="button" className="tombol tombol-isi" disabled={sibuk} onClick={(e) => simpan(e, true)}>Simpan dan ajukan</button>
-            <button type="button" className="tombol" onClick={() => setForm(null)}>Batal</button>
+            <TombolIkon ikon="tutup" label="Batal" onClick={() => setForm(null)} />
           </div>
         </form>
       )}
@@ -205,7 +206,7 @@ function Isi() {
                 </label>
                 <div className="aksi" style={{ marginTop: 0 }}>
                   <button className="tombol tombol-isi" disabled={sibuk} onClick={konfirmasi}>Konfirmasi</button>
-                  <button className="tombol" onClick={() => setTindak(null)}>Batal</button>
+                  <TombolIkon ikon="tutup" label="Batal" onClick={() => setTindak(null)} />
                 </div>
               </div>
             )}

@@ -1,3 +1,4 @@
+import TombolIkon from '../components/TombolIkon'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { panggil, tglJam } from '../lib/rpc'
 import { ambilBlobBerkas, perkecilFoto, unduhBerkas, ukuranTeks, unggahBerkas } from '../lib/berkas'
@@ -75,7 +76,7 @@ function Miniatur({ l, lepas }: { l: Lampiran; lepas?: () => void }) {
       {!gambar && <div className="lampiran-kosong">{l.nama}</div>}
       <small>{l.nama} ({ukuranTeks(l.ukuran)})</small>
       <div className="aksi">
-        <button type="button" className="tombol" onClick={() => void unduhBerkas(l.berkas_id, l.nama).catch(() => undefined)}>Unduh</button>
+        <TombolIkon ikon="unduh" label="Unduh" onClick={() => void unduhBerkas(l.berkas_id, l.nama).catch(() => undefined)} />
         {lepas && <button type="button" className="tombol" style={merah} onClick={lepas}>Lepas</button>}
       </div>
     </div>

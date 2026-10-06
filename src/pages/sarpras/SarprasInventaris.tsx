@@ -1,5 +1,6 @@
 // Buku inventaris sarana dan prasarana per bengkel atau laboratorium.
 // Kepala bengkel mencatat barang di bengkelnya. Waka Sarpras mengelola semuanya, termasuk daftar bengkel dan bangunan.
+import TombolIkon from '../../components/TombolIkon'
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import Halaman from '../../components/Halaman'
@@ -129,7 +130,7 @@ function Isi({ kelola }: { kelola: boolean }) {
         </select>
         <input type="search" placeholder="Cari nama, kode, spesifikasi..." value={cari} onChange={(e) => setCari(e.target.value)} aria-label="Cari" />
         {(kelola || labBisaCatat.length > 0) && <button className="tombol tombol-isi" onClick={barangBaru}>Tambah barang</button>}
-        <button className="tombol" onClick={unduh} disabled={!tampil.length}>Unduh CSV</button>
+        <TombolIkon ikon="unduh" label="Unduh CSV" onClick={unduh} disabled={!tampil.length} />
       </div>
 
       {formB && (
@@ -157,8 +158,8 @@ function Isi({ kelola }: { kelola: boolean }) {
           <label>Keterangan<textarea rows={2} value={teks(formB.keterangan)} onChange={(e) => setFormB((x) => ({ ...x, keterangan: e.target.value }))} /></label>
           <div className="aksi">
             <button className="tombol tombol-isi" disabled={sibuk}>{sibuk ? 'Menyimpan...' : 'Simpan'}</button>
-            <button type="button" className="tombol" onClick={() => setFormB(null)}>Batal</button>
-            {kelola && formB.id && <button type="button" className="tombol-ikon tombol-ikon-bahaya" onClick={() => hapusBarang(formB)}>Hapus</button>}
+            <TombolIkon ikon="tutup" label="Batal" onClick={() => setFormB(null)} />
+            {kelola && formB.id && <TombolIkon ikon="sampah" label="Hapus" varian="bahaya" onClick={() => hapusBarang(formB)} />}
           </div>
         </form>
       )}
@@ -176,7 +177,7 @@ function Isi({ kelola }: { kelola: boolean }) {
                 <td>{angka(x.jumlah_rusak)}</td>
                 <td>{angka(x.jumlah_total)}</td>
                 <td>{rupiah(x.harga_satuan)}</td>
-                <td>{x.boleh_ubah && <button className="tombol-ikon" onClick={() => { setFormL(null); setFormB(x); window.scrollTo({ top: 0, behavior: 'smooth' }) }}>Ubah</button>}</td>
+                <td>{x.boleh_ubah && <TombolIkon ikon="pena" label="Ubah" onClick={() => { setFormL(null); setFormB(x); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />}</td>
               </tr>
             ))}
             {tampil.length === 0 && <tr><td colSpan={8} className="catatan">Belum ada barang yang cocok.</td></tr>}
@@ -215,7 +216,7 @@ function Isi({ kelola }: { kelola: boolean }) {
                   <tr key={x.id}>
                     <td>{x.nama}{x.aktif ? '' : ' (nonaktif)'}</td><td>{label(JENIS_LAB, x.jenis)}</td><td>{x.program ?? '-'}</td>
                     <td>{angka(x.jenis_barang)}</td><td>{angka(x.baik)}</td><td>{angka(x.rusak)}</td>
-                    <td><button className="tombol-ikon" onClick={() => { setFormB(null); setFormL(x); window.scrollTo({ top: 0, behavior: 'smooth' }) }}>Ubah</button></td>
+                    <td><TombolIkon ikon="pena" label="Ubah" onClick={() => { setFormB(null); setFormL(x); window.scrollTo({ top: 0, behavior: 'smooth' }) }} /></td>
                   </tr>
                 ))}
                 {lab.length === 0 && <tr><td colSpan={7} className="catatan">Belum ada.</td></tr>}

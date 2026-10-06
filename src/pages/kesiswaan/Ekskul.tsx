@@ -1,4 +1,5 @@
 // Ekstrakurikuler dan organisasi siswa (OSIS, MPK): daftar, anggota, pertemuan dan kehadiran.
+import TombolIkon from '../../components/TombolIkon'
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Halaman from '../../components/Halaman'
@@ -119,7 +120,7 @@ function Rincian({ id, kembali, ubahDaftar }: { id: string; kembali: () => void;
                     <td>{label(PERAN_EKSKUL, a.peran)}</td>
                     <td>{a.pertemuan ? `${Math.round((a.hadir / a.pertemuan) * 100)}%` : '-'}<br /><small className="catatan">{a.hadir}/{a.pertemuan}</small></td>
                     <td>{a.predikat ? label(PREDIKAT, a.predikat) : '-'}</td>
-                    <td>{ubahBoleh && <button className="tombol-ikon" onClick={() => setSunting(a.id)}>Ubah</button>}</td>
+                    <td>{ubahBoleh && <TombolIkon ikon="pena" label="Ubah" onClick={() => setSunting(a.id)} />}</td>
                   </tr>
                 ))}
                 {d.anggota.length === 0 && <tr><td colSpan={5} className="catatan">Belum ada anggota.</td></tr>}
@@ -167,7 +168,7 @@ function Isi() {
                 <p>{e.anggota} anggota aktif · {e.pertemuan} pertemuan (120 hari)</p>
                 <div className="aksi" style={{ marginTop: 0 }}>
                   <button className="tombol tombol-isi" onClick={() => setBuka(e.id)}>{e.bisa_ubah ? 'Kelola' : 'Lihat'}</button>
-                  {data.bisa_atur && <button className="tombol" onClick={() => setUbah(e)}>Ubah</button>}
+                  {data.bisa_atur && <TombolIkon ikon="pena" label="Ubah" onClick={() => setUbah(e)} />}
                 </div>
               </div>
             ))}

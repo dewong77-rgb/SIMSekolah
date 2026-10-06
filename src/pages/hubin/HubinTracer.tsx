@@ -1,4 +1,5 @@
 // Tracer study: rekap, daftar alumni, dan pengisian oleh petugas.
+import TombolIkon from '../../components/TombolIkon'
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Halaman from '../../components/Halaman'
@@ -143,7 +144,7 @@ function Isi({ lihatSaja }: { lihatSaja: boolean }) {
               <option value="belum">Belum mengisi</option><option value="sudah">Sudah mengisi</option><option value="semua">Semua</option>
             </select>
             <input type="search" placeholder="Cari nama atau NISN" value={cari} onChange={(e) => { setCari(e.target.value); setHalaman(0) }} />
-            <button className="tombol" onClick={ekspor}>Unduh CSV</button>
+            <TombolIkon ikon="unduh" label="Unduh CSV" onClick={ekspor} />
           </div>
           {isi && !lihatSaja && (
             <div className="kartu jarak" style={{ maxWidth: 720 }}>

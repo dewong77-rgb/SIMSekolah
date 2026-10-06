@@ -1,4 +1,5 @@
 // Tampilan siswa dan orang tua: catatan kesiswaan terverifikasi, kehadiran, ekskul, dan pengajuan izin.
+import TombolIkon from '../../components/TombolIkon'
 import { useCallback, useEffect, useState } from 'react'
 import Halaman from '../../components/Halaman'
 import FormIzin from '../../components/FormIzin'
@@ -81,7 +82,7 @@ export default function CatatanSaya({ orangTua }: { orangTua: boolean }) {
                       <td>{tgl(i.tgl_mulai)}{i.tgl_selesai !== i.tgl_mulai && ` sampai ${tgl(i.tgl_selesai)}`}{i.jenis === 'izin_keluar' && <><br /><small className="catatan">Keluar {i.jam_keluar?.slice(0, 5)}</small></>}</td>
                       <td>{i.alasan}</td>
                       <td>{label(STATUS_IZIN, i.status)}{i.catatan_keputusan && <><br /><small className="catatan">{i.catatan_keputusan}</small></>}</td>
-                      <td>{i.bisa_batal && <button className="tombol-ikon" onClick={() => batal(i.id)}>Batalkan</button>}</td>
+                      <td>{i.bisa_batal && <TombolIkon ikon="tutup" label="Batalkan" varian="bahaya" onClick={() => batal(i.id)} />}</td>
                     </tr>
                   ))}
                   {izin.length === 0 && <tr><td colSpan={5} className="catatan">Belum ada pengajuan izin.</td></tr>}

@@ -1,4 +1,5 @@
 // Pembukuan sarana dan prasarana: ringkasan per kategori dan per bengkel, status usulan, dan pembanding data Dapodik.
+import TombolIkon from '../../components/TombolIkon'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Halaman from '../../components/Halaman'
@@ -35,7 +36,7 @@ function Isi() {
         <span className="lencana">Rusak {angka(total.rusak)} ({pctRusak}%)</span>
         <span className="lencana">Nilai tercatat {rupiah(total.nilai)}</span>
       </div>
-      <div className="aksi" style={{ marginTop: 0 }}><button className="tombol" onClick={unduh}>Unduh CSV</button></div>
+      <div className="aksi" style={{ marginTop: 0 }}><TombolIkon ikon="unduh" label="Unduh CSV" onClick={unduh} /></div>
 
       <h2 className="jarak">Per kategori</h2>
       <div className="tabel-bungkus">

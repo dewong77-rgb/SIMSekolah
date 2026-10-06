@@ -1,4 +1,5 @@
 // Kelola prestasi yang tampil di situs publik. Terpisah dari catatan prestasi siswa agar nama siswa tidak bocor tanpa persetujuan.
+import TombolIkon from '../../components/TombolIkon'
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Halaman from '../../components/Halaman'
@@ -54,7 +55,7 @@ function Isi() {
             {calon.map((c) => (
               <li key={c.id} style={{ marginBottom: 8 }}>
                 {c.nama_prestasi}{c.peringkat ? `, ${c.peringkat}` : ''} <small className="catatan">({[namaTingkat(c.tingkat), c.tanggal?.slice(0, 4)].filter(Boolean).join(', ')}{c.siswa ? ` · ${c.siswa}` : ''})</small>{' '}
-                <button className="tombol" disabled={sibuk} onClick={() => void jalan(() => panggil('prestasi_publik_terbitkan', { p_prestasi: c.id }), 'Diterbitkan. Periksa dan lengkapi di daftar bawah.')}>Terbitkan</button>
+                <TombolIkon ikon="kirim" label="Terbitkan" disabled={sibuk} onClick={() => void jalan(() => panggil('prestasi_publik_terbitkan', { p_prestasi: c.id }), 'Diterbitkan. Periksa dan lengkapi di daftar bawah.')} />
               </li>
             ))}
           </ul>
@@ -100,8 +101,8 @@ function Isi() {
                     <td>{namaBidang(p.bidang)}</td><td>{namaTingkat(p.tingkat)}</td><td>{p.tahun ?? '-'}</td>
                     <td>{p.tampil ? 'Tampil' : 'Disembunyikan'}</td>
                     <td>
-                      <button className="tombol" onClick={() => setSunting(p)}>Ubah</button>{' '}
-                      <button className="tombol" disabled={sibuk} onClick={() => { if (window.confirm(`Hapus "${p.judul}" dari daftar?`)) void jalan(() => panggil('prestasi_publik_hapus', { p_id: p.id }), 'Dihapus.') }}>Hapus</button>
+                      <TombolIkon ikon="pena" label="Ubah" onClick={() => setSunting(p)} />{' '}
+                      <TombolIkon ikon="sampah" label="Hapus" varian="bahaya" disabled={sibuk} onClick={() => { if (window.confirm(`Hapus "${p.judul}" dari daftar?`)) void jalan(() => panggil('prestasi_publik_hapus', { p_id: p.id }), 'Dihapus.') }} />
                     </td>
                   </tr>
                 ))}

@@ -1,4 +1,5 @@
 // Izin siswa: sakit, izin, dispensasi, dan izin keluar. Diputuskan guru piket, wali kelas (rombelnya), atau TU Kesiswaan.
+import TombolIkon from '../../components/TombolIkon'
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Halaman from '../../components/Halaman'
@@ -86,11 +87,11 @@ function Isi() {
                       <input placeholder="Catatan (wajib bila ditolak)" value={catatan[b.id] ?? ''} onChange={(e) => setCatatan((c) => ({ ...c, [b.id]: e.target.value }))} />
                       <div className="aksi" style={{ marginTop: 0 }}>
                         <button className="tombol tombol-isi" disabled={sibuk === b.id} onClick={() => aksi(b.id, 'izin_putuskan', { p_setuju: true, p_catatan: catatan[b.id]?.trim() || null })}>Setujui</button>
-                        <button className="tombol" disabled={sibuk === b.id} onClick={() => aksi(b.id, 'izin_putuskan', { p_setuju: false, p_catatan: catatan[b.id]?.trim() || null })}>Tolak</button>
+                        <TombolIkon ikon="tolak" label="Tolak" varian="bahaya" disabled={sibuk === b.id} onClick={() => aksi(b.id, 'izin_putuskan', { p_setuju: false, p_catatan: catatan[b.id]?.trim() || null })} />
                       </div>
                     </div>
                   )}
-                  {(b.status === 'diajukan' || b.status === 'disetujui') && <button className="tombol-ikon" disabled={sibuk === b.id} onClick={() => aksi(b.id, 'izin_batalkan', {})}>Batalkan</button>}
+                  {(b.status === 'diajukan' || b.status === 'disetujui') && <TombolIkon ikon="tutup" label="Batalkan" varian="bahaya" disabled={sibuk === b.id} onClick={() => aksi(b.id, 'izin_batalkan', {})} />}
                 </td>
               </tr>
             ))}

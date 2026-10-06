@@ -1,3 +1,4 @@
+import TombolIkon from '../components/TombolIkon'
 import { useState, type FormEvent } from 'react'
 import { panggil } from '../lib/rpc'
 
@@ -63,9 +64,11 @@ export default function KelolaPertemuan({ kelasId, pertemuanId, setelahUbah, set
       {pesan && <p className="catatan" role="status"><strong>{pesan}</strong></p>}
       {!buka && (
         <div className="aksi">
-          <button type="button" className="tombol" style={{ color: 'var(--warna-utama)' }} disabled={sibuk} onClick={() => void mulai()}>Ubah pertemuan</button>
-          <button type="button" className="tombol" style={{ color: '#8a1f1f', borderColor: '#8a1f1f' }} disabled={sibuk} onClick={() => void hapus(true)}>Hapus di semua kelas</button>
-          <button type="button" className="tombol" style={{ color: '#8a1f1f', borderColor: '#8a1f1f' }} disabled={sibuk} onClick={() => void hapus(false)}>Hapus di kelas ini saja</button>
+          <div className="aksi-ikon">
+            <TombolIkon ikon="pena" label="Ubah pertemuan" disabled={sibuk} onClick={() => void mulai()} />
+            <TombolIkon ikon="sampah" label="Hapus di semua kelas" varian="bahaya" teks disabled={sibuk} onClick={() => void hapus(true)} />
+            <TombolIkon ikon="sampah" label="Hapus di kelas ini saja" varian="bahaya" disabled={sibuk} onClick={() => void hapus(false)} />
+          </div>
         </div>
       )}
       {buka && (
@@ -79,8 +82,8 @@ export default function KelolaPertemuan({ kelasId, pertemuanId, setelahUbah, set
           <label className="baris-centang"><input type="checkbox" checked={semua} onChange={(e) => setSemua(e.target.checked)} /> Terapkan di semua kelas yang berbagi pertemuan ini</label>
           {!semua && <p className="catatan">Bila judul diubah hanya di kelas ini, kelas ini terlepas dari kelompok dan tidak ikut absen serentak.</p>}
           <div className="aksi">
-            <button className="tombol tombol-isi" disabled={sibuk}>{sibuk ? 'Menyimpan...' : 'Simpan perubahan'}</button>
-            <button type="button" className="tombol" onClick={() => setBuka(false)}>Batal</button>
+            <TombolIkon type="submit" ikon="simpan" label={sibuk ? 'Menyimpan...' : 'Simpan perubahan'} varian="isi" teks disabled={sibuk} />
+            <TombolIkon ikon="tutup" label="Batal" onClick={() => setBuka(false)} />
           </div>
         </form>
       )}
@@ -142,11 +145,11 @@ export function AksesPertemuan({ pertemuanId, status, ditutup, bukaSampai, setel
           </div>
           <div className="aksi">
             {tertutup
-              ? <button type="button" className="tombol tombol-isi" disabled={sibuk} onClick={() => void kirim(true)}>Buka lagi</button>
-              : <>
-                  <button type="button" className="tombol tombol-isi" disabled={sibuk} onClick={() => void kirim(true)}>Terapkan batas waktu</button>
-                  <button type="button" className="tombol" style={{ color: '#8a1f1f', borderColor: '#8a1f1f' }} disabled={sibuk} onClick={() => void kirim(false)}>Tutup sekarang</button>
-                </>}
+              ? <TombolIkon ikon="buka" label="Buka lagi" varian="isi" teks disabled={sibuk} onClick={() => void kirim(true)} />
+              : <div className="aksi-ikon">
+                  <TombolIkon ikon="jam" label="Terapkan batas waktu" varian="isi" disabled={sibuk} onClick={() => void kirim(true)} />
+                  <TombolIkon ikon="kunci" label="Tutup sekarang" varian="bahaya" disabled={sibuk} onClick={() => void kirim(false)} />
+                </div>}
           </div>
           <p className="catatan">Berlaku di semua kelas yang berbagi pertemuan ini. Siswa wajib menuntaskan pertemuan yang masih terbuka sebelum membuka pertemuan berikutnya.</p>
         </>
