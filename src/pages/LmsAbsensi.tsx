@@ -44,7 +44,7 @@ export default function AbsensiGuru() {
             <div className="kartu"><small>Kelas ajar</small><p style={{ margin: 0, fontSize: '1.4rem' }}>{data.total_kelas}</p><small>Satu mata pelajaran di satu rombel</small></div>
           </div>
           {data.kelas.length === 0 && (
-            <div className="kartu jarak"><p>Belum ada kelas ajar.</p><p className="catatan">Buat kelas ajar di <Link to="/portal/lms">Ruang belajar (LMS)</Link>, lalu rekap muncul di sini.</p></div>
+            <div className="kartu jarak"><p>Belum ada kelas ajar.</p><p className="catatan">Buat kelas ajar di <Link to="/portal/lms">Kelas saya (LMS)</Link>, lalu rekap muncul di sini.</p></div>
           )}
           {data.kelas.length > 0 && (
             <>

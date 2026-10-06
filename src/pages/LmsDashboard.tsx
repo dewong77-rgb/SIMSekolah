@@ -130,7 +130,7 @@ export default function DashboardPembelajaran() {
   const adaLembar = k.some((x) => x.total_lembar > 0)
 
   return (
-    <Halaman judul="Dashboard pembelajaran" lead="Satu pertemuan, semua kelas yang Anda ampu. Aktif otomatis saat bahan bacaan dan lembar kerja ada. Kehadiran dan kemajuan siswa dipantau langsung.">
+    <Halaman judul="Pantau semua kelas" lead="Satu pertemuan, semua kelas yang Anda ampu. Aktif otomatis saat bahan bacaan dan lembar kerja ada. Kehadiran dan kemajuan siswa dipantau langsung.">
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
       <div className="aksi">
         <button type="button" className="tombol tombol-isi" onClick={() => setBaru(!baru)}>{baru ? 'Tutup formulir' : 'Pertemuan baru'}</button>
