@@ -7,9 +7,11 @@ import { Link } from 'react-router-dom'
 import Halaman from '../../components/Halaman'
 import { panggil, tglJam } from '../../lib/rpc'
 import {
-  KATEGORI_BERITA, MAKS_FOTO, namaKategori, urlGambarBerita, tglJamBerita, unggahFotoBerita, waktuBaca,
+  KATEGORI_BERITA, MAKS_FOTO, namaKategori, urlGambarBerita, tglJamBerita, unggahFotoBerita, waktuBaca, jumlahKata,
   type BeritaKelola, type Foto,
 } from '../../lib/berita'
+import PenyuntingIsi, { type PenyuntingRef } from '../../components/PenyuntingIsi'
+import { bersihkanHtml, teksKeHtml, teksPolos } from '../../lib/isiBerita'
 import Gerbang from './Gerbang'
 
 const NAMA_STATUS: Record<string, string> = { draf: 'Draf', diajukan: 'Menunggu terbit', terbit: 'Terbit', diarsipkan: 'Diarsipkan' }
@@ -45,7 +47,7 @@ function Isi() {
   const [unggah, setUnggah] = useState<{ nama: string; galat?: string }[]>([])
   const [tagKetik, setTagKetik] = useState('')
   const [sorot, setSorot] = useState(false)
-  const areaIsi = useRef<HTMLTextAreaElement>(null)
+  const penyunting = useRef<PenyuntingRef>(null)
   const berkasRef = useRef<HTMLInputElement>(null)
 
   const baca = useCallback(async () => {
@@ -77,7 +79,7 @@ function Isi() {
       const semua = sampulUrl && !foto.some((f) => f.url === sampulUrl) ? [{ url: sampulUrl, keterangan: String(x.gambar_keterangan ?? '') }, ...foto] : foto
       setForm({
         id: b.id, judul: String(x.judul ?? ''), subjudul: String(x.subjudul ?? ''), kategori: String(x.kategori ?? 'kegiatan'),
-        ringkasan: String(x.ringkasan ?? ''), isi: String(x.isi ?? ''), tema: String(x.tema ?? ''), tag: (x.tag as string[] | null) ?? [],
+        ringkasan: String(x.ringkasan ?? ''), isi: teksKeHtml(String(x.isi ?? ''), semua), tema: String(x.tema ?? ''), tag: (x.tag as string[] | null) ?? [],
         byline: String(x.byline ?? ''), kredit_foto: String(x.kredit_foto ?? ''), foto: semua, sampul: sampulUrl,
         unggulan: !!x.unggulan, status: String(x.status ?? 'draf'),
       })
@@ -88,19 +90,8 @@ function Isi() {
 
   const u = <K extends keyof Form>(k: K, v: Form[K]) => setForm((x) => (x ? { ...x, [k]: v } : x))
 
-  // ---------- Isi: toolbar ----------
-  function sisipkan(awal: string, akhir = '', cadangan = '', barisBaru = false) {
-    const el = areaIsi.current
-    if (!el || !form) return
-    const a = el.selectionStart, b = el.selectionEnd
-    const pilih = form.isi.slice(a, b) || cadangan
-    const depan = barisBaru && a > 0 && !/\n\n$/.test(form.isi.slice(0, a)) ? (form.isi.slice(0, a).endsWith('\n') ? '\n' : '\n\n') : ''
-    const belakang = barisBaru ? '\n\n' : ''
-    const teks = form.isi.slice(0, a) + depan + awal + pilih + akhir + belakang + form.isi.slice(b)
-    u('isi', teks)
-    requestAnimationFrame(() => { el.focus(); const p = a + depan.length + awal.length; el.setSelectionRange(p, p + pilih.length) })
-  }
-  const sisipFoto = (no: number) => sisipkan(`[foto:${no}]`, '', '', true)
+  // ---------- Isi: sisip foto ke penyunting ----------
+  const sisipFoto = (no: number) => { const f = form?.foto[no - 1]; if (f) penyunting.current?.sisipFoto(f) }
 
   // ---------- Foto ----------
   async function tambahFoto(berkas: FileList | File[]) {
@@ -155,11 +146,11 @@ function Isi() {
     if (!form) return []
     return [
       { ok: form.judul.trim().length >= 5, teks: 'Judul 5 huruf atau lebih', wajib: true },
-      { ok: form.isi.trim().length >= 20, teks: 'Isi berita terisi', wajib: true },
+      { ok: teksPolos(form.isi).length >= 20, teks: 'Isi berita terisi', wajib: true },
       { ok: !!form.sampul, teks: 'Ada foto sampul', wajib: false },
       { ok: form.ringkasan.trim().length >= 20, teks: 'Ringkasan untuk daftar berita', wajib: false },
       { ok: form.tag.length > 0, teks: 'Minimal satu tag', wajib: false },
-      { ok: form.isi.trim().split(/\s+/).length >= 80, teks: 'Isi sekitar 80 kata atau lebih', wajib: false },
+      { ok: jumlahKata(form.isi) >= 80, teks: 'Isi sekitar 80 kata atau lebih', wajib: false },
     ]
   }, [form])
   const siap = periksa.filter((p) => p.wajib).every((p) => p.ok)
@@ -175,7 +166,7 @@ function Isi() {
       await panggil('berita_simpan', {
         p_id: form.id ?? null,
         p_data: {
-          judul: form.judul, subjudul: form.subjudul, kategori: form.kategori, ringkasan: form.ringkasan, isi: form.isi,
+          judul: form.judul, subjudul: form.subjudul, kategori: form.kategori, ringkasan: form.ringkasan, isi: bersihkanHtml(form.isi),
           tema: form.tema, tag: form.tag, byline: form.byline, kredit_foto: form.kredit_foto, foto: form.foto,
           gambar_url: sampul?.url ?? '', gambar_path: '', gambar_keterangan: sampul?.keterangan ?? '', unggulan: form.unggulan,
           status: statusBaru ?? form.status,
@@ -194,7 +185,7 @@ function Isi() {
   }
 
   function batal() {
-    if (form && !form.id && (form.judul || form.isi) && !window.confirm('Tulisan ini belum disimpan. Tutup editor? Draf otomatis tetap ada di peramban ini.')) return
+    if (form && !form.id && (form.judul || teksPolos(form.isi)) && !window.confirm('Tulisan ini belum disimpan. Tutup editor? Draf otomatis tetap ada di peramban ini.')) return
     setForm(null)
   }
 
@@ -237,7 +228,7 @@ function Isi() {
                   {(sampulFoto?.keterangan || form.kredit_foto) && <figcaption>{sampulFoto?.keterangan} {form.kredit_foto && <span className="bt-kredit">Foto: {form.kredit_foto}</span>}</figcaption>}
                 </figure>
               )}
-              <BeritaIsi isi={form.isi || 'Isi berita belum ditulis.'} foto={form.foto} kredit={form.kredit_foto} />
+              <BeritaIsi isi={form.isi || '<p>Isi berita belum ditulis.</p>'} foto={form.foto} kredit={form.kredit_foto} />
               {form.tag.length > 0 && <p className="bt-tag-baris"><span>Tag:</span> {form.tag.map((t) => <span key={t} className="bt-tag">#{t}</span>)}</p>}
             </div>
           ) : (
@@ -259,22 +250,16 @@ function Isi() {
 
               <section className="ed-bagian">
                 <h3><span>2</span> Isi berita</h3>
-                <div className="ed-alat" role="toolbar" aria-label="Pemformatan">
-                  <button type="button" onClick={() => sisipkan('## ', '', 'Subjudul bagian', true)} title="Subjudul bagian"><b>Subjudul</b></button>
-                  <button type="button" onClick={() => sisipkan('**', '**', 'teks tebal')} title="Tebal"><b>B</b></button>
-                  <button type="button" onClick={() => sisipkan('*', '*', 'teks miring')} title="Miring"><i>I</i></button>
-                  <button type="button" onClick={() => sisipkan('> ', '', 'Kutipan narasumber', true)} title="Kutipan">“ ”</button>
-                  <button type="button" onClick={() => sisipkan('- ', '', 'butir pertama\n- butir kedua', true)} title="Daftar">Daftar</button>
-                  {form.foto.length > 0 && (
-                    <select aria-label="Sisipkan foto ke isi" value="" onChange={(e) => { if (e.target.value) sisipFoto(Number(e.target.value)); e.target.value = '' }}>
-                      <option value="">Sisipkan foto…</option>
-                      {form.foto.map((_, i) => <option key={i} value={i + 1}>Foto {i + 1}</option>)}
+                <PenyuntingIsi ref={penyunting} nilai={form.isi} onUbah={(h) => u('isi', h)} />
+                {form.foto.length > 0 && (
+                  <label className="ed-sisip">Sisipkan foto ke tulisan
+                    <select value="" onChange={(e) => { if (e.target.value) sisipFoto(Number(e.target.value)); e.target.value = '' }}>
+                      <option value="">Pilih foto…</option>
+                      {form.foto.map((f, i) => <option key={f.url} value={i + 1}>Foto {i + 1}{f.keterangan ? ` · ${f.keterangan.slice(0, 40)}` : ''}</option>)}
                     </select>
-                  )}
-                </div>
-                <textarea ref={areaIsi} className="ed-isi" rows={16} value={form.isi} onChange={(e) => u('isi', e.target.value)} required
-                  placeholder={'Paragraf pertama: apa yang terjadi, siapa, kapan, di mana.\n\nPisahkan paragraf dengan satu baris kosong.'} />
-                <small className="catatan">{form.isi.trim() ? form.isi.trim().split(/\s+/).length : 0} kata · {waktuBaca(form.isi)} menit baca. Pisahkan paragraf dengan baris kosong. Tombol di atas mengisi penanda secara otomatis, tidak perlu menghafal.</small>
+                  </label>
+                )}
+                <small className="catatan">{jumlahKata(form.isi)} kata · {waktuBaca(form.isi)} menit baca. Blok teks lalu pilih tombol untuk menebalkan, meratakan, atau membuat daftar bernomor. Tempel dari Word akan dibersihkan otomatis.</small>
               </section>
 
               <section className="ed-bagian">

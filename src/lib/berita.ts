@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
 import { panggil } from './rpc'
+import { teksPolos } from './isiBerita'
 
 export const KATEGORI_BERITA = [
   ['kegiatan', 'Kegiatan'], ['prestasi', 'Prestasi'], ['pengumuman', 'Pengumuman'],
@@ -46,7 +47,8 @@ export const tglRingkas = (iso: string | null | undefined) => {
   return `${d.getDate()} ${NAMA_BULAN_PENDEK[d.getMonth()]} ${d.getFullYear()}`
 }
 
-export const waktuBaca = (isi: string) => Math.max(1, Math.round(isi.split(/\s+/).filter(Boolean).length / 200))
+export const jumlahKata = (isi: string) => teksPolos(isi).split(/\s+/).filter(Boolean).length
+export const waktuBaca = (isi: string) => Math.max(1, Math.round(jumlahKata(isi) / 200))
 
 /** Alamat gambar yang sah: https atau jalur lokal situs sendiri. */
 export const gambarAman = (u: string | null | undefined) => (u && (/^https:\/\//i.test(u) || /^\/[A-Za-z0-9]/.test(u)) ? u : null)
