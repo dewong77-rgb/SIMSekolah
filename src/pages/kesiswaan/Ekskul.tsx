@@ -8,11 +8,12 @@ import { supabase } from '../../lib/supabase'
 import { panggil, tgl } from '../../lib/rpc'
 import { PERAN_EKSKUL, PREDIKAT, hariIni, label, tambahHari, type SiswaCari } from '../../lib/kesiswaan'
 import Gerbang from './Gerbang'
+import { StrukturOrganisasi, TambahPerRombel, type Simpul } from './EkskulStruktur'
 
 type Ekskul = { id: string; nama: string; jenis: string; deskripsi: string | null; jadwal: string | null; aktif: boolean; pembina_ptk_id: string | null; pembina: string | null; bisa_ubah: boolean; anggota: number; pertemuan: number }
 type Anggota = { id: string; pd: string; nama: string; nisn: string | null; rombel: string | null; peran: string; predikat: string | null; catatan_nilai: string | null; aktif: boolean; hadir: number; pertemuan: number }
 type Pertemuan = { id: string; tanggal: string; topik: string | null; hadir: number; total: number }
-type Detail = { bisa_ubah: boolean; id: string; nama: string; jenis: string; deskripsi: string | null; jadwal: string | null; tahun_ajaran: string; anggota: Anggota[]; pertemuan: Pertemuan[] }
+type Detail = { bisa_ubah: boolean; id: string; nama: string; jenis: string; deskripsi: string | null; jadwal: string | null; tahun_ajaran: string; pembina: string | null; anggota: Anggota[]; struktur: Simpul[]; pertemuan: Pertemuan[] }
 
 function FormEkskul({ e, ptk, simpan, batal }: { e: Ekskul | null; ptk: { id: string; nama: string }[]; simpan: (e: Ekskul | null, f: FormData) => Promise<void>; batal: () => void }) {
   return (
@@ -70,11 +71,13 @@ function Rincian({ id, kembali, ubahDaftar }: { id: string; kembali: () => void;
   if (!d) return <div>{galat ? <p className="kartu galat" role="alert">{galat}</p> : <p className="catatan">Memuat...</p>}<button className="tombol" onClick={kembali}>Kembali</button></div>
   const aktif = d.anggota.filter((a) => a.aktif)
   const ubahBoleh = d.bisa_ubah
+  const perRombel = Object.entries(aktif.reduce<Record<string, number>>((m, a) => { const k = a.rombel ?? 'Tanpa rombel'; m[k] = (m[k] ?? 0) + 1; return m }, {})).sort(([x], [y]) => x.localeCompare(y))
   return (
     <div>
-      <div className="aksi" style={{ marginTop: 0, alignItems: 'center' }}><button className="tombol" onClick={kembali}>Kembali ke daftar</button><h2 style={{ margin: 0 }}>{d.nama}</h2><small className="catatan">Tahun ajaran {d.tahun_ajaran}</small></div>
+      <div className="aksi" style={{ marginTop: 0, alignItems: 'center' }}><button className="tombol" onClick={kembali}>Kembali ke daftar</button><h2 style={{ margin: 0 }}>{d.nama}</h2><small className="catatan">Tahun ajaran {d.tahun_ajaran} · Pembina: {d.pembina ?? 'belum ditunjuk'}</small></div>
       {galat && <p className="kartu galat" role="alert">{galat}</p>}
       {info && <p className="kartu" role="status">{info}</p>}
+      <div className="jarak"><StrukturOrganisasi ekskulId={id} struktur={d.struktur} anggota={d.anggota} ubahBoleh={ubahBoleh} muatUlang={muat} /></div>
       <div className="grid grid-2 jarak">
         <div className="kartu">
           <h3>{ubahBoleh ? 'Catat pertemuan' : 'Pertemuan'}</h3>
@@ -98,7 +101,9 @@ function Rincian({ id, kembali, ubahDaftar }: { id: string; kembali: () => void;
             <CariSiswa untuk="ekskul" pilih={setSiswa} dipilih={siswa} />
             <label>Peran<select value={peran} onChange={(e) => setPeran(e.target.value)}>{PERAN_EKSKUL.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></label>
             <button className="tombol" disabled={!siswa || sibuk} onClick={tambah}>Tambah anggota</button>
+            <TambahPerRombel ekskulId={id} ubahDaftar={async () => { await muat(); ubahDaftar() }} />
           </div>}
+          {perRombel.length > 0 && <p className="catatan jarak">Per rombel: {perRombel.map(([k, n]) => `${k} (${n})`).join(', ')}</p>}
           <div className="tabel-bungkus jarak">
             <table>
               <thead><tr><th>Nama</th><th>Peran</th><th>Hadir</th><th>Predikat</th><th /></tr></thead>
