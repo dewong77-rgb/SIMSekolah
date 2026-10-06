@@ -7,9 +7,11 @@ export type Pengaturan = { durasi_jp: number; jam_wajib: number; boleh: boolean 
 export type Mapel = { id: string; nama: string; kelompok: string; bidang_linier: string[]; aktif: boolean; urutan: number }
 export type BarisStruktur = { id: string; tingkat: number; program: string; mapel_id: string; mapel: string; kelompok: string; jp_minggu: number }
 export type ProgramRombel = { program: string; tingkat: number; rombel: number }
-export type Kebutuhan = {
+export type GuruBeban = { ptk_id: string; guru: string; jp: number; status: string }
+/** Satu mapel pada satu rombel: kebutuhan JP dari struktur dan guru yang mengampu (bisa lebih dari satu). */
+export type BebanMapel = {
   rombel_id: string; rombel: string; tingkat: number; program: string; mapel_id: string; mapel: string; kelompok: string
-  jp: number; ptk_id: string | null; guru: string | null; status: string | null
+  jp: number; jp_terbagi: number; guru: GuruBeban[]
 }
 export type Guru = {
   ptk_id: string; nama: string; jenis_ptk: string | null; status_kepegawaian: string | null
@@ -77,6 +79,6 @@ export function usePengaturanKurikulum() {
 
 export type SlotJadwal = {
   rombel_id: string; rombel: string; hari: number; jam_ke: number
-  mapel_id: string; mapel: string; ptk_id: string | null; guru: string | null; ptk_beban_id: string | null
+  mapel_id: string; mapel: string; ptk_id: string | null; guru: string | null; valid: boolean
 }
 export const NAMA_HARI_JADWAL = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'] as const

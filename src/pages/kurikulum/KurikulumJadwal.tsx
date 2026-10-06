@@ -1,10 +1,10 @@
-// Jadwal pelajaran: grid hari x jam ke-n per kelas dan per guru. Bentrok guru dan kuota JP dijaga di basis data dan ditandai di pilihan.
+// Jadwal pelajaran: grid hari x jam ke-n per kelas dan per guru. Bentrok guru dan kuota JP per guru dijaga di basis data dan ditandai di pilihan.
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Halaman from '../../components/Halaman'
 import { panggil } from '../../lib/rpc'
 import { muatJamBel, type JamBel } from '../../lib/kalender'
-import { NAMA_HARI_JADWAL, WARNA_NADA, pilihanTahunAjaran, tahunAjaranSekarang, type Kebutuhan, type Pengaturan, type SlotJadwal } from '../../lib/kurikulum'
+import { NAMA_HARI_JADWAL, WARNA_NADA, pilihanTahunAjaran, tahunAjaranSekarang, type BebanMapel, type Pengaturan, type SlotJadwal } from '../../lib/kurikulum'
 import GerbangKurikulum from './GerbangKurikulum'
 
 const HARI = [1, 2, 3, 4, 5]
@@ -13,7 +13,7 @@ const kunci = (r: string, h: number, j: number) => `${r}|${h}|${j}`
 function Isi({ p }: { p: Pengaturan }) {
   const [ta, setTa] = useState(tahunAjaranSekarang())
   const [bel, setBel] = useState<JamBel[] | null>(null)
-  const [butuh, setButuh] = useState<Kebutuhan[]>([])
+  const [butuh, setButuh] = useState<BebanMapel[]>([])
   const [slot, setSlot] = useState<SlotJadwal[]>([])
   const [tab, setTab] = useState<'kelas' | 'guru'>('kelas')
   const [rombel, setRombel] = useState('')
@@ -25,7 +25,7 @@ function Isi({ p }: { p: Pengaturan }) {
   useEffect(() => { void muatJamBel(true).then(setBel) }, [])
   const muat = useCallback(async () => {
     try {
-      const [b, s] = await Promise.all([panggil<Kebutuhan[]>('kur_beban_data', { p_ta: ta }), panggil<SlotJadwal[]>('kur_jadwal_data', { p_ta: ta })])
+      const [b, s] = await Promise.all([panggil<BebanMapel[]>('kur_beban_data', { p_ta: ta }), panggil<SlotJadwal[]>('kur_jadwal_data', { p_ta: ta })])
       setButuh(b ?? []); setSlot(s ?? [])
     } catch (e) { setGalat((e as Error).message) }
     setMemuat(false)
@@ -38,29 +38,37 @@ function Isi({ p }: { p: Pengaturan }) {
   const jamHari = (h: number) => (h === 5 ? jmt : snk)
 
   const daftarRombel = useMemo(() => {
-    const m = new Map<string, { id: string; nama: string; tingkat: number }>()
-    for (const k of butuh) m.set(k.rombel_id, { id: k.rombel_id, nama: k.rombel, tingkat: k.tingkat })
+    const m = new Map<string, { id: string; nama: string; tingkat: number; jp: number }>()
+    for (const k of butuh) {
+      const x = m.get(k.rombel_id) ?? { id: k.rombel_id, nama: k.rombel, tingkat: k.tingkat, jp: 0 }
+      x.jp += k.guru.reduce((a, g) => a + g.jp, 0); m.set(k.rombel_id, x)
+    }
     return [...m.values()].sort((a, b) => a.tingkat - b.tingkat || a.nama.localeCompare(b.nama, 'id', { numeric: true }))
   }, [butuh])
   useEffect(() => { if (!daftarRombel.some((r) => r.id === rombel)) setRombel(daftarRombel[0]?.id ?? '') }, [daftarRombel, rombel])
 
   const petaSlot = useMemo(() => new Map(slot.map((s) => [kunci(s.rombel_id, s.hari, s.jam_ke), s])), [slot])
   const sibukGuru = useMemo(() => new Map(slot.filter((s) => s.ptk_id).map((s) => [`${s.ptk_id}|${s.hari}|${s.jam_ke}`, s.rombel])), [slot])
+  const terpakai = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const s of slot) { const k = `${s.rombel_id}|${s.mapel_id}|${s.ptk_id}`; m.set(k, (m.get(k) ?? 0) + 1) }
+    return m
+  }, [slot])
   const daftarGuru = useMemo(() => {
-    const m = new Map<string, string>()
-    for (const k of butuh) if (k.ptk_id && k.guru) m.set(k.ptk_id, k.guru)
-    return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1], 'id'))
+    const m = new Map<string, { nama: string; jp: number }>()
+    for (const k of butuh) for (const g of k.guru) { const x = m.get(g.ptk_id) ?? { nama: g.guru, jp: 0 }; x.jp += g.jp; m.set(g.ptk_id, x) }
+    return [...m.entries()].sort((a, b) => a[1].nama.localeCompare(b[1].nama, 'id'))
   }, [butuh])
   useEffect(() => { if (!daftarGuru.some(([id]) => id === guru)) setGuru(daftarGuru[0]?.[0] ?? '') }, [daftarGuru, guru])
 
   const totalJp = butuh.reduce((a, b) => a + b.jp, 0)
-  const terjadwal = slot.length
+  const jpTerbagi = butuh.reduce((a, b) => a + Math.min(b.jp_terbagi, b.jp), 0)
   const kelasIni = butuh.filter((k) => k.rombel_id === rombel)
-  const terpakai = (mapel: string) => slot.filter((s) => s.rombel_id === rombel && s.mapel_id === mapel).length
 
-  async function pasang(h: number, j: number, mapel: string) {
+  async function pasang(h: number, j: number, nilai: string) {
     setGalat(''); setSibuk(true)
-    try { await panggil('kur_jadwal_set', { p_rombel: rombel, p_hari: h, p_jam_ke: j, p_mapel: mapel || null }); await muat() }
+    const [mapel, ptk] = nilai ? nilai.split('|') : [null, null]
+    try { await panggil('kur_jadwal_pasang', { p_rombel: rombel, p_hari: h, p_jam_ke: j, p_mapel: mapel, p_ptk: ptk }); await muat() }
     catch (e) { setGalat((e as Error).message) }
     setSibuk(false)
   }
@@ -88,8 +96,8 @@ function Isi({ p }: { p: Pengaturan }) {
       ) : (
         <>
           <div className="grid grid-3 jarak">
-            <div className="kartu"><small>Jam terjadwal</small><h3 style={{ margin: 0 }}>{terjadwal} dari {totalJp} JP</h3></div>
-            <div className="kartu"><small>Belum ada guru</small><h3 style={{ margin: 0 }}>{butuh.filter((k) => !k.ptk_id).length} mapel</h3></div>
+            <div className="kartu"><small>Jam terjadwal</small><h3 style={{ margin: 0 }}>{slot.length} dari {jpTerbagi} JP</h3></div>
+            <div className="kartu"><small>Belum dibagi ke guru</small><h3 style={{ margin: 0 }}>{totalJp - jpTerbagi} JP</h3></div>
             <div className="kartu"><small>Durasi satu JP</small><h3 style={{ margin: 0 }}>{p.durasi_jp} menit</h3></div>
           </div>
 
@@ -97,7 +105,7 @@ function Isi({ p }: { p: Pengaturan }) {
             <div className="kartu form jarak">
               <label>Kelas
                 <select value={rombel} onChange={(e) => setRombel(e.target.value)}>
-                  {daftarRombel.map((r) => <option key={r.id} value={r.id}>{r.nama} ({slot.filter((s) => s.rombel_id === r.id).length}/{butuh.filter((k) => k.rombel_id === r.id).reduce((a, b) => a + b.jp, 0)} JP)</option>)}
+                  {daftarRombel.map((r) => <option key={r.id} value={r.id}>{r.nama} ({slot.filter((s) => s.rombel_id === r.id).length}/{r.jp} JP)</option>)}
                 </select>
               </label>
               <div className="tabel-bungkus">
@@ -110,21 +118,22 @@ function Isi({ p }: { p: Pengaturan }) {
                         {HARI.map((h) => {
                           if (j > jamHari(h).length) return <td key={h} style={{ background: '#f1f3f6' }} />
                           const s = petaSlot.get(kunci(rombel, h, j))
-                          const basi = s && s.ptk_beban_id !== s.ptk_id
+                          const nilai = s && s.ptk_id ? `${s.mapel_id}|${s.ptk_id}` : ''
                           return (
-                            <td key={h} style={basi ? { background: '#fdf1d8' } : undefined}>
-                              <select value={s?.mapel_id ?? ''} disabled={!p.boleh || sibuk} aria-label={`${NAMA_HARI_JADWAL[h]} jam ke-${j}`} onChange={(e) => pasang(h, j, e.target.value)} style={{ minWidth: 150, width: '100%' }}>
+                            <td key={h} style={s && !s.valid ? { background: '#fdf1d8' } : undefined}>
+                              <select value={nilai} disabled={!p.boleh || sibuk} aria-label={`${NAMA_HARI_JADWAL[h]} jam ke-${j}`} onChange={(e) => pasang(h, j, e.target.value)} style={{ minWidth: 150, width: '100%' }}>
                                 <option value="">-</option>
-                                {kelasIni.map((k) => {
-                                  const sisa = k.jp - terpakai(k.mapel_id)
-                                  const lain = k.ptk_id ? sibukGuru.get(`${k.ptk_id}|${h}|${j}`) : undefined
-                                  const sama = s?.mapel_id === k.mapel_id
-                                  const mati = !k.ptk_id || (!sama && (sisa <= 0 || (!!lain && lain !== k.rombel)))
-                                  const ket = !k.ptk_id ? 'belum ada guru' : lain && lain !== k.rombel && !sama ? `guru di ${lain}` : `sisa ${sisa}`
-                                  return <option key={k.mapel_id} value={k.mapel_id} disabled={mati}>{k.mapel} ({ket})</option>
-                                })}
+                                {kelasIni.flatMap((k) => k.guru.map((g) => {
+                                  const v = `${k.mapel_id}|${g.ptk_id}`
+                                  const sisa = g.jp - (terpakai.get(`${k.rombel_id}|${k.mapel_id}|${g.ptk_id}`) ?? 0)
+                                  const lain = sibukGuru.get(`${g.ptk_id}|${h}|${j}`)
+                                  const sama = v === nilai
+                                  const mati = !sama && (sisa <= 0 || (!!lain && lain !== k.rombel))
+                                  const ket = lain && lain !== k.rombel && !sama ? `guru di ${lain}` : `sisa ${sisa}`
+                                  return <option key={v} value={v} disabled={mati}>{k.mapel} · {g.guru} ({ket})</option>
+                                }))}
                               </select>
-                              {s && <small style={{ display: 'block' }}>{s.guru}{basi ? ' · guru di Beban sudah berganti, pilih ulang' : ''}</small>}
+                              {s && <small style={{ display: 'block' }}>{s.guru}{!s.valid ? ' · pembagian guru berubah, pilih ulang' : ''}</small>}
                             </td>
                           )
                         })}
@@ -135,8 +144,9 @@ function Isi({ p }: { p: Pengaturan }) {
               </div>
               <div className="lencana-baris">
                 {kelasIni.map((k) => {
-                  const sisa = k.jp - terpakai(k.mapel_id)
-                  return <span key={k.mapel_id} className="lencana" style={WARNA_NADA[!k.ptk_id ? 'netral' : sisa === 0 ? 'baik' : sisa < 0 ? 'buruk' : 'sedang']}>{k.mapel}: {terpakai(k.mapel_id)}/{k.jp}</span>
+                  const dipasang = k.guru.reduce((a, g) => a + (terpakai.get(`${k.rombel_id}|${k.mapel_id}|${g.ptk_id}`) ?? 0), 0)
+                  const sasaran = k.guru.reduce((a, g) => a + g.jp, 0)
+                  return <span key={k.mapel_id} className="lencana" style={WARNA_NADA[sasaran === 0 ? 'netral' : dipasang === sasaran ? 'baik' : 'sedang']}>{k.mapel}: {dipasang}/{k.jp}</span>
                 })}
               </div>
             </div>
@@ -146,7 +156,7 @@ function Isi({ p }: { p: Pengaturan }) {
             <div className="kartu form jarak">
               <label>Guru
                 <select value={guru} onChange={(e) => setGuru(e.target.value)}>
-                  {daftarGuru.map(([id, nama]) => <option key={id} value={id}>{nama} ({slot.filter((s) => s.ptk_id === id).length}/{butuh.filter((k) => k.ptk_id === id).reduce((a, b) => a + b.jp, 0)} JP)</option>)}
+                  {daftarGuru.map(([id, g]) => <option key={id} value={id}>{g.nama} ({slot.filter((s) => s.ptk_id === id).length}/{g.jp} JP)</option>)}
                 </select>
               </label>
               <div className="tabel-bungkus">
