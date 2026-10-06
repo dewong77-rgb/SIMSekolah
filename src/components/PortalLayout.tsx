@@ -8,7 +8,7 @@ import { panggil } from '../lib/rpc'
 import Ikon from './Ikon'
 import PembatasGalat from './PembatasGalat'
 
-export type Lencana = Partial<Record<'ajuan_masuk' | 'ajuan_saya' | 'disposisi' | 'surat' | 'sarpras' | 'sarpras_kerusakan' | 'sarpras_permintaan' | 'kesiswaan', number>>
+export type Lencana = Partial<Record<'ajuan_masuk' | 'ajuan_saya' | 'disposisi' | 'surat' | 'sarpras' | 'sarpras_kerusakan' | 'sarpras_permintaan' | 'kesiswaan' | 'chat', number>>
 
 type NilaiPortal = { menu: MenuPortal; lencana: Lencana; nama: string | null }
 const KonteksPortal = createContext<NilaiPortal | null>(null)
@@ -76,10 +76,26 @@ export default function PortalLayout() {
       if (sr.status === 'fulfilled') { l.disposisi = sr.value.disposisi_menunggu; l.surat = sr.value.belum_disposisi }
       if (sp.status === 'fulfilled' && sp.value) { l.sarpras = sp.value.perlu_aksi; l.sarpras_kerusakan = sp.value.perlu_kerusakan; l.sarpras_permintaan = sp.value.perlu_permintaan }
       if (ks.status === 'fulfilled' && ks.value) l.kesiswaan = ks.value.pelanggaran + ks.value.prestasi + ks.value.izin
-      setLencana(l)
+      setLencana((lama) => ({ ...l, chat: lama.chat }))
     })()
     return () => { batal = true }
   }, [punyaMenu, pathname])
+
+  // Lencana chat: dihitung ulang tiap menit dan setiap halaman chat memberi kabar (sims:chat) setelah membaca atau mengirim.
+  const bisaChat = punyaMenu && ['admin_tu', 'guru', 'staf', 'siswa'].includes(profil?.peran ?? '')
+  useEffect(() => {
+    if (!bisaChat) return
+    let batal = false
+    const hitung = () => {
+      if (document.hidden) return
+      panggil<number>('chat_ringkasan').then((n) => { if (!batal) setLencana((l) => (l.chat === n ? l : { ...l, chat: n })) }).catch(() => undefined)
+    }
+    hitung()
+    const id = window.setInterval(hitung, 60000)
+    window.addEventListener('sims:chat', hitung)
+    document.addEventListener('visibilitychange', hitung)
+    return () => { batal = true; window.clearInterval(id); window.removeEventListener('sims:chat', hitung); document.removeEventListener('visibilitychange', hitung) }
+  }, [bisaChat])
 
   // Nama dari data PTK atau peserta didik. Gagal atau kosong: header memakai email.
   const userId = session?.user.id

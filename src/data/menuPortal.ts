@@ -9,7 +9,7 @@ export type ItemPortal = {
   /** Awalan alamat untuk penanda menu aktif bila satu menu mencakup beberapa halaman. Bawaan: `to`. */
   cocok?: string
   /** Kunci lencana (angka di samping menu), lihat PortalLayout. */
-  lencana?: 'ajuan_masuk' | 'ajuan_saya' | 'disposisi' | 'surat' | 'sarpras' | 'sarpras_kerusakan' | 'sarpras_permintaan' | 'kesiswaan'
+  lencana?: 'ajuan_masuk' | 'ajuan_saya' | 'disposisi' | 'surat' | 'sarpras' | 'sarpras_kerusakan' | 'sarpras_permintaan' | 'kesiswaan' | 'chat'
 }
 export type KelompokPortal = { judul: string; item: ItemPortal[] }
 
@@ -23,6 +23,7 @@ export const namaPeran: Record<Peran, string> = {
 }
 
 const ajuanSaya: ItemPortal = { to: '/portal/ajuan', label: 'Ajuan saya', ikon: 'kotak', ket: 'Perbaikan data yang diajukan dan keputusannya', lencana: 'ajuan_saya' }
+const chat: ItemPortal = { to: '/portal/chat', label: 'Chat', ikon: 'chat', ket: 'Percakapan kelas, tanya guru, dan ruang guru', lencana: 'chat' }
 const disposisi: ItemPortal = { to: '/portal/disposisi', label: 'Disposisi saya', ikon: 'surat', ket: 'Instruksi dari pimpinan untuk Anda', lencana: 'disposisi' }
 
 const menuPeran: Record<Peran, KelompokPortal[]> = {
@@ -35,6 +36,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
         { to: '/asesmen', label: 'Ujian digital (CBT)', ikon: 'pena', ket: 'Jadwal dan ruang ujian sekolah. Masuk dengan token dari pengawas' },
         { to: '/portal/progres-lms', label: 'Nilai dan progres', ikon: 'grafik', ket: 'Kehadiran, materi, nilai kuis, dan tugas semua mapel' },
         { to: '/portal/panduan-lms', label: 'Panduan belajar', ikon: 'info', ket: 'Cara mengikuti pertemuan langkah demi langkah' },
+        chat,
       ],
     },
     {
@@ -54,6 +56,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
         { to: '/portal/absensi', label: 'Rekap kehadiran', ikon: 'centang', ket: 'Jumlah siswa yang diajar dan rekap kehadiran per kelas' },
         { to: '/asesmen', label: 'Asesmen digital (CBT)', ikon: 'pena', ket: 'Bank soal dan pengawasan ujian sekolah (UTS, UAS)' },
         { to: '/portal/panduan-lms', label: 'Panduan mengajar', ikon: 'info', ket: 'Urutan menyiapkan dan menjalankan satu pertemuan' },
+        chat,
       ],
     },
     {
@@ -81,6 +84,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
     },
   ],
   staf: [
+    { judul: 'Komunikasi', item: [chat] },
     { judul: 'Ujian', item: [{ to: '/asesmen', label: 'Asesmen digital (CBT)', ikon: 'pena', ket: 'Bank soal dan pengawasan ujian sekolah' }] },
     {
       judul: 'Data diri',
@@ -126,6 +130,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
         { to: '/portal/lms', label: 'Kelas ajar', ikon: 'buku', ket: 'Kelas, materi, absensi per pertemuan' },
         { to: '/portal/absensi', label: 'Absensi', ikon: 'centang', ket: 'Jumlah siswa yang diajar dan rekap kehadiran per kelas' },
         { to: '/portal/lms/administrasi', label: 'Administrasi guru', ikon: 'dokumen', ket: 'Perangkat ajar dan supervisi' },
+        chat,
         { to: '/asesmen', label: 'Asesmen digital (CBT)', ikon: 'pena', ket: 'Kelola ujian, ruang, bank soal, dan pengawas' },
       ],
     },

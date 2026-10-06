@@ -84,6 +84,8 @@ const DashboardPembelajaran = lazy(() => import('./pages/LmsDashboard'))
 const Penilaian = lazy(() => import('./pages/Penilaian'))
 const RencanaAjar = lazy(() => import('./pages/RencanaAjar'))
 const PerangkatAjar = lazy(() => import('./pages/PerangkatAjar'))
+const Chat = lazy(() => import('./pages/Chat'))
+const ChatLaporan = lazy(() => import('./pages/Chat').then((m) => ({ default: m.ChatLaporan })))
 const PanduanLms = lazy(() => import('./pages/PanduanLms'))
 const ProgresSaya = lazy(() => import('./pages/LmsProgres').then((m) => ({ default: m.ProgresSaya })))
 const AbsensiGuru = lazy(() => import('./pages/LmsAbsensi'))
@@ -143,6 +145,30 @@ createRoot(document.getElementById('root')!).render(
             element={
               <RequireRole peran={['admin_tu', 'guru', 'staf', 'siswa', 'orang_tua', 'admin_ujian']}>
                 <Portal />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/chat"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf', 'siswa']}>
+                <Suspense fallback={<Memuat />}><Chat /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/chat/laporan"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf']}>
+                <Suspense fallback={<Memuat />}><ChatLaporan /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/chat/:ruangId"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf', 'siswa']}>
+                <Suspense fallback={<Memuat />}><Chat /></Suspense>
               </RequireRole>
             }
           />
