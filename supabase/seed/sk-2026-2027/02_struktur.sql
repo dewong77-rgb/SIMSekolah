@@ -1,6 +1,5 @@
-delete from public.kur_struktur where tahun_ajaran='2026/2027';
-insert into public.kur_struktur (tahun_ajaran,tingkat,program,mapel_id,jp_minggu)
-select '2026/2027',v.t,v.p,m.id,v.jp from (values
+insert into public.kur_struktur (tahun_ajaran,tingkat,program,mapel_id,jp_minggu,aktif)
+select '2026/2027',v.t,v.p,m.id,v.jp,true from (values
 (10,'*','Bahasa Indonesia',4),
 (10,'*','Bahasa Inggris',4),
 (10,'*','Bahasa Sunda',2),
@@ -44,5 +43,6 @@ select '2026/2027',v.t,v.p,m.id,v.jp from (values
 (12,'TO','Teknik Kendaraan Ringan',22),
 (12,'TJKT','Teknik Komputer dan Jaringan',22),
 (12,'TP','Teknik Pemesinan',22)
-) v(t,p,mapel,jp) join public.kur_mapel m on m.nama=v.mapel;
-select count(*) from public.kur_struktur;
+) v(t,p,mapel,jp) join public.kur_mapel m on m.nama=v.mapel
+on conflict (tahun_ajaran,tingkat,program,mapel_id) do update set jp_minggu=excluded.jp_minggu, aktif=true;
+select count(*) filter (where aktif) from public.kur_struktur;
