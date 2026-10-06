@@ -4,7 +4,7 @@ import Halaman from '../components/Halaman'
 import JamSistem from '../components/JamSistem'
 import {
   type Agenda, type Kategori, KATEGORI, URUT_KATEGORI, NAMA_BULAN, NAMA_HARI, URL_ICS,
-  googleKalender, jamTitik, posisiJam, tambahHari, tanggalLengkap, unduhIcs, useAgenda, useJamBel, useSekarang, wib,
+  KELOMPOK_HARI, barisBelHari, googleKalender, jamTitik, posisiJam, tambahHari, tanggalLengkap, unduhIcs, useAgenda, useJamBel, useSekarang, wib,
 } from '../lib/kalender'
 
 const HARI_SENIN_DULU = [1, 2, 3, 4, 5, 6, 0]
@@ -62,9 +62,9 @@ export default function Akademik() {
   const posisi = bel ? posisiJam(bel, (agenda ?? []).filter((a) => a.kategori === 'libur'), wib()) : null
   const sesiAktif = posisi && posisi.status === 'sesi' ? posisi.slot : null
 
-  const tabelBel = (kel: 'senin_kamis' | 'jumat', judul: string, hariKe: number[]) => {
-    const baris = (bel ?? []).filter((b) => b.kelompok === kel)
-    const aktifSekarang = sesiAktif && hariKe.includes(sekarang.hari) && sesiAktif.kelompok === kel ? sesiAktif.urutan : -1
+  const tabelBel = (hariKe: number[], judul: string) => {
+    const baris = barisBelHari(bel ?? [], hariKe[0])
+    const aktifSekarang = sesiAktif && hariKe.includes(sekarang.hari) && baris.some((b) => b.kelompok === sesiAktif.kelompok && b.urutan === sesiAktif.urutan) ? sesiAktif.urutan : -1
     return (
       <div className="kartu">
         <h3>{judul}</h3>
@@ -177,9 +177,8 @@ export default function Akademik() {
       )}
 
       <div className="judul-bagian jarak"><h2>Jam pelajaran</h2></div>
-      <div className="grid grid-2">
-        {tabelBel('senin_kamis', 'Senin sampai Kamis', [1, 2, 3, 4])}
-        {tabelBel('jumat', 'Jumat', [5])}
+      <div className="grid grid-3">
+        {KELOMPOK_HARI.map((k) => <div key={k.kel}>{tabelBel(k.hari, k.judul)}</div>)}
       </div>
     </Halaman>
   )
