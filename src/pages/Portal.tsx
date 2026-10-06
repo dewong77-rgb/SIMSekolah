@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import Halaman from '../components/Halaman'
 import Ikon from '../components/Ikon'
 import { sapaan, usePortal } from '../components/PortalLayout'
@@ -15,12 +15,14 @@ const kalimatPeran = {
   staf: 'Pantau disposisi dan data pribadi Anda.',
   siswa: 'Buka kelas, kerjakan tugas, dan pantau progres belajar.',
   orang_tua: 'Pantau data dan perkembangan belajar anak.',
+  admin_ujian: 'Kelola ujian, ruang, dan pengawas di Asesmen Digital.',
 } as const
 
 export default function Portal() {
   const { profil, superAdmin, penugasan } = useAuth()
   const { menu, lencana, nama } = usePortal()
   if (!profil) return null
+  if (profil.peran === 'admin_ujian') return <Navigate to="/asesmen" replace />
   const ikutJam = profil.peran === 'siswa' || profil.peran === 'guru'
 
   const perhatian = [
@@ -44,6 +46,16 @@ export default function Portal() {
 
       {profil.peran === 'siswa' && <BerandaBelajar />}
       {(profil.peran === 'siswa' || profil.peran === 'guru') && <PengingatLms />}
+
+      {profil.peran !== 'orang_tua' && (
+        <Link to="/asesmen" className="kartu tautan kartu-menu jarak">
+          <span className="kartu-menu-ikon"><Ikon nama="centang" ukuran={22} /></span>
+          <span className="kartu-menu-isi">
+            <h3>Asesmen Digital</h3>
+            <small>{profil.peran === 'siswa' ? 'Jadwal, ruang, dan token ujian UTS dan UAS' : profil.peran === 'guru' || profil.peran === 'staf' ? 'Bank soal dan pengawasan ujian UTS dan UAS' : 'Ujian tengah dan akhir semester lintas kelas'}</small>
+          </span>
+        </Link>
+      )}
 
       {perhatian.length > 0 && (
         <section className="perhatian" aria-label="Perlu tindakan">

@@ -8,7 +8,7 @@ export const SUPABASE_KUNCI =
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KUNCI)
 
-export type Peran = 'admin_tu' | 'guru' | 'staf' | 'siswa' | 'orang_tua'
+export type Peran = 'admin_tu' | 'guru' | 'staf' | 'siswa' | 'orang_tua' | 'admin_ujian'
 
 export type ProfilPengguna = {
   user_id: string

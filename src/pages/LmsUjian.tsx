@@ -449,7 +449,7 @@ export function UjianSiswa({ kelasId, a, muat }: { kelasId: string; a: Asesmen; 
       {hasil?.tinjau && hasil.tinjau.map((x, i) => <TinjauSoal key={x.soal_id} s={x} i={i} />)}
       {!hasil && (a.berjalan || sisaKesempatan > 0) && (
         <form className="kartu form jarak" onSubmit={(e) => void mulai(e)}>
-          <h3 style={{ marginTop: 0 }}>{labelJenis[a.jenis] ?? 'Ujian'}: tampilan CBT</h3>
+          <h3 style={{ marginTop: 0 }}>{labelJenis[a.jenis] ?? 'Ujian'}: layar penuh</h3>
           <p>
             {a.jumlah_tampil ? Math.min(a.jumlah_tampil, a.jumlah_soal) : a.jumlah_soal} soal, {a.durasi_menit} menit.
             {a.kkm !== null ? ` KKM ${nilaiTeks(a.kkm)}.` : ''}
@@ -619,7 +619,7 @@ export function PanelUjianGuru({ a, muat }: { a: Asesmen; muat: () => Promise<vo
   return (
     <>
       <div className="kartu jarak">
-        <h3 style={{ marginTop: 0 }}>Mode ujian (tampilan CBT)</h3>
+        <h3 style={{ marginTop: 0 }}>Mode ujian layar penuh</h3>
         <p className="catatan">
           Siswa mengerjakan di layar penuh dengan token, nomor soal, dan penanda ragu-ragu. Berpindah tab atau keluar layar penuh membunyikan alarm dan tercatat.
           Peramban tidak bisa memblokir aplikasi lain atau layar terbagi di HP, jadi awasi juga secara langsung.

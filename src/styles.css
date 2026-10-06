@@ -613,3 +613,31 @@ input[type="search"] { font: inherit; padding: 8px 12px; border: 1px solid #b9c1
   .cbt-ragu { order: -1; flex: 1 1 100%; justify-content: center; }
 }
 @media (prefers-reduced-motion: reduce) { .cbt-nomor { transition: none; } }
+
+/* ===== Asesmen Digital ===== */
+.as-kerangka { min-height: 100vh; background: var(--latar, #f6f7f9); }
+.as-atas { background: #fff; border-bottom: 1px solid var(--garis); position: sticky; top: 0; z-index: 20; }
+.as-atas-isi { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding-top: 10px; padding-bottom: 10px; }
+.as-merek { display: flex; flex-direction: column; line-height: 1.2; }
+.as-merek small { color: #666; }
+.as-menu { display: flex; flex-wrap: wrap; gap: 4px; flex: 1; }
+.as-menu a { padding: 8px 14px; border-radius: 8px; text-decoration: none; color: inherit; font-weight: 600; }
+.as-menu a.aktif { background: var(--warna-utama); color: #fff; }
+.as-akun { display: flex; align-items: center; gap: 12px; }
+.as-akun .tombol { padding: 6px 14px; background: #fff; color: var(--warna-utama); }
+.as-isi { padding-top: 24px; padding-bottom: 48px; }
+.as-isi h1 { margin: 0 0 4px; font-size: 1.5rem; }
+.as-isi .lead { margin: 0 0 16px; color: #555; }
+.as-tab { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0; }
+.as-tab button { border: 1px solid var(--garis); background: #fff; border-radius: 99px; padding: 6px 16px; font: inherit; cursor: pointer; }
+.as-tab button.aktif { background: var(--warna-utama); color: #fff; border-color: var(--warna-utama); }
+.as-kisi { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.as-baris { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.as-baris > label { flex: 1 1 160px; }
+.as-kecil { font-size: .85rem; color: #666; }
+.as-token { font-family: ui-monospace, monospace; font-size: 2.4rem; letter-spacing: .25em; font-weight: 700; text-align: center; padding: 12px; background: #fff; border: 2px dashed var(--warna-utama); border-radius: 12px; }
+.as-status-belum { color: #666; } .as-status-mengerjakan { color: #0a5; font-weight: 600; } .as-status-selesai { color: #1a4fa0; font-weight: 600; }
+.as-awas { color: #8a1f1f; font-weight: 600; }
+.as-soal-kartu { border: 1px solid var(--garis); border-radius: 10px; padding: 12px; background: #fff; margin-bottom: 8px; }
+.as-soal-kartu ol { margin: 6px 0 0 18px; padding: 0; }
+.as-soal-kartu li.kunci { font-weight: 700; color: #0a5; }

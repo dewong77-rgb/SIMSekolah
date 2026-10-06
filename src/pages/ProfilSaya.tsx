@@ -5,7 +5,7 @@ import Halaman from '../components/Halaman'
 import { useAuth } from '../auth/AuthContext'
 import { supabase } from '../lib/supabase'
 
-const namaPeran = { admin_tu: 'Admin TU', guru: 'Guru', staf: 'Staf TU', siswa: 'Siswa', orang_tua: 'Orang tua' } as const
+const namaPeran = { admin_tu: 'Admin TU', guru: 'Guru', staf: 'Staf TU', siswa: 'Siswa', orang_tua: 'Orang tua', admin_ujian: 'Admin ujian' } as const
 const POLA_USERNAME = /^[a-z0-9][a-z0-9._-]{3,31}$/
 
 export default function ProfilSaya() {

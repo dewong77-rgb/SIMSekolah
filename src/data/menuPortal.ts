@@ -19,6 +19,7 @@ export const namaPeran: Record<Peran, string> = {
   staf: 'Staf TU',
   siswa: 'Siswa',
   orang_tua: 'Orang tua',
+  admin_ujian: 'Admin ujian',
 }
 
 const ajuanSaya: ItemPortal = { to: '/portal/ajuan', label: 'Ajuan saya', ikon: 'kotak', ket: 'Perbaikan data yang diajukan dan keputusannya', lencana: 'ajuan_saya' }
@@ -85,6 +86,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
       ],
     },
   ],
+  admin_ujian: [],
   orang_tua: [
     {
       judul: 'Anak saya',
