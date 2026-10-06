@@ -4,9 +4,12 @@ import Halaman from '../../components/Halaman'
 import { useIzinSarpras, type IzinSarpras } from '../../lib/sarpras'
 
 const TAUTAN: { to: string; nama: string; perlu: IzinSarpras[] }[] = [
-  { to: '/portal/sarpras/inventaris', nama: 'Inventaris', perlu: ['kelola', 'catat_lab', 'lihat'] },
-  { to: '/portal/sarpras/usulan', nama: 'Usulan', perlu: ['kelola', 'catat_lab', 'verifikasi_program', 'lihat'] },
-  { to: '/portal/sarpras/buku', nama: 'Pembukuan', perlu: ['kelola', 'lihat'] },
+  { to: '/portal/sarpras/inventaris', nama: 'Inventaris', perlu: ['kelola', 'operasional', 'catat_lab', 'lihat'] },
+  { to: '/portal/sarpras/kerusakan', nama: 'Kerusakan', perlu: ['kelola', 'operasional', 'catat_lab', 'verifikasi_program', 'lihat'] },
+  { to: '/portal/sarpras/permintaan', nama: 'Permintaan', perlu: ['kelola', 'operasional', 'catat_lab', 'verifikasi_program', 'lihat'] },
+  { to: '/portal/sarpras/usulan', nama: 'Usulan', perlu: ['kelola', 'operasional', 'catat_lab', 'verifikasi_program', 'lihat'] },
+  { to: '/portal/sarpras/kartu', nama: 'Kartu inventaris', perlu: ['kelola', 'operasional', 'catat_lab', 'verifikasi_program', 'lihat'] },
+  { to: '/portal/sarpras/buku', nama: 'Pembukuan', perlu: ['kelola', 'operasional', 'lihat'] },
 ]
 
 /** Membatasi halaman Sarpras pada pemegang izin. Basis data tetap memeriksa ulang di setiap permintaan. */
@@ -17,7 +20,7 @@ export default function GerbangSarpras({ perlu, judul, aktif, children }: {
   if (memuat) return <Halaman judul={judul}><p className="catatan">Memeriksa hak akses...</p></Halaman>
   if (!punya(...perlu)) {
     return (
-      <Halaman judul="Tidak ada akses" lead="Halaman ini untuk Waka Sarana dan Prasarana, kepala program keahlian, dan kepala bengkel atau laboratorium.">
+      <Halaman judul="Tidak ada akses" lead="Halaman ini untuk Waka Sarana dan Prasarana, staf sarana dan prasarana, kepala program keahlian, dan kepala bengkel atau laboratorium.">
         <Link to="/portal" className="tombol tombol-isi">Kembali ke portal</Link>
       </Halaman>
     )

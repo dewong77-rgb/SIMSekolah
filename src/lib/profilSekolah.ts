@@ -1,9 +1,11 @@
 // Profil sekolah untuk situs publik: isian manual super admin menang, kosong jatuh ke data Dapodik (RPC profil_sekolah_publik).
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
+import { urlPublik } from './gambar'
 import { sekolah as contoh } from '../data/contoh'
 
 export type ProfilSekolah = {
+  logo_path: string | null; sampul_path: string | null
   npsn: string; nama: string; singkatan: string | null; slogan: string | null; tentang: string | null
   visi: string | null; misi: string | null; sejarah: string | null; akreditasi: string | null; tahun_berdiri: number | null
   jenjang: string | null; status_sekolah: string | null; alamat: string | null
@@ -39,6 +41,8 @@ export function useSekolah() {
     data,
     nama: contoh.nama,
     npsn: data?.npsn ?? contoh.npsn,
+    logoUrl: urlPublik(data?.logo_path),
+    sampulUrl: urlPublik(data?.sampul_path),
     alamat: data?.alamat ?? null,
     telepon: data?.telepon ?? null,
     email: data?.email ?? null,

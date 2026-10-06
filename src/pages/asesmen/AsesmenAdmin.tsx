@@ -201,7 +201,7 @@ function TabPaket({ ujian, onUbah }: { ujian: string; onUbah: () => Promise<void
   )
 }
 
-function TabSesi({ ujian, onUbah }: { ujian: string; onUbah: () => Promise<void> }) {
+export function TabSesi({ ujian, onUbah }: { ujian: string; onUbah: () => Promise<void> }) {
   const { data, galat, muat } = useRpc<Sesi[]>('ad_sesi_daftar', { p_ujian: ujian })
   const { data: paket } = useRpc<Paket[]>('ad_paket_daftar', { p_ujian: ujian })
   const { data: ruang } = useRpc<Ruang[]>('ad_ruang_daftar')
