@@ -1,4 +1,5 @@
 // Beasiswa dan PIP: program, calon, ceklis berkas, status, dan pencairan. Tidak menyimpan nomor rekening.
+import TombolIkon from '../../components/TombolIkon'
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Halaman from '../../components/Halaman'
@@ -73,7 +74,7 @@ function Peserta_({ program, kembali, ubahDaftar }: { program: Program; kembali:
       </div>
       <div className="aksi" style={{ alignItems: 'center' }}>
         <select value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Status"><option value="">Semua status</option>{STATUS_BEASISWA.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select>
-        <button className="tombol" disabled={!tampil.length} onClick={() => unduhCsv(`beasiswa-${program.nama}`, [['Nama', 'NISN', 'Rombel', 'Status', 'Berkas lengkap', 'Tanggal cair', 'Catatan'], ...tampil.map((p) => [p.nama, p.nisn, p.rombel, label(STATUS_BEASISWA, p.status), program.berkas_wajib.length ? `${program.berkas_wajib.filter((b) => p.berkas[b]).length}/${program.berkas_wajib.length}` : '', p.tgl_cair ?? '', p.catatan])])}>Unduh CSV</button>
+        <TombolIkon ikon="unduh" label="Unduh CSV" disabled={!tampil.length} onClick={() => unduhCsv(`beasiswa-${program.nama}`, [['Nama', 'NISN', 'Rombel', 'Status', 'Berkas lengkap', 'Tanggal cair', 'Catatan'], ...tampil.map((p) => [p.nama, p.nisn, p.rombel, label(STATUS_BEASISWA, p.status), program.berkas_wajib.length ? `${program.berkas_wajib.filter((b) => p.berkas[b]).length}/${program.berkas_wajib.length}` : '', p.tgl_cair ?? '', p.catatan])])} />
       </div>
       <div className="tabel-bungkus jarak">
         <table>
@@ -96,7 +97,7 @@ function Peserta_({ program, kembali, ubahDaftar }: { program: Program; kembali:
                 <td>{label(STATUS_BEASISWA, p.status)}{p.tgl_cair && <><br /><small className="catatan">cair {tgl(p.tgl_cair)}</small></>}</td>
                 <td>{program.berkas_wajib.length ? `${program.berkas_wajib.filter((b) => p.berkas[b]).length}/${program.berkas_wajib.length}` : '-'}</td>
                 <td>{p.catatan ?? ''}</td>
-                <td><button className="tombol-ikon" onClick={() => setSunting(p.id)}>Ubah</button></td>
+                <td><TombolIkon ikon="pena" label="Ubah" onClick={() => setSunting(p.id)} /></td>
               </tr>
             ))}
             {daftar && tampil.length === 0 && <tr><td colSpan={5} className="catatan">Belum ada siswa.</td></tr>}

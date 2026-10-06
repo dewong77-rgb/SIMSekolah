@@ -1,3 +1,4 @@
+import TombolIkon from '../components/TombolIkon'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import Halaman from '../components/Halaman'
@@ -253,7 +254,7 @@ export function DetailKelas() {
                     <label>Tujuan pembelajaran (opsional)<textarea rows={2} maxLength={1000} value={ev.tujuan} onChange={(e) => setEv({ ...ev, tujuan: e.target.value })} /></label>
                     <div className="aksi">
                       <button className="tombol tombol-isi" disabled={sibuk}>{sibuk ? 'Menyimpan...' : 'Simpan perubahan'}</button>
-                      <button type="button" className="tombol" onClick={() => setUbahId(null)}>Batal</button>
+                      <TombolIkon ikon="tutup" label="Batal" onClick={() => setUbahId(null)} />
                     </div>
                     <p className="catatan">Perubahan berlaku juga di kelas lain yang berbagi pertemuan ini.</p>
                   </form>

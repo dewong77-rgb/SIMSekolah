@@ -641,3 +641,16 @@ input[type="search"] { font: inherit; padding: 8px 12px; border: 1px solid #b9c1
 .as-soal-kartu { border: 1px solid var(--garis); border-radius: 10px; padding: 12px; background: #fff; margin-bottom: 8px; }
 .as-soal-kartu ol { margin: 6px 0 0 18px; padding: 0; }
 .as-soal-kartu li.kunci { font-weight: 700; color: #0a5; }
+
+/* Tombol ikon bersama (TombolIkon.tsx): satu bentuk untuk semua peran */
+.tb-ikon{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:40px;height:40px;padding:0 10px;border:1px solid var(--garis);border-radius:10px;background:#fff;color:var(--warna-utama);font:inherit;font-size:.9rem;font-weight:600;text-decoration:none;cursor:pointer;transition:background .12s,border-color .12s}
+.tb-ikon:hover{background:var(--latar-lembut);border-color:var(--warna-utama)}
+.tb-ikon-isi{background:var(--warna-utama);border-color:var(--warna-utama);color:#fff}
+.tb-ikon-isi:hover{background:var(--warna-utama);filter:brightness(1.15)}
+.tb-ikon-bahaya{color:#8a1f1f}
+.tb-ikon-bahaya:hover{background:#fbeeee;border-color:#8a1f1f}
+.tb-ikon[disabled]{opacity:.45;cursor:not-allowed}
+.tb-ikon:focus-visible{outline:3px solid var(--warna-aksen);outline-offset:2px}
+.tb-ikon-teks{padding:0 14px}
+.aksi-ikon{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+@media (max-width:640px){.tb-ikon{min-width:44px;height:44px}}

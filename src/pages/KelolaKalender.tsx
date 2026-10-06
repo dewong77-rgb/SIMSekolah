@@ -1,4 +1,5 @@
 // Kelola kalender sekolah di portal. Kategori yang boleh diubah mengikuti jabatan (server memeriksa ulang setiap simpan).
+import TombolIkon from '../components/TombolIkon'
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import Halaman from '../components/Halaman'
@@ -110,7 +111,7 @@ export default function KelolaKalender() {
           <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input type="checkbox" checked={form.isi.tampil_beranda} onChange={(e) => ubah('tampil_beranda', e.target.checked)} /> Tampilkan di beranda sebagai agenda terdekat</label>
           <div className="aksi">
             <button className="tombol tombol-isi" type="submit" disabled={sibuk}>{sibuk ? 'Menyimpan...' : 'Simpan agenda'}</button>
-            <button className="tombol" type="button" onClick={() => setForm(null)}>Batal</button>
+            <TombolIkon ikon="tutup" label="Batal" onClick={() => setForm(null)} />
           </div>
         </form>
       )}

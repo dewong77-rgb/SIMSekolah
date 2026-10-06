@@ -1,4 +1,5 @@
 // Mitra industri (DU/DI) dan MoU kerja sama. Data awal dari Dapodik, dapat dilengkapi dan ditambah manual.
+import TombolIkon from '../../components/TombolIkon'
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import Halaman from '../../components/Halaman'
@@ -140,7 +141,7 @@ function Isi({ bolehHapus }: { bolehHapus: boolean }) {
           <label>Catatan internal<textarea rows={2} value={formD.catatan ?? ''} onChange={(e) => setFormD((x) => ({ ...x, catatan: e.target.value }))} /></label>
           <label style={{ display: 'flex', gap: 8 }}><input type="checkbox" checked={formD.tampil_publik ?? true} onChange={(e) => setFormD((x) => ({ ...x, tampil_publik: e.target.checked }))} /> Tampilkan di situs publik</label>
           <label style={{ display: 'flex', gap: 8 }}><input type="checkbox" checked={formD.diarsipkan ?? false} onChange={(e) => setFormD((x) => ({ ...x, diarsipkan: e.target.checked }))} /> Arsipkan (sembunyikan dari daftar dan situs)</label>
-          <div className="aksi"><button className="tombol tombol-isi" disabled={sibuk}>{sibuk ? 'Menyimpan...' : 'Simpan'}</button><button type="button" className="tombol" onClick={() => setFormD(null)}>Batal</button>{bolehHapus && formD.id && <button type="button" className="tombol-ikon tombol-ikon-bahaya" onClick={() => hapus('dudi', formD.id!, formD.nama ?? 'mitra')}>Hapus</button>}</div>
+          <div className="aksi"><button className="tombol tombol-isi" disabled={sibuk}>{sibuk ? 'Menyimpan...' : 'Simpan'}</button><button type="button" className="tombol" onClick={() => setFormD(null)}>Batal</button>{bolehHapus && formD.id && <TombolIkon ikon="sampah" label="Hapus" varian="bahaya" onClick={() => hapus('dudi', formD.id!, formD.nama ?? 'mitra')} />}</div>
         </form>
       )}
 
@@ -160,7 +161,7 @@ function Isi({ bolehHapus }: { bolehHapus: boolean }) {
           {M('berkas_url', 'Tautan berkas MoU (https)', 'url')}
           <label>Catatan internal<textarea rows={2} value={formM.catatan ?? ''} onChange={(e) => setFormM((x) => ({ ...x, catatan: e.target.value }))} /></label>
           <label style={{ display: 'flex', gap: 8 }}><input type="checkbox" checked={formM.diarsipkan ?? false} onChange={(e) => setFormM((x) => ({ ...x, diarsipkan: e.target.checked }))} /> Arsipkan</label>
-          <div className="aksi"><button className="tombol tombol-isi" disabled={sibuk}>{sibuk ? 'Menyimpan...' : 'Simpan'}</button><button type="button" className="tombol" onClick={() => setFormM(null)}>Batal</button>{bolehHapus && formM.id && <button type="button" className="tombol-ikon tombol-ikon-bahaya" onClick={() => hapus('mou', formM.id!, 'MoU ini')}>Hapus</button>}</div>
+          <div className="aksi"><button className="tombol tombol-isi" disabled={sibuk}>{sibuk ? 'Menyimpan...' : 'Simpan'}</button><button type="button" className="tombol" onClick={() => setFormM(null)}>Batal</button>{bolehHapus && formM.id && <TombolIkon ikon="sampah" label="Hapus" varian="bahaya" onClick={() => hapus('mou', formM.id!, 'MoU ini')} />}</div>
         </form>
       )}
 
@@ -173,7 +174,7 @@ function Isi({ bolehHapus }: { bolehHapus: boolean }) {
                 <tr key={x.id}>
                   <td>{x.nama}</td><td>{x.bidang_usaha ?? '-'}</td><td>{x.tampil_publik ? 'Ya' : 'Tidak'}</td>
                   <td>{DAPODIK(x.kunci) ? 'Dapodik' : 'Manual'}</td>
-                  <td><button className="tombol-ikon" onClick={() => { setFormM(null); setFormD(x); window.scrollTo({ top: 0, behavior: 'smooth' }) }}>Ubah</button></td>
+                  <td><TombolIkon ikon="pena" label="Ubah" onClick={() => { setFormM(null); setFormD(x); window.scrollTo({ top: 0, behavior: 'smooth' }) }} /></td>
                 </tr>
               ))}
               {dudiTampil.length === 0 && <tr><td colSpan={5} className="catatan">Tidak ada data.</td></tr>}
@@ -189,7 +190,7 @@ function Isi({ bolehHapus }: { bolehHapus: boolean }) {
                   <td>{x.judul_mou || x.jenis_kerjasama || '-'}</td>
                   <td>{tgl(x.tgl_mulai)} sampai {tgl(x.tgl_selesai)}</td>
                   <td>{NAMA_STATUS_MOU[statusMou(x.tgl_selesai)]}</td>
-                  <td><button className="tombol-ikon" onClick={() => { setFormD(null); setFormM(x); window.scrollTo({ top: 0, behavior: 'smooth' }) }}>Ubah</button></td>
+                  <td><TombolIkon ikon="pena" label="Ubah" onClick={() => { setFormD(null); setFormM(x); window.scrollTo({ top: 0, behavior: 'smooth' }) }} /></td>
                 </tr>
               ))}
               {mouTampil.length === 0 && <tr><td colSpan={5} className="catatan">Tidak ada data.</td></tr>}

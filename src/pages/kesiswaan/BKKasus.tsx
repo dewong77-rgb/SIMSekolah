@@ -1,4 +1,5 @@
 // Rincian satu kasus BK: konteks siswa, rencana, status, dan catatan konseling.
+import TombolIkon from '../../components/TombolIkon'
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import Halaman from '../../components/Halaman'
@@ -119,7 +120,7 @@ function Isi() {
               <strong>{tgl(c.tanggal)}</strong> · {label(JENIS_BK, c.jenis)} · {label(BIDANG_BK, c.bidang)}{c.oleh && <small className="catatan"> oleh {c.oleh}</small>}
               <p style={{ whiteSpace: 'pre-wrap' }}>{c.uraian}</p>
               {c.tindak_lanjut && <p className="catatan">Tindak lanjut: {c.tindak_lanjut}</p>}
-              {d.kelola && c.milik_saya && <div className="aksi" style={{ marginTop: 0 }}><button className="tombol-ikon" onClick={() => ubahCatatan(c)}>Ubah</button><button className="tombol-ikon" onClick={() => hapusCatatan(c.id)}>Hapus</button></div>}
+              {d.kelola && c.milik_saya && <div className="aksi" style={{ marginTop: 0 }}><TombolIkon ikon="pena" label="Ubah" onClick={() => ubahCatatan(c)} /><TombolIkon ikon="sampah" label="Hapus" varian="bahaya" onClick={() => hapusCatatan(c.id)} /></div>}
             </li>
           ))}
           {d.catatan.length === 0 && <li className="catatan">Belum ada catatan.</li>}

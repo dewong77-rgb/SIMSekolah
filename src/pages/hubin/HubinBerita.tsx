@@ -1,4 +1,5 @@
 // Redaksi berita sekolah. Penulis membuat draf dan mengajukan; penerbitan oleh pemegang izin hubin.kelola_humas (Waka Hubinmas).
+import TombolIkon from '../../components/TombolIkon'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import Halaman from '../../components/Halaman'
@@ -89,7 +90,7 @@ function Isi() {
             <button className="tombol" disabled={sibuk}>Simpan {form.status === 'terbit' ? 'perubahan' : 'sebagai draf'}</button>
             {!bisa.terbitkan && form.status !== 'terbit' && <button type="button" className="tombol tombol-isi" disabled={sibuk} onClick={(e) => simpan(e, 'diajukan')}>Ajukan untuk terbit</button>}
             {bisa.terbitkan && form.status !== 'terbit' && <button type="button" className="tombol tombol-isi" disabled={sibuk} onClick={(e) => simpan(e, 'terbit')}>Terbitkan</button>}
-            <button type="button" className="tombol" onClick={() => setForm(null)}>Batal</button>
+            <TombolIkon ikon="tutup" label="Batal" onClick={() => setForm(null)} />
           </div>
         </form>
       )}
@@ -104,12 +105,12 @@ function Isi() {
                 <td>{namaKategori(b.kategori)}</td><td>{NAMA_STATUS[b.status] ?? b.status}</td><td>{b.penulis_nama}</td><td>{tglJam(b.diperbarui_pada)}</td>
                 <td>
                   <div className="aksi-ikon">
-                    {b.bisa_ubah && <button className="tombol-ikon" onClick={() => ubah(b)}>Ubah</button>}
-                    {bisa.terbitkan && b.status !== 'terbit' && b.status !== 'diarsipkan' && <button className="tombol-ikon" onClick={() => pindah(b, 'terbit')}>Terbitkan</button>}
-                    {bisa.terbitkan && b.status === 'terbit' && <button className="tombol-ikon tombol-ikon-bahaya" onClick={() => pindah(b, 'diarsipkan')}>Tarik</button>}
-                    {bisa.terbitkan && b.status === 'diarsipkan' && <button className="tombol-ikon" onClick={() => pindah(b, 'draf')}>Pulihkan</button>}
-                    {!bisa.terbitkan && b.bisa_ubah && b.status === 'draf' && <button className="tombol-ikon" onClick={() => pindah(b, 'diajukan')}>Ajukan</button>}
-                    {!bisa.terbitkan && b.bisa_ubah && b.status === 'diajukan' && <button className="tombol-ikon" onClick={() => pindah(b, 'draf')}>Tarik ke draf</button>}
+                    {b.bisa_ubah && <TombolIkon ikon="pena" label="Ubah" onClick={() => ubah(b)} />}
+                    {bisa.terbitkan && b.status !== 'terbit' && b.status !== 'diarsipkan' && <TombolIkon ikon="kirim" label="Terbitkan" onClick={() => pindah(b, 'terbit')} />}
+                    {bisa.terbitkan && b.status === 'terbit' && <TombolIkon ikon="kembali" label="Tarik" varian="bahaya" onClick={() => pindah(b, 'diarsipkan')} />}
+                    {bisa.terbitkan && b.status === 'diarsipkan' && <TombolIkon ikon="muat" label="Pulihkan" onClick={() => pindah(b, 'draf')} />}
+                    {!bisa.terbitkan && b.bisa_ubah && b.status === 'draf' && <TombolIkon ikon="kirim" label="Ajukan" onClick={() => pindah(b, 'diajukan')} />}
+                    {!bisa.terbitkan && b.bisa_ubah && b.status === 'diajukan' && <TombolIkon ikon="kembali" label="Tarik ke draf" onClick={() => pindah(b, 'draf')} />}
                   </div>
                 </td>
               </tr>

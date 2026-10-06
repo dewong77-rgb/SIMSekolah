@@ -1,3 +1,4 @@
+import TombolIkon from '../components/TombolIkon'
 import { useEffect, useState } from 'react'
 import { panggil } from '../lib/rpc'
 import type { SiswaCari } from '../lib/kesiswaan'
@@ -23,7 +24,7 @@ export default function CariSiswa({ untuk, pilih, dipilih }: { untuk: 'catat' | 
     return (
       <div className="aksi" style={{ marginTop: 0, alignItems: 'center' }}>
         <strong>{dipilih.nama}</strong><span className="catatan">{dipilih.rombel ?? 'tanpa rombel'}{dipilih.nisn ? ` · NISN ${dipilih.nisn}` : ''}</span>
-        <button type="button" className="tombol-ikon" onClick={() => { pilih(null); setQ('') }}>Ganti</button>
+        <TombolIkon ikon="muat" label="Ganti" onClick={() => { pilih(null); setQ('') }} />
       </div>
     )
   }

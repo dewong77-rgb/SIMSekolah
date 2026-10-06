@@ -1,4 +1,5 @@
 // Prestasi siswa: ajukan, verifikasi Waka, dan daftar.
+import TombolIkon from '../../components/TombolIkon'
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Halaman from '../../components/Halaman'
@@ -107,12 +108,12 @@ function Daftar({ bisaPutuskan, ulang }: { bisaPutuskan: boolean; ulang: number 
                       <input placeholder="Catatan (wajib bila ditolak)" value={catatan[b.id] ?? ''} onChange={(e) => setCatatan((c) => ({ ...c, [b.id]: e.target.value }))} />
                       <div className="aksi" style={{ marginTop: 0 }}>
                         <button className="tombol tombol-isi" disabled={sibuk === b.id} onClick={() => aksi(b.id, 'prestasi_putuskan', { p_setuju: true, p_catatan: catatan[b.id]?.trim() || null })}>Verifikasi</button>
-                        <button className="tombol" disabled={sibuk === b.id} onClick={() => aksi(b.id, 'prestasi_putuskan', { p_setuju: false, p_catatan: catatan[b.id]?.trim() || null })}>Tolak</button>
+                        <TombolIkon ikon="tolak" label="Tolak" varian="bahaya" disabled={sibuk === b.id} onClick={() => aksi(b.id, 'prestasi_putuskan', { p_setuju: false, p_catatan: catatan[b.id]?.trim() || null })} />
                       </div>
                     </div>
                   )}
-                  {b.bisa_tarik && <button className="tombol-ikon" disabled={sibuk === b.id} onClick={() => aksi(b.id, 'prestasi_tarik', {})}>Tarik</button>}
-                  {bisaPutuskan && b.status !== 'diajukan' && <button className="tombol-ikon" disabled={sibuk === b.id} onClick={() => hapus(b)}>Hapus</button>}
+                  {b.bisa_tarik && <TombolIkon ikon="kembali" label="Tarik" varian="bahaya" disabled={sibuk === b.id} onClick={() => aksi(b.id, 'prestasi_tarik', {})} />}
+                  {bisaPutuskan && b.status !== 'diajukan' && <TombolIkon ikon="sampah" label="Hapus" varian="bahaya" disabled={sibuk === b.id} onClick={() => hapus(b)} />}
                 </td>
               </tr>
             ))}
