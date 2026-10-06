@@ -11,9 +11,8 @@ type Kel = JamBel['kelompok']
 const dua = (n: number) => String(n).padStart(2, '0')
 const jamDari = (m: number) => `${dua(Math.floor(m / 60))}:${dua(m % 60)}`
 
-/** Contoh pola: apel, jam pelajaran 45 menit, dua istirahat. Hanya titik awal, wajib disesuaikan. */
-function contoh(kel: Kel): Baris[] {
-  const durasi = kel === 'jumat' ? 40 : 45
+/** Contoh pola: jam pelajaran sepanjang durasi dari pengaturan kurikulum, dua istirahat. Hanya titik awal, wajib disesuaikan. */
+function contoh(kel: Kel, durasi: number): Baris[] {
   const hasil: Baris[] = []
   let t = 7 * 60
   let ke = 1
@@ -23,7 +22,7 @@ function contoh(kel: Kel): Baris[] {
   return hasil
 }
 
-function Editor({ kel, judul, awal, boleh, salinDari }: { kel: Kel; judul: string; awal: Baris[]; boleh: boolean; salinDari?: () => Baris[] }) {
+function Editor({ kel, judul, awal, boleh, durasi, salinDari }: { kel: Kel; judul: string; awal: Baris[]; boleh: boolean; durasi: number; salinDari?: () => Baris[] }) {
   const [baris, setBaris] = useState<Baris[]>(awal)
   const [sibuk, setSibuk] = useState(false)
   const [galat, setGalat] = useState('')
@@ -48,9 +47,11 @@ function Editor({ kel, judul, awal, boleh, salinDari }: { kel: Kel; judul: strin
     setInfo('Tersimpan. Jam sistem dan halaman publik memakai jadwal ini.')
   }
 
+  const menyimpang = baris.filter((b) => b.jenis === 'pelajaran' && b.mulai && b.selesai && menitDari(b.selesai) - menitDari(b.mulai) !== durasi)
   return (
     <div className="kartu form">
       <h3>{judul}</h3>
+      {menyimpang.length > 0 && <p className="catatan">Durasi di struktur kurikulum {durasi} menit. Baris berikut berbeda: {menyimpang.map((b) => `${b.label} (${menitDari(b.selesai) - menitDari(b.mulai)} menit)`).join(', ')}.</p>}
       {galat && <p role="alert" className="catatan" style={{ color: '#a11' }}>{galat}</p>}
       {info && <p role="status" className="catatan">{info}</p>}
       <div className="tabel-bungkus">
@@ -77,7 +78,7 @@ function Editor({ kel, judul, awal, boleh, salinDari }: { kel: Kel; judul: strin
       {boleh && (
         <div className="aksi jarak" style={{ flexWrap: 'wrap' }}>
           <button type="button" className="tombol" onClick={() => setBaris((b) => { const t = b.length ? b[b.length - 1].selesai : '07:00'; return [...b, { label: `Jam ke-${b.filter((x) => x.jenis === 'pelajaran').length + 1}`, jenis: 'pelajaran', mulai: t, selesai: '' }] })}>Tambah baris</button>
-          <button type="button" className="tombol" onClick={() => { if (!baris.length || window.confirm('Ganti isi tabel dengan contoh pola?')) setBaris(contoh(kel)) }}>Isi dengan contoh</button>
+          <button type="button" className="tombol" onClick={() => { if (!baris.length || window.confirm('Ganti isi tabel dengan contoh pola?')) setBaris(contoh(kel, durasi)) }}>Isi dengan contoh</button>
           {salinDari && <button type="button" className="tombol" onClick={() => { if (!baris.length || window.confirm('Ganti isi tabel dengan salinan Senin sampai Kamis?')) setBaris(salinDari()) }}>Salin dari Senin sampai Kamis</button>}
           <button type="button" className="tombol tombol-isi" disabled={sibuk} onClick={simpan}>{sibuk ? 'Menyimpan...' : 'Simpan'}</button>
         </div>
@@ -91,6 +92,7 @@ export default function KelolaJam() {
   const [boleh, setBoleh] = useState<boolean | null>(null)
   const [snk, setSnk] = useState<Baris[]>([])
   const [jmt, setJmt] = useState<Baris[]>([])
+  const [durasi, setDurasi] = useState(45)
 
   useEffect(() => {
     void muatJamBel(true).then((d) => {
@@ -98,6 +100,7 @@ export default function KelolaJam() {
       const ke = (k: Kel): Baris[] => d.filter((x) => x.kelompok === k).map((x) => ({ label: x.label, jenis: x.jenis, mulai: x.mulai, selesai: x.selesai }))
       setSnk(ke('senin_kamis')); setJmt(ke('jumat'))
     })
+    void Promise.resolve(supabase.rpc('kur_pengaturan_baca')).then(({ data: k }) => { if (k && typeof k.durasi_jp === 'number') setDurasi(k.durasi_jp) })
     void Promise.resolve(supabase.rpc('jam_bel_boleh')).then(({ data: b }) => setBoleh(b === true))
   }, [])
 
@@ -106,11 +109,11 @@ export default function KelolaJam() {
       {boleh === false && <p className="kartu">Anda hanya dapat melihat. Pengaturan jam dilakukan oleh Waka Kurikulum atau staf kurikulum.</p>}
       {data && (
         <div className="grid grid-2">
-          <Editor kel="senin_kamis" judul="Senin sampai Kamis" awal={snk} boleh={boleh === true} />
-          <Editor kel="jumat" judul="Jumat" awal={jmt} boleh={boleh === true} salinDari={() => snk.map((x) => ({ ...x }))} />
+          <Editor kel="senin_kamis" judul="Senin sampai Kamis" awal={snk} boleh={boleh === true} durasi={durasi} />
+          <Editor kel="jumat" judul="Jumat" awal={jmt} boleh={boleh === true} durasi={durasi} salinDari={() => snk.map((x) => ({ ...x }))} />
         </div>
       )}
-      <p className="catatan jarak">Sabtu, Minggu, dan hari libur di kalender otomatis dianggap tanpa jam pelajaran. <Link to="/akademik">Lihat tampilan publik</Link></p>
+      <p className="catatan jarak">Satu jam pelajaran = {durasi} menit untuk semua hari (diatur di <Link to="/portal/kurikulum/struktur">Struktur kurikulum</Link>). Sabtu, Minggu, dan hari libur di kalender otomatis dianggap tanpa jam pelajaran. <Link to="/akademik">Lihat tampilan publik</Link></p>
     </Halaman>
   )
 }

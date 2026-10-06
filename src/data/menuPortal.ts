@@ -157,6 +157,8 @@ const pengaturanSuper: ItemPortal[] = [
   { to: '/portal/profil-sekolah', label: 'Profil sekolah', ikon: 'sekolah', ket: 'Alamat, koordinat, kontak, media sosial, visi dan misi' },
   { to: '/portal/kalender', label: 'Kalender sekolah', ikon: 'kalender', ket: 'Kalender pendidikan, kegiatan, libur, dan ujian' },
   { to: '/portal/jam-pelajaran', label: 'Jam pelajaran', ikon: 'kalender', ket: 'Jam masuk, jam pelajaran, dan istirahat' },
+  { to: '/portal/kurikulum/struktur', label: 'Struktur kurikulum', ikon: 'buku', ket: 'Durasi jam pelajaran, daftar mapel, dan jam per minggu per tingkat dan program' },
+  { to: '/portal/kurikulum/beban', label: 'Beban mengajar', ikon: 'kelompok', ket: 'Pembagian guru per mapel dan kelas, linieritas dari Dapodik, dan rekap jam per guru' },
   { to: '/portal/sarpras/buku', label: 'Sarana dan prasarana', ikon: 'tas', ket: 'Inventaris, kerusakan, permintaan, usulan bertingkat, kartu inventaris, dan pembukuan' },
 ]
 
@@ -171,6 +173,8 @@ const menuIzin: { izin: string; nama: string; bidang: string; ikon: string; to?:
   { izin: 'hubin.tracer', nama: 'Tracer study alumni', bidang: 'Hubungan industri dan humas', ikon: 'grafik', to: '/portal/hubin/tracer' },
   { izin: 'kurikulum.atur_jadwal', nama: 'Jam pelajaran', bidang: 'Kurikulum', ikon: 'kalender', to: '/portal/jam-pelajaran' },
   { izin: 'kurikulum.kalender', nama: 'Kalender sekolah', bidang: 'Kurikulum', ikon: 'kalender', to: '/portal/kalender' },
+  { izin: 'kurikulum.struktur', nama: 'Struktur kurikulum', bidang: 'Kurikulum', ikon: 'buku', to: '/portal/kurikulum/struktur' },
+  { izin: 'kurikulum.struktur', nama: 'Beban mengajar', bidang: 'Kurikulum', ikon: 'kelompok', to: '/portal/kurikulum/beban' },
   { izin: 'kegiatan.kelola', nama: 'Kalender sekolah', bidang: 'Kegiatan sekolah', ikon: 'kalender', to: '/portal/kalender' },
   { izin: 'kurikulum.kelola_info', nama: 'Informasi akademik', bidang: 'Kurikulum', ikon: 'dokumen' },
   { izin: 'program.kelola', nama: 'Program keahlian', bidang: 'Kurikulum', ikon: 'sekolah' },
