@@ -86,7 +86,7 @@ export function useGaleri() {
   const [daftar, setDaftar] = useState<{ path: string; keterangan: string | null }[]>([])
   useEffect(() => {
     let batal = false
-    Promise.resolve(supabase.rpc('galeri_publik')).then(({ data }) => { if (!batal && Array.isArray(data)) setDaftar(data) }).catch(() => undefined)
+    Promise.resolve(supabase.rpc('galeri_sekolah_publik')).then(({ data }) => { if (!batal && Array.isArray(data)) setDaftar(data) }).catch(() => undefined)
     return () => { batal = true }
   }, [])
   return daftar

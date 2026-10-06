@@ -43,13 +43,13 @@ create policy galeri_kelola on public.galeri_sekolah for all to authenticated
   using (npsn = (select private.npsn_saya()) and (select private.boleh_kelola_gambar_sekolah()))
   with check (npsn = (select private.npsn_saya()) and (select private.boleh_kelola_gambar_sekolah()));
 
-create or replace function public.galeri_publik() returns jsonb
+create or replace function public.galeri_sekolah_publik() returns jsonb
 language sql stable security definer set search_path = '' as $$
   select coalesce(jsonb_agg(jsonb_build_object('path', g.path, 'keterangan', g.keterangan) order by g.urutan, g.dibuat_pada desc), '[]'::jsonb)
   from public.galeri_sekolah g
 $$;
-revoke all on function public.galeri_publik() from public;
-grant execute on function public.galeri_publik() to anon, authenticated;
+revoke all on function public.galeri_sekolah_publik() from public;
+grant execute on function public.galeri_sekolah_publik() to anon, authenticated;
 
 -- Foto profil: pemilik menyimpan penunjuk berkasnya sendiri. Pengaturan hanya boleh menunjuk folder miliknya.
 create or replace function public.foto_saya_simpan(p_path text) returns void
