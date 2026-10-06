@@ -5,6 +5,7 @@ import Ikon from '../components/Ikon'
 import { panggil, tglJam } from '../lib/rpc'
 import { bacaSoalXlsx, unduhTemplateSoal, type SoalImpor } from './lmsSoalXlsx'
 import { biru, dariInputLokal, dua, keInputLokal, merah, nilaiTeks, unduhCsv } from './lmsUtil'
+import { PanelUjianGuru, UjianSiswa } from './LmsUjian'
 
 // Kuis dan ulangan: pilihan ganda, isian singkat, esai dengan rubrik. Semua data lewat fungsi basis data lms_*.
 // Kunci jawaban dan rubrik skor baru dikirim setelah siswa selesai.
@@ -15,7 +16,7 @@ type Tipe = 'pilgan' | 'isian' | 'esai'
 type Level = { skor: number; deskripsi: string }
 type Rubrik = { kriteria: string; skor_maks: number; level?: Level[] }
 type Komposisi = { pilgan: number; isian: number; esai: number; total_bobot: number }
-type Asesmen = {
+export type Asesmen = {
   id: string; jenis: Jenis; judul: string; petunjuk: string | null
   pertemuan_id: string | null; pertemuan_nomor: number | null; durasi_menit: number
   buka: string | null; tutup: string | null; maks_percobaan: number; acak: boolean; tampil_hasil: boolean
@@ -24,18 +25,19 @@ type Asesmen = {
   sudah_selesai: number | null; perlu_koreksi: number | null
   percobaan_selesai: number | null; nilai_terbaik: number | null; menunggu_koreksi: number | null
   percobaan_terakhir: string | null; berjalan: boolean | null
+  mode_ujian: boolean; maks_pelanggaran: number; kunci_otomatis: boolean; token_ujian: string | null
 }
 type Soal = {
   id: string; urutan: number; tipe: Tipe; pertanyaan: string; opsi: string[] | null; kunci: number | null
   kunci_isian: string[] | null; rubrik: Rubrik[] | null; bobot: number; pembahasan: string | null
 }
-type SoalKerja = { soal_id: string; tipe: Tipe; pertanyaan: string; bobot: number; opsi: string[] | null; pilihan: number | null; teks: string | null; rubrik: Rubrik[] | null }
+export type SoalKerja = { soal_id: string; tipe: Tipe; pertanyaan: string; bobot: number; opsi: string[] | null; pilihan: number | null; teks: string | null; rubrik: Rubrik[] | null }
 type SoalTinjau = SoalKerja & {
   benar: number | null; kunci_isian: string[] | null; skor: number | null; status_koreksi: 'menunggu' | null
   skor_rubrik: number[] | null; catatan_guru: string | null; pembahasan: string | null
 }
-type Sesi = { percobaan: string; batas_waktu: string; sekarang: string; judul: string; petunjuk: string | null; soal: SoalKerja[] }
-type Hasil = {
+export type Sesi = { percobaan: string; batas_waktu: string; sekarang: string; judul: string; petunjuk: string | null; soal: SoalKerja[] }
+export type Hasil = {
   nilai: number | null; nilai_otomatis: number | null; butuh_koreksi: boolean; kkm: number | null
   tampil_hasil: boolean; judul: string; tinjau: SoalTinjau[] | null
 }
@@ -604,6 +606,7 @@ function KuisGuru({ kelasId, a, pertemuan, muat }: { kelasId: string; a: Asesmen
           )}
         </div>
       </div>
+      <PanelUjianGuru a={a} muat={muat} />
       {atur && <FormAsesmen kelasId={kelasId} pertemuan={pertemuan} awal={a} selesai={async () => { await muat(); setAtur(false) }} />}
       {koreksi && <KoreksiKuis asesmenId={a.id} setelah={() => { void muat(); setVersi((x) => x + 1) }} />}
 
@@ -693,7 +696,7 @@ function terjawab(s: SoalKerja): boolean {
   return s.tipe === 'pilgan' ? s.pilihan !== null : (s.teks ?? '').trim() !== ''
 }
 
-function TinjauSoal({ s, i }: { s: SoalTinjau; i: number }) {
+export function TinjauSoal({ s, i }: { s: SoalTinjau; i: number }) {
   const rub = s.rubrik ?? []
   return (
     <div className="kartu" style={{ marginTop: 8 }}>
@@ -952,7 +955,7 @@ export function RuangKuis() {
       {galat && <p className="catatan galat" role="alert">{galat}</p>}
       {a && kelola !== null && (kelola
         ? <KuisGuru kelasId={kelasId} a={a} pertemuan={pertemuan} muat={muat} />
-        : <KuisSiswa kelasId={kelasId} a={a} muat={muat} />)}
+        : a.mode_ujian ? <UjianSiswa kelasId={kelasId} a={a} muat={muat} /> : <KuisSiswa kelasId={kelasId} a={a} muat={muat} />)}
       <p className="catatan jarak"><Link to={`/portal/lms/${kelasId}`}>Kembali ke kelas</Link></p>
     </Halaman>
   )
