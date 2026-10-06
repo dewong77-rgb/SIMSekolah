@@ -6,14 +6,16 @@ import { Link } from 'react-router-dom'
 import Halaman from '../../components/Halaman'
 import { panggil } from '../../lib/rpc'
 import { unduhCsv } from '../../lib/hubin'
-import { JENIS_LAB, KATEGORI, angka, label, rupiah, type Barang, type Lab } from '../../lib/sarpras'
+import { JENIS_LAB, KATEGORI, angka, label, rupiah, tidakBaik, type Barang, type Lab } from '../../lib/sarpras'
 import GerbangSarpras from './GerbangSarpras'
 
-type FormBarang = Partial<Barang> & { jumlah_baik?: number | string; jumlah_rusak?: number | string }
+type FormBarang = Partial<Omit<Barang, 'jumlah_baik' | 'jumlah_rusak' | 'jumlah_rusak_berat' | 'jumlah_hilang' | 'stok_minimum'>> & {
+  jumlah_baik?: number | string; jumlah_rusak?: number | string; jumlah_rusak_berat?: number | string; jumlah_hilang?: number | string; stok_minimum?: number | string | null
+}
 type FormLab = Partial<Lab>
 const teks = (v: unknown) => (v == null ? '' : String(v))
 
-function Isi({ kelola }: { kelola: boolean }) {
+function Isi({ kelola, operasional }: { kelola: boolean; operasional: boolean }) {
   const [lab, setLab] = useState<Lab[]>([])
   const [barang, setBarang] = useState<Barang[]>([])
   const [labPilih, setLabPilih] = useState('')
@@ -42,28 +44,29 @@ function Isi({ kelola }: { kelola: boolean }) {
     && (!kat || x.kategori === kat)
     && (!q || `${x.nama} ${x.kode_barang ?? ''} ${x.spesifikasi ?? ''} ${x.merek_tipe ?? ''}`.toLowerCase().includes(q)))
   const jumlahBaik = tampil.reduce((a, x) => a + Number(x.jumlah_baik), 0)
-  const jumlahRusak = tampil.reduce((a, x) => a + Number(x.jumlah_rusak), 0)
+  const jumlahRusak = tampil.reduce((a, x) => a + tidakBaik(x), 0)
 
   function barangBaru() {
     setFormL(null); setInfo(''); setGalat('')
     const awal = labPilih && labPilih !== 'umum' && labBisaCatat.some((x) => x.id === labPilih) ? labPilih : labBisaCatat.length === 1 ? labBisaCatat[0].id : ''
-    setFormB({ lab_id: awal || null, kategori: 'alat', satuan: 'unit', jumlah_baik: 0, jumlah_rusak: 0 })
+    setFormB({ lab_id: awal || null, kategori: 'alat', satuan: 'unit', jumlah_baik: 0, jumlah_rusak: 0, jumlah_rusak_berat: 0, jumlah_hilang: 0 })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   async function simpanBarang(e: FormEvent) {
     e.preventDefault(); if (!formB) return; setGalat(''); setInfo('')
     if (!formB.nama?.trim()) return setGalat('Nama barang wajib diisi.')
-    if (!formB.lab_id && !kelola) return setGalat('Pilih bengkel atau laboratorium.')
+    if (!formB.lab_id && !operasional) return setGalat('Pilih bengkel atau laboratorium.')
     const baik = Number(formB.jumlah_baik ?? 0), rusak = Number(formB.jumlah_rusak ?? 0)
-    if (!(baik >= 0) || !(rusak >= 0)) return setGalat('Jumlah baik dan rusak tidak boleh negatif.')
+    const berat = Number(formB.jumlah_rusak_berat ?? 0), hilang = Number(formB.jumlah_hilang ?? 0)
+    if (![baik, rusak, berat, hilang].every((n) => n >= 0)) return setGalat('Jumlah pada tiap kondisi tidak boleh negatif.')
     setSibuk(true)
     try {
       await panggil('sarpras_barang_simpan', {
         p_id: formB.id ?? null,
         p: {
           lab_id: formB.lab_id ?? null, kategori: formB.kategori, kode_barang: formB.kode_barang, nama: formB.nama, merek_tipe: formB.merek_tipe,
-          spesifikasi: formB.spesifikasi, satuan: formB.satuan, jumlah_baik: baik, jumlah_rusak: rusak, tahun_perolehan: formB.tahun_perolehan,
+          spesifikasi: formB.spesifikasi, satuan: formB.satuan, jumlah_baik: baik, jumlah_rusak: rusak, jumlah_rusak_berat: berat, jumlah_hilang: hilang, stok_minimum: formB.stok_minimum, tahun_perolehan: formB.tahun_perolehan,
           sumber_dana: formB.sumber_dana, harga_satuan: formB.harga_satuan, luas_m2: formB.luas_m2, keterangan: formB.keterangan,
         },
       })
@@ -95,9 +98,9 @@ function Isi({ kelola }: { kelola: boolean }) {
 
   function unduh() {
     unduhCsv('inventaris-sarpras', [
-      ['Bengkel atau lab', 'Kategori', 'Kode', 'Nama', 'Merek atau tipe', 'Spesifikasi', 'Satuan', 'Baik', 'Rusak', 'Total', 'Tahun', 'Sumber dana', 'Harga satuan', 'Keterangan'],
+      ['Bengkel atau lab', 'Kategori', 'Kode', 'Nama', 'Merek atau tipe', 'Spesifikasi', 'Satuan', 'Baik', 'Rusak ringan', 'Rusak berat', 'Hilang', 'Total', 'Stok minimum', 'Tahun', 'Sumber dana', 'Harga satuan', 'Keterangan'],
       ...tampil.map((x) => [x.lab_nama ?? 'Umum', label(KATEGORI, x.kategori), x.kode_barang, x.nama, x.merek_tipe, x.spesifikasi, x.satuan,
-        x.jumlah_baik, x.jumlah_rusak, x.jumlah_total, x.tahun_perolehan, x.sumber_dana, x.harga_satuan, x.keterangan]),
+        x.jumlah_baik, x.jumlah_rusak, x.jumlah_rusak_berat, x.jumlah_hilang, x.jumlah_total, x.stok_minimum, x.tahun_perolehan, x.sumber_dana, x.harga_satuan, x.keterangan]),
     ])
   }
 
@@ -107,7 +110,7 @@ function Isi({ kelola }: { kelola: boolean }) {
 
   if (memuat) return <Halaman judul="Inventaris sarana dan prasarana"><p className="catatan">Memuat data...</p></Halaman>
   return (
-    <Halaman judul="Inventaris sarana dan prasarana" lead={kelola ? 'Buku inventaris seluruh bengkel, laboratorium, dan bangunan. Kepala bengkel mencatat barang di bengkelnya, Waka Sarpras mengelola semuanya.' : 'Catat alat, bahan, dan aset di bengkel atau laboratorium yang Anda pegang. Kebutuhan baru atau perbaikan diajukan lewat Usulan.'}>
+    <Halaman judul="Inventaris sarana dan prasarana" lead={kelola ? 'Buku inventaris seluruh bengkel, laboratorium, dan bangunan. Kepala bengkel mencatat barang di bengkelnya, staf memperbarui kondisi dan stok, Waka Sarpras mengelola semuanya.' : operasional ? 'Perbarui kondisi, jumlah, dan stok barang di semua bengkel dan laboratorium. Data bangunan dan daftar bengkel dikelola Waka Sarpras.' : 'Catat alat, bahan, dan aset di bengkel atau laboratorium yang Anda pegang. Kerusakan dilaporkan lewat menu Kerusakan, kebutuhan alat dan bahan lewat Permintaan, pengadaan baru lewat Usulan.'}>
       {galat && <p className="kartu galat" role="alert">{galat}</p>}
       {info && <p className="kartu" role="status">{info}</p>}
       {lab.length === 0 && <p className="kartu">Belum ada bengkel atau laboratorium yang terhubung ke akun ini. {kelola ? 'Tambahkan di bagian Bengkel dan laboratorium di bawah.' : 'Minta Waka Sarpras menambahkan penugasan Kepala Bengkel dengan lingkup bengkel Anda.'}</p>}
@@ -115,21 +118,21 @@ function Isi({ kelola }: { kelola: boolean }) {
       <div className="lencana-baris" style={{ marginBottom: 12 }}>
         <span className="lencana">Jenis barang {tampil.length}</span>
         <span className="lencana">Baik {angka(jumlahBaik)}</span>
-        <span className="lencana">Rusak {angka(jumlahRusak)}</span>
+        <span className="lencana">Rusak atau hilang {angka(jumlahRusak)}</span>
       </div>
 
       <div className="aksi" style={{ marginTop: 0, alignItems: 'center', flexWrap: 'wrap' }}>
         <select value={labPilih} onChange={(e) => setLabPilih(e.target.value)} aria-label="Bengkel atau laboratorium">
           <option value="">Semua bengkel dan lab</option>
           {lab.map((x) => <option key={x.id} value={x.id}>{x.nama}{x.aktif ? '' : ' (nonaktif)'}</option>)}
-          {kelola && <option value="umum">Umum (tanpa bengkel)</option>}
+          {operasional && <option value="umum">Umum (tanpa bengkel)</option>}
         </select>
         <select value={kat} onChange={(e) => setKat(e.target.value)} aria-label="Kategori">
           <option value="">Semua kategori</option>
           {KATEGORI.map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
         <input type="search" placeholder="Cari nama, kode, spesifikasi..." value={cari} onChange={(e) => setCari(e.target.value)} aria-label="Cari" />
-        {(kelola || labBisaCatat.length > 0) && <button className="tombol tombol-isi" onClick={barangBaru}>Tambah barang</button>}
+        {(operasional || labBisaCatat.length > 0) && <button className="tombol tombol-isi" onClick={barangBaru}>Tambah barang</button>}
         <TombolIkon ikon="unduh" label="Unduh CSV" onClick={unduh} disabled={!tampil.length} />
       </div>
 
@@ -138,9 +141,9 @@ function Isi({ kelola }: { kelola: boolean }) {
           <h3>{formB.id ? 'Ubah barang' : 'Barang baru'}</h3>
           <label>Bengkel atau laboratorium
             <select value={formB.lab_id ?? ''} onChange={(e) => setFormB((x) => ({ ...x, lab_id: e.target.value || null }))}>
-              {kelola && <option value="">Umum (tanpa bengkel)</option>}
-              {!kelola && <option value="">Pilih bengkel atau laboratorium</option>}
-              {(kelola ? lab : labBisaCatat).map((x) => <option key={x.id} value={x.id}>{x.nama}</option>)}
+              {operasional && <option value="">Umum (tanpa bengkel)</option>}
+              {!operasional && <option value="">Pilih bengkel atau laboratorium</option>}
+              {(operasional ? lab : labBisaCatat).map((x) => <option key={x.id} value={x.id}>{x.nama}</option>)}
             </select>
           </label>
           <label>Kategori
@@ -152,7 +155,9 @@ function Isi({ kelola }: { kelola: boolean }) {
           <div className="grid grid-2">{B('kode_barang', 'Kode barang')}{B('merek_tipe', 'Merek atau tipe')}</div>
           <label>Spesifikasi<textarea rows={2} value={teks(formB.spesifikasi)} onChange={(e) => setFormB((x) => ({ ...x, spesifikasi: e.target.value }))} /></label>
           <div className="grid grid-2">{B('satuan', 'Satuan')}{B('tahun_perolehan', 'Tahun perolehan', 'number')}</div>
-          <div className="grid grid-2">{B('jumlah_baik', 'Jumlah kondisi baik', 'number')}{B('jumlah_rusak', 'Jumlah rusak', 'number')}</div>
+          <div className="grid grid-2">{B('jumlah_baik', 'Jumlah kondisi baik', 'number')}{B('jumlah_rusak', 'Jumlah rusak ringan', 'number')}</div>
+          <div className="grid grid-2">{B('jumlah_rusak_berat', 'Jumlah rusak berat', 'number')}{B('jumlah_hilang', 'Jumlah hilang', 'number')}</div>
+          {(formB.kategori === 'bahan' || formB.kategori === 'alat') && B('stok_minimum', 'Stok minimum (peringatan bila jumlah baik sama atau di bawahnya)', 'number')}
           <div className="grid grid-2">{B('sumber_dana', 'Sumber dana')}{B('harga_satuan', 'Harga satuan (Rp)', 'number')}</div>
           {formB.kategori === 'bangunan' && B('luas_m2', 'Luas (m²)', 'number')}
           <label>Keterangan<textarea rows={2} value={teks(formB.keterangan)} onChange={(e) => setFormB((x) => ({ ...x, keterangan: e.target.value }))} /></label>
@@ -166,7 +171,7 @@ function Isi({ kelola }: { kelola: boolean }) {
 
       <div className="tabel-bungkus jarak">
         <table>
-          <thead><tr><th>Barang</th><th>Bengkel atau lab</th><th>Kategori</th><th>Baik</th><th>Rusak</th><th>Total</th><th>Harga satuan</th><th /></tr></thead>
+          <thead><tr><th>Barang</th><th>Bengkel atau lab</th><th>Kategori</th><th>Baik</th><th>Rusak ringan</th><th>Rusak berat</th><th>Hilang</th><th>Total</th><th>Harga satuan</th><th /></tr></thead>
           <tbody>
             {tampil.map((x) => (
               <tr key={x.id}>
@@ -175,12 +180,14 @@ function Isi({ kelola }: { kelola: boolean }) {
                 <td>{label(KATEGORI, x.kategori)}</td>
                 <td>{angka(x.jumlah_baik)} {x.satuan}</td>
                 <td>{angka(x.jumlah_rusak)}</td>
-                <td>{angka(x.jumlah_total)}</td>
+                <td>{angka(x.jumlah_rusak_berat)}</td>
+                <td>{angka(x.jumlah_hilang)}</td>
+                <td>{angka(x.jumlah_total)}{x.stok_minimum != null && Number(x.jumlah_baik) <= Number(x.stok_minimum) && <small className="galat"> · stok menipis</small>}</td>
                 <td>{rupiah(x.harga_satuan)}</td>
                 <td>{x.boleh_ubah && <TombolIkon ikon="pena" label="Ubah" onClick={() => { setFormL(null); setFormB(x); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />}</td>
               </tr>
             ))}
-            {tampil.length === 0 && <tr><td colSpan={8} className="catatan">Belum ada barang yang cocok.</td></tr>}
+            {tampil.length === 0 && <tr><td colSpan={10} className="catatan">Belum ada barang yang cocok.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -210,12 +217,12 @@ function Isi({ kelola }: { kelola: boolean }) {
           )}
           <div className="tabel-bungkus jarak">
             <table>
-              <thead><tr><th>Nama</th><th>Jenis</th><th>Program</th><th>Barang</th><th>Baik</th><th>Rusak</th><th /></tr></thead>
+              <thead><tr><th>Nama</th><th>Jenis</th><th>Program</th><th>Barang</th><th>Baik</th><th>Rusak atau hilang</th><th /></tr></thead>
               <tbody>
                 {lab.map((x) => (
                   <tr key={x.id}>
                     <td>{x.nama}{x.aktif ? '' : ' (nonaktif)'}</td><td>{label(JENIS_LAB, x.jenis)}</td><td>{x.program ?? '-'}</td>
-                    <td>{angka(x.jenis_barang)}</td><td>{angka(x.baik)}</td><td>{angka(x.rusak)}</td>
+                    <td>{angka(x.jenis_barang)}</td><td>{angka(x.baik)}</td><td>{angka(Number(x.rusak) + Number(x.rusak_berat) + Number(x.hilang))}</td>
                     <td><TombolIkon ikon="pena" label="Ubah" onClick={() => { setFormB(null); setFormL(x); window.scrollTo({ top: 0, behavior: 'smooth' }) }} /></td>
                   </tr>
                 ))}
@@ -231,5 +238,5 @@ function Isi({ kelola }: { kelola: boolean }) {
 }
 
 export default function SarprasInventaris() {
-  return <GerbangSarpras perlu={['kelola', 'catat_lab', 'lihat']} judul="Inventaris sarana dan prasarana" aktif="/portal/sarpras/inventaris">{(izin) => <Isi kelola={izin.includes('kelola')} />}</GerbangSarpras>
+  return <GerbangSarpras perlu={['kelola', 'operasional', 'catat_lab', 'lihat']} judul="Inventaris sarana dan prasarana" aktif="/portal/sarpras/inventaris">{(izin) => <Isi kelola={izin.includes('kelola')} operasional={izin.includes('operasional')} />}</GerbangSarpras>
 }
