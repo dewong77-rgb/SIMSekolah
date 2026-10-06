@@ -31,9 +31,17 @@ create table if not exists public.galeri_sekolah (
   dibuat_oleh uuid
 );
 alter table public.galeri_sekolah enable row level security;
+-- Super admin dan pemegang izin hubin.kelola_profil (Waka Hubin, Pengelola Web dan Digitalisasi) mengelola gambar sekolah.
+create or replace function private.boleh_kelola_gambar_sekolah() returns boolean
+language sql stable security definer set search_path = '' as $$
+  select auth.uid() is not null and (private.adalah_super() or private.punya_izin('hubin.kelola_profil', null))
+$$;
+
 drop policy if exists galeri_super on public.galeri_sekolah;
-create policy galeri_super on public.galeri_sekolah for all to authenticated
-  using ((select private.adalah_super())) with check ((select private.adalah_super()));
+drop policy if exists galeri_kelola on public.galeri_sekolah;
+create policy galeri_kelola on public.galeri_sekolah for all to authenticated
+  using (npsn = (select private.npsn_saya()) and (select private.boleh_kelola_gambar_sekolah()))
+  with check (npsn = (select private.npsn_saya()) and (select private.boleh_kelola_gambar_sekolah()));
 
 create or replace function public.galeri_publik() returns jsonb
 language sql stable security definer set search_path = '' as $$
@@ -68,11 +76,11 @@ language sql stable security definer set search_path = '' as $$
   )
 $$;
 
--- Kebijakan objek penyimpanan.
+-- Kebijakan objek penyimpanan. Gambar sekolah: super admin atau pemegang hubin.kelola_profil.
 drop policy if exists publik_sekolah_kelola on storage.objects;
 create policy publik_sekolah_kelola on storage.objects for all to authenticated
-  using (bucket_id = 'publik' and (storage.foldername(name))[1] = 'sekolah' and (storage.foldername(name))[2] = (select private.npsn_saya()) and (select private.adalah_super()))
-  with check (bucket_id = 'publik' and (storage.foldername(name))[1] = 'sekolah' and (storage.foldername(name))[2] = (select private.npsn_saya()) and (select private.adalah_super()));
+  using (bucket_id = 'publik' and (storage.foldername(name))[1] = 'sekolah' and (storage.foldername(name))[2] = (select private.npsn_saya()) and (select private.boleh_kelola_gambar_sekolah()))
+  with check (bucket_id = 'publik' and (storage.foldername(name))[1] = 'sekolah' and (storage.foldername(name))[2] = (select private.npsn_saya()) and (select private.boleh_kelola_gambar_sekolah()));
 
 drop policy if exists publik_berita_tulis on storage.objects;
 create policy publik_berita_tulis on storage.objects for all to authenticated
