@@ -6,6 +6,7 @@ import { sekolah } from '../data/contoh'
 import JamSistem from './JamSistem'
 import { panggil } from '../lib/rpc'
 import Ikon from './Ikon'
+import PembatasGalat from './PembatasGalat'
 
 export type Lencana = Partial<Record<'ajuan_masuk' | 'ajuan_saya' | 'disposisi' | 'surat' | 'sarpras' | 'sarpras_kerusakan' | 'sarpras_permintaan' | 'kesiswaan', number>>
 
@@ -238,7 +239,7 @@ export default function PortalLayout() {
           </header>
 
           <main id="isi-portal" className="portal-isi">
-            <Outlet />
+            <PembatasGalat key={pathname} ruang="portal"><Outlet /></PembatasGalat>
           </main>
           <footer className="portal-kaki">
             <small>{sekolah.nama} · Sistem Informasi Manajemen Sekolah · Data bersumber dari Dapodik</small>
