@@ -21,10 +21,10 @@ export const menuUtama: ItemMenu[] = [
     label: 'Akademik',
     anak: [
       { label: 'Kalender Akademik', to: '/akademik' },
+      { label: 'Asesmen Digital (CBT)', to: '/asesmen' },
       { label: 'LMS', to: '/lms' },
     ],
   },
-  { label: 'Asesmen CBT', to: '/asesmen' },
   {
     label: 'Industri dan Alumni',
     anak: [
@@ -33,6 +33,11 @@ export const menuUtama: ItemMenu[] = [
       { label: 'Tracer Study', to: '/alumni/tracer' },
     ],
   },
-  { label: 'Berita', to: '/berita' },
-  { label: 'Kontak', to: '/kontak' },
+  {
+    label: 'Informasi',
+    anak: [
+      { label: 'Berita', to: '/berita' },
+      { label: 'Kontak', to: '/kontak' },
+    ],
+  },
 ]
