@@ -1,9 +1,11 @@
-import { useState, type FormEvent } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useMemo, useState, type FormEvent } from 'react'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { panggil } from '../../lib/rpc'
 import { merah } from '../lmsUtil'
 import { bacaSoalXlsx, unduhTemplateSoal } from '../lmsSoalXlsx'
 import { useRpc } from './umum'
+import { useJurusan } from '../../lib/dataPublik'
+import { kerangkaMapel, kunciMapel, type KelompokMapel } from './mapelDefault'
 
 type Bank = { id: string; mapel: string; tingkat: number | null; judul: string; jumlah_soal: number; milik_saya: boolean; pemilik_nama: string }
 type Soal = { id: string; urut: number; tipe: 'pilgan' | 'isian'; pertanyaan: string; opsi: string[]; kunci: string; bobot: number; pembahasan: string | null }
@@ -15,9 +17,35 @@ const Galat = ({ pesan }: { pesan: string }) => (pesan ? <p className="catatan g
 
 export function BankDaftar() {
   const { data, galat, memuat, muat } = useRpc<Bank[]>('ad_bank_daftar')
+  const { jurusan } = useJurusan()
   const nav = useNavigate()
-  const [f, setF] = useState<{ mapel: string; tingkat: string; judul: string } | null>(null)
+  const [sp] = useSearchParams()
+  const awalMapel = sp.get('mapel') ?? ''
+  const [f, setF] = useState<{ mapel: string; tingkat: string; judul: string } | null>(awalMapel ? { mapel: awalMapel, tingkat: '', judul: `Soal sumatif ${awalMapel}` } : null)
   const [pesan, setPesan] = useState('')
+  const [pilih, setPilih] = useState('')
+  const [kelompok, setKelompok] = useState<'Semua' | KelompokMapel>('Semua')
+  const kerangka = useMemo(() => kerangkaMapel((jurusan ?? []).map((j) => j.nama)), [jurusan])
+  const bank = data ?? []
+
+  // Kerangka bawaan ditambah mapel lain yang sudah punya bank soal tetapi tidak ada di kerangka.
+  const kartu = useMemo(() => {
+    const dasar = kerangka.map((m) => ({ ...m, daftar: bank.filter((b) => kunciMapel(b.mapel) === kunciMapel(m.nama)) }))
+    const dikenal = new Set(kerangka.map((m) => kunciMapel(m.nama)))
+    const lain = [...new Set(bank.filter((b) => !dikenal.has(kunciMapel(b.mapel))).map((b) => b.mapel.trim()))]
+    return [
+      ...dasar,
+      ...lain.map((nama) => ({ nama, kelompok: 'Lainnya' as const, daftar: bank.filter((b) => kunciMapel(b.mapel) === kunciMapel(nama)) })),
+    ]
+  }, [kerangka, bank])
+  const terisi = kartu.filter((k) => k.daftar.some((b) => b.jumlah_soal > 0)).length
+  const tampil = kartu.filter((k) => kelompok === 'Semua' || k.kelompok === kelompok)
+  const terpilih = kartu.find((k) => k.nama === pilih)
+
+  function mulaiBuat(mapel: string) {
+    setF({ mapel, tingkat: '', judul: mapel ? `Soal sumatif ${mapel}` : '' })
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
   async function buat(e: FormEvent) {
     e.preventDefault(); if (!f) return; setPesan('')
     try {
@@ -32,15 +60,24 @@ export function BankDaftar() {
   return (
     <>
       <h1>Bank soal</h1>
-      <p className="lead">Guru mapel menulis soal di sini. Panitia merakitnya menjadi paket ujian.</p>
+      <p className="lead">Guru mapel menulis soal di sini. Panitia merakitnya menjadi paket ujian. Pilih mata pelajaran untuk mulai.</p>
       <Galat pesan={galat || pesan} />
-      <div className="aksi" style={{ marginTop: 0 }}>
-        <button className="tombol tombol-isi" onClick={() => setF(f ? null : { mapel: '', tingkat: '', judul: '' })}>{f ? 'Batal' : 'Buat bank soal'}</button>
+      <div className="as-ringkas">
+        <div><strong>{kartu.length}</strong><span>mata pelajaran</span></div>
+        <div><strong>{terisi}</strong><span>sudah ada soal</span></div>
+        <div><strong>{kartu.length - terisi}</strong><span>belum ada soal</span></div>
+        <div><strong>{bank.reduce((j, b) => j + b.jumlah_soal, 0)}</strong><span>soal tersimpan</span></div>
+      </div>
+      <div className="aksi" style={{ marginTop: 12 }}>
+        <button className="tombol tombol-isi" onClick={() => (f ? setF(null) : mulaiBuat(''))}>{f ? 'Batal' : 'Buat bank soal'}</button>
       </div>
       {f && (
         <form className="kartu form jarak" onSubmit={(e) => void buat(e)}>
           <div className="as-baris">
-            <label>Mata pelajaran<input required maxLength={80} value={f.mapel} onChange={(e) => setF({ ...f, mapel: e.target.value })} placeholder="Informatika" /></label>
+            <label>Mata pelajaran
+              <input required maxLength={80} list="daftar-mapel" value={f.mapel} onChange={(e) => setF({ ...f, mapel: e.target.value })} placeholder="Pilih atau ketik mapel" />
+              <datalist id="daftar-mapel">{kerangka.map((m) => <option key={m.nama} value={m.nama} />)}</datalist>
+            </label>
             <label>Kelas (opsional)
               <select value={f.tingkat} onChange={(e) => setF({ ...f, tingkat: e.target.value })}>
                 <option value="">Semua</option><option value="10">X</option><option value="11">XI</option><option value="12">XII</option>
@@ -51,21 +88,45 @@ export function BankDaftar() {
           <div className="aksi"><button className="tombol tombol-isi">Buat</button></div>
         </form>
       )}
-      {memuat && <p className="catatan">Memuat...</p>}
-      <div className="as-kisi jarak">
-        {(data ?? []).map((b) => (
-          <div key={b.id} className="kartu">
-            <span className="lencana">{b.mapel}{b.tingkat ? ` · kelas ${b.tingkat}` : ''}</span>
-            <h3 style={{ margin: '4px 0' }}><Link to={`/asesmen/bank/${b.id}`}>{b.judul}</Link></h3>
-            <p className="as-kecil" style={{ margin: 0 }}>{b.jumlah_soal} soal · {b.pemilik_nama}</p>
-            <div className="aksi" style={{ marginTop: 10 }}>
-              <Link className="tombol" to={`/asesmen/bank/${b.id}`}>Buka</Link>
-              <button className="tombol" style={merah} onClick={() => void hapus(b)}>Hapus</button>
-            </div>
-          </div>
+      <div className="chip-bar" role="tablist" aria-label="Kelompok mata pelajaran">
+        {(['Semua', 'Umum', 'Kejuruan', 'Muatan lokal'] as const).map((k) => (
+          <button key={k} type="button" role="tab" aria-selected={kelompok === k} className={'chip' + (kelompok === k ? ' aktif' : '')} onClick={() => setKelompok(k)}>{k}</button>
         ))}
-        {data && data.length === 0 && !f && <p className="catatan">Belum ada bank soal.</p>}
       </div>
+      {memuat && <p className="catatan">Memuat...</p>}
+      <div className="as-kisi">
+        {tampil.map((k) => {
+          const soal = k.daftar.reduce((j, b) => j + b.jumlah_soal, 0)
+          return (
+            <button key={k.nama} type="button" className={'kartu mapel-kartu' + (pilih === k.nama ? ' dipilih' : '') + (soal > 0 ? ' terisi' : '')} onClick={() => setPilih(pilih === k.nama ? '' : k.nama)} aria-pressed={pilih === k.nama}>
+              <span className="lencana">{k.kelompok}</span>
+              <strong>{k.nama}</strong>
+              {soal > 0
+                ? <span className="status status-selesai">{k.daftar.length} bank · {soal} soal</span>
+                : <span className="status status-dibatalkan">Belum ada bank soal</span>}
+            </button>
+          )
+        })}
+      </div>
+      {terpilih && (
+        <section className="kartu jarak" aria-label={`Bank soal ${terpilih.nama}`}>
+          <div className="judul-bagian"><h2 style={{ fontSize: '1.2rem' }}>{terpilih.nama}</h2><button className="tombol tombol-isi" onClick={() => mulaiBuat(terpilih.nama)}>Buat bank soal {terpilih.nama.length > 28 ? '' : terpilih.nama}</button></div>
+          {terpilih.daftar.length === 0 && <p className="catatan">Belum ada bank soal untuk mata pelajaran ini. Tekan tombol di atas untuk membuat yang pertama.</p>}
+          <div className="as-kisi">
+            {terpilih.daftar.map((b) => (
+              <div key={b.id} className="kartu">
+                <span className="lencana">{b.mapel}{b.tingkat ? ` · kelas ${b.tingkat}` : ''}</span>
+                <h3 style={{ margin: '4px 0' }}><Link to={`/asesmen/bank/${b.id}`}>{b.judul}</Link></h3>
+                <p className="as-kecil" style={{ margin: 0 }}>{b.jumlah_soal} soal · {b.pemilik_nama}</p>
+                <div className="aksi" style={{ marginTop: 10 }}>
+                  <Link className="tombol" to={`/asesmen/bank/${b.id}`}>Buka</Link>
+                  <button className="tombol" style={merah} onClick={() => void hapus(b)}>Hapus</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </>
   )
 }
