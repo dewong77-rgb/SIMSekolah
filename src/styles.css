@@ -883,3 +883,5 @@ tbody tr:hover td { background: #f8fafd; }
 @media (max-width: 600px) { .hero .atas { border-radius: 12px; } .hero { padding: 56px 0 48px; } .bagian { padding-top: 32px; } .wadah { padding-left: 16px; padding-right: 16px; } }
 .as-masuk { max-width: 480px; margin: 16px auto 0; }
 .as-masuk .kartu { margin-top: 12px; }
+
+.logo-gambar { width: 42px; height: 42px; object-fit: contain; border-radius: 8px; flex: none; }

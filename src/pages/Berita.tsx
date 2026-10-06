@@ -4,6 +4,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import Halaman from '../components/Halaman'
 import { tanggalPanjang } from '../lib/format'
 import { panggil } from '../lib/rpc'
+import { urlPublik } from '../lib/gambar'
 import { KATEGORI_BERITA, namaKategori, useBeritaPublik } from '../lib/hubin'
 
 const BATAS = 12
@@ -37,10 +38,10 @@ export function BeritaDaftar() {
   )
 }
 
-export function KartuBerita({ b }: { b: { slug: string; judul: string; kategori: string; ringkasan: string | null; gambar_url: string | null; terbit_pada: string } }) {
+export function KartuBerita({ b }: { b: { slug: string; judul: string; kategori: string; ringkasan: string | null; gambar_url: string | null; gambar_path?: string | null; terbit_pada: string } }) {
   return (
     <article className="kartu">
-      {b.gambar_url && <img src={b.gambar_url} alt="" loading="lazy" referrerPolicy="no-referrer" style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', borderRadius: 8, marginBottom: 8 }} />}
+      {(urlPublik(b.gambar_path) ?? b.gambar_url) && <img src={urlPublik(b.gambar_path) ?? b.gambar_url ?? ''} alt="" loading="lazy" referrerPolicy="no-referrer" style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', borderRadius: 8, marginBottom: 8 }} />}
       <span className="lencana">{namaKategori(b.kategori)}</span>
       <h3><Link to={`/berita/${b.slug}`}>{b.judul}</Link></h3>
       {b.ringkasan && <p>{b.ringkasan}</p>}
@@ -50,7 +51,7 @@ export function KartuBerita({ b }: { b: { slug: string; judul: string; kategori:
 }
 
 type Detail = {
-  slug: string; judul: string; kategori: string; ringkasan: string | null; isi: string; gambar_url: string | null; gambar_keterangan: string | null
+  slug: string; judul: string; kategori: string; ringkasan: string | null; isi: string; gambar_url: string | null; gambar_path: string | null; gambar_keterangan: string | null
   terbit_pada: string; lainnya: { slug: string; judul: string; terbit_pada: string }[]
 }
 export function BeritaBaca() {
@@ -68,9 +69,9 @@ export function BeritaBaca() {
   return (
     <Halaman judul={d.judul} lead={`${namaKategori(d.kategori)} · ${tanggalPanjang(d.terbit_pada)}`}>
       <article style={{ maxWidth: 760 }}>
-        {d.gambar_url && (
+        {(urlPublik(d.gambar_path) ?? d.gambar_url) && (
           <figure style={{ margin: '0 0 16px' }}>
-            <img src={d.gambar_url} alt={d.gambar_keterangan ?? ''} referrerPolicy="no-referrer" style={{ width: '100%', borderRadius: 8 }} />
+            <img src={urlPublik(d.gambar_path) ?? d.gambar_url ?? ''} alt={d.gambar_keterangan ?? ''} referrerPolicy="no-referrer" style={{ width: '100%', borderRadius: 8 }} />
             {d.gambar_keterangan && <figcaption className="catatan">{d.gambar_keterangan}</figcaption>}
           </figure>
         )}

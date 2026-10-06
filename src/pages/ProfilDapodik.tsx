@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import Halaman from '../components/Halaman'
+import FotoSaya from '../components/FotoSaya'
 import { useAuth } from '../auth/AuthContext'
 import { supabase } from '../lib/supabase'
 
@@ -219,7 +220,8 @@ export function ProfilSendiri() {
           <Link to="/portal/ajuan" className="kartu tautan"><h3>Ajuan saya</h3><small>Perbaikan data yang diajukan dan keputusannya</small></Link>
         </div>
       )}
-      <Isi hasil={hasil} galat={galat} ajukan />
+      <FotoSaya />
+      <div className="jarak"><Isi hasil={hasil} galat={galat} ajukan /></div>
       <p className="catatan jarak"><Link to="/portal">Kembali ke portal</Link></p>
     </Halaman>
   )

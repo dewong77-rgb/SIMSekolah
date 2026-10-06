@@ -6,6 +6,7 @@ import Halaman from '../components/Halaman'
 import { useAuth } from '../auth/AuthContext'
 import { supabase } from '../lib/supabase'
 import { muatProfilSekolah } from '../lib/profilSekolah'
+import GambarSekolah from '../components/GambarSekolah'
 
 type Isi = Record<string, string>
 const TEKS = ['slogan', 'tentang', 'visi', 'misi', 'sejarah', 'akreditasi', 'tahun_berdiri', 'alamat_tampil', 'telepon', 'email', 'whatsapp', 'jam_layanan', 'lintang', 'bujur', 'website', 'instagram', 'facebook', 'youtube', 'tiktok', 'x_twitter'] as const
@@ -99,6 +100,7 @@ export default function ProfilSekolah() {
       {muat && <p className="catatan">Memuat...</p>}
       {galat && <p className="kartu" role="alert">{galat}</p>}
       {info && <p className="kartu" role="status">{info}</p>}
+      {!muat && npsn && <div className="jarak"><GambarSekolah npsn={npsn} /></div>}
       {!muat && (
         <form className="form" onSubmit={simpan} style={{ display: 'grid', gap: 16, maxWidth: 760 }}>
           <fieldset className="kartu form">

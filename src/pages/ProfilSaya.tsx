@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import KolomSandi from '../components/KolomSandi'
 import { Link } from 'react-router-dom'
 import Halaman from '../components/Halaman'
+import FotoSaya from '../components/FotoSaya'
 import { useAuth } from '../auth/AuthContext'
 import { supabase } from '../lib/supabase'
 
@@ -89,6 +90,8 @@ export default function ProfilSaya() {
           <dd>{session?.user.last_sign_in_at ? new Date(session.user.last_sign_in_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : '-'}</dd>
         </dl>
       </div>
+
+      <div className="jarak"><FotoSaya /></div>
 
       <div className="grid grid-2 jarak">
         <form className="kartu form" onSubmit={simpanProfil}>

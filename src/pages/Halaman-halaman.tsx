@@ -4,15 +4,18 @@ import { useKerjasama } from '../lib/hubin'
 import { bersihWilayah, nomorWa, useSekolah } from '../lib/profilSekolah'
 import { tanggalPanjang } from '../lib/format'
 import { useJurusan } from '../lib/dataPublik'
+import { urlPublik, useGaleri } from '../lib/gambar'
 import { Link } from 'react-router-dom'
 import { useState, type FormEvent } from 'react'
 import { cekDataAlumni, type HasilAlumni } from '../lib/alumni'
 
 export function Profil() {
-  const { data: d } = useSekolah()
+  const { data: d, sampulUrl } = useSekolah()
+  const galeri = useGaleri()
   const misi = (d?.misi ?? '').split('\n').map((x) => x.trim()).filter(Boolean)
   return (
     <Halaman judul="Profil Sekolah" lead={d?.slogan ?? 'Identitas, visi, dan misi sekolah.'}>
+      {sampulUrl && <img src={sampulUrl} alt="" style={{ width: '100%', maxHeight: 360, objectFit: 'cover', borderRadius: 12, marginBottom: 16 }} />}
       <div className="grid grid-2">
         <div className="kartu">
           <h3>Identitas</h3>
@@ -37,6 +40,19 @@ export function Profil() {
           {d?.tentang && <div className="kartu"><h3>Tentang sekolah</h3><p style={{ whiteSpace: 'pre-line' }}>{d.tentang}</p></div>}
           {d?.sejarah && <div className="kartu"><h3>Sejarah</h3><p style={{ whiteSpace: 'pre-line' }}>{d.sejarah}</p></div>}
         </div>
+      )}
+      {galeri.length > 0 && (
+        <section className="jarak" aria-label="Galeri sekolah">
+          <h3>Galeri</h3>
+          <div className="grid grid-3">
+            {galeri.map((g) => (
+              <figure key={g.path} style={{ margin: 0 }}>
+                <img src={urlPublik(g.path) ?? ''} alt={g.keterangan ?? ''} loading="lazy" style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', borderRadius: 10 }} />
+                {g.keterangan && <figcaption className="catatan">{g.keterangan}</figcaption>}
+              </figure>
+            ))}
+          </div>
+        </section>
       )}
       <div className="grid grid-3 jarak">
         <Segera nama="Guru dan tenaga kependidikan" />
