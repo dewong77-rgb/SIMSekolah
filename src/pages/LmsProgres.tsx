@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import Halaman from '../components/Halaman'
+import Ikon from '../components/Ikon'
 import { panggil, tglJam } from '../lib/rpc'
 import { biru, nilaiTeks } from './lmsUtil'
 
@@ -95,34 +96,50 @@ function TabelNilaiPertemuan({ daftar }: { daftar: NilaiPertemuanSiswa[] }) {
 export function KartuKelas({ k, tautan }: { k: KelasRingkas; tautan: boolean }) {
   const persen = k.sesi > 0 ? Math.round((k.hadir / k.sesi) * 100) : null
   const tugasSelesai = k.tugas.filter((t) => t.status !== 'belum').length
+  const pt = k.pertemuan ?? []
+  const bagian = ([
+    pt.length > 0 ? { id: 'nilai', label: 'Nilai pertemuan', n: pt.length } : null,
+    k.kuis.length > 0 ? { id: 'kuis', label: 'Kuis dan ulangan', n: k.kuis.length } : null,
+    k.tugas.length > 0 ? { id: 'tugas', label: 'Tugas', n: k.tugas.length } : null,
+  ].filter(Boolean)) as { id: string; label: string; n: number }[]
+  const [aktif, setAktif] = useState(bagian[0]?.id ?? '')
+  const buka = bagian.some((x) => x.id === aktif) ? aktif : bagian[0]?.id
   return (
-    <div className="kartu" style={{ marginTop: 8 }}>
+    <div className="kartu progres-kelas">
       <h3 style={{ marginTop: 0 }}>
         {tautan ? <Link to={`/portal/lms/${k.kelas_id}`}>{k.mapel}</Link> : k.mapel} <small>{k.rombel}, {k.guru}</small>
       </h3>
-      <div className="grid grid-3">
-        <div><small>Kehadiran</small><p style={{ margin: 0, fontSize: '1.2rem' }}>{persen === null ? '-' : `${persen}%`}</p>
-          <small>{k.hadir} hadir, {k.izin} izin, {k.sakit} sakit, {k.alpa} alpa dari {k.sesi} pertemuan</small></div>
-        <div><small>Materi dibaca</small><p style={{ margin: 0, fontSize: '1.2rem' }}>{k.materi_selesai} dari {k.materi_total}</p>
-          <small>Materi yang ditandai selesai</small></div>
-        <div><small>Tugas dikumpulkan</small><p style={{ margin: 0, fontSize: '1.2rem' }}>{tugasSelesai} dari {k.tugas.length}</p>
-          <small>Tugas yang sudah terbit</small></div>
+      <div className="pantau-ringkas progres-ringkas">
+        <div className="ringkas-kartu"><span className="ringkas-ikon"><Ikon nama="centang" ukuran={20} /></span><div><strong>{persen === null ? '-' : `${persen}%`}</strong><span>Hadir {k.hadir}, izin {k.izin}, sakit {k.sakit}, alpa {k.alpa} dari {k.sesi}</span></div></div>
+        <div className="ringkas-kartu"><span className="ringkas-ikon"><Ikon nama="buku" ukuran={20} /></span><div><strong>{k.materi_selesai} <small>dari {k.materi_total}</small></strong><span>Materi dibaca</span></div></div>
+        <div className="ringkas-kartu"><span className="ringkas-ikon"><Ikon nama="dokumen" ukuran={20} /></span><div><strong>{tugasSelesai} <small>dari {k.tugas.length}</small></strong><span>Tugas dikumpulkan</span></div></div>
       </div>
-      {(k.pertemuan ?? []).length > 0 && <TabelNilaiPertemuan daftar={k.pertemuan ?? []} />}
-      {k.kuis.length > 0 && (
-        <div className="tabel-bungkus jarak"><table>
-          <thead><tr><th>Kuis dan ulangan</th><th>Hasil</th></tr></thead>
-          <tbody>{k.kuis.map((q, n) => <tr key={n}><td>{q.judul}<br /><small>{labelJenis[q.jenis] ?? q.jenis}</small></td><td>{teksKuis(q)}</td></tr>)}</tbody>
-        </table></div>
-      )}
-      {k.tugas.length > 0 && (
-        <div className="tabel-bungkus jarak"><table>
-          <thead><tr><th>Tugas</th><th>Tenggat</th><th>Status</th><th>Nilai</th></tr></thead>
-          <tbody>{k.tugas.map((t, n) => (
-            <tr key={n}><td>{t.judul}</td><td>{t.tenggat ? tglJam(t.tenggat) : '-'}</td><td>{labelTugas[t.status] ?? t.status}</td>
-              <td>{t.nilai === null ? '-' : `${nilaiTeks(t.nilai)}/${t.nilai_maks}`}</td></tr>
-          ))}</tbody>
-        </table></div>
+      {bagian.length > 0 && (
+        <>
+          <div className="tab-bar" role="tablist" aria-label={`Rincian ${k.mapel}`}>
+            {bagian.map((x) => (
+              <button key={x.id} type="button" role="tab" aria-selected={buka === x.id} className={'tab-item' + (buka === x.id ? ' aktif' : '')} onClick={() => setAktif(x.id)}>
+                {x.label}<span className="angka">{x.n}</span>
+              </button>
+            ))}
+          </div>
+          {buka === 'nilai' && <TabelNilaiPertemuan daftar={pt} />}
+          {buka === 'kuis' && (
+            <div className="tabel-bungkus"><table>
+              <thead><tr><th>Kuis dan ulangan</th><th>Hasil</th></tr></thead>
+              <tbody>{k.kuis.map((q, n) => <tr key={n}><td>{q.judul}<br /><small>{labelJenis[q.jenis] ?? q.jenis}</small></td><td>{teksKuis(q)}</td></tr>)}</tbody>
+            </table></div>
+          )}
+          {buka === 'tugas' && (
+            <div className="tabel-bungkus"><table>
+              <thead><tr><th>Tugas</th><th>Tenggat</th><th>Status</th><th>Nilai</th></tr></thead>
+              <tbody>{k.tugas.map((t, n) => (
+                <tr key={n}><td>{t.judul}</td><td>{t.tenggat ? tglJam(t.tenggat) : '-'}</td><td>{labelTugas[t.status] ?? t.status}</td>
+                  <td>{t.nilai === null ? '-' : `${nilaiTeks(t.nilai)}/${t.nilai_maks}`}</td></tr>
+              ))}</tbody>
+            </table></div>
+          )}
+        </>
       )}
     </div>
   )
@@ -132,14 +149,27 @@ export function KartuKelas({ k, tautan }: { k: KelasRingkas; tautan: boolean }) 
 export function ProgresSaya() {
   const [data, setData] = useState<{ nama: string; kelas: KelasRingkas[] } | null>(null)
   const [galat, setGalat] = useState('')
+  const [pilih, setPilih] = useState<string | null>(null)
   useEffect(() => { panggil<{ nama: string; kelas: KelasRingkas[] }>('lms_progres_saya').then(setData).catch((e: Error) => setGalat(e.message)) }, [])
   return (
-    <Halaman judul="Progres saya" lead="Nilai tiap pertemuan, kehadiran, materi, kuis, dan tugas di semua mata pelajaran.">
+    <Halaman judul="Nilai dan progres" lead="Pilih mata pelajaran untuk melihat kehadiran, nilai pertemuan, kuis, dan tugas.">
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
       {!data && !galat && <p className="catatan">Memuat...</p>}
-      {data && data.kelas.length > 0 && <PengingatNilai />}
+      {data && data.kelas.length > 0 && (
+        <details className="kartu info-ringkas"><summary><Ikon nama="info" ukuran={16} /> Cara nilai pertemuan terbentuk</summary><PengingatNilai /></details>
+      )}
       {data && data.kelas.length === 0 && <div className="kartu"><p>Belum ada kelas ajar untuk rombel Anda.</p></div>}
-      {(data?.kelas ?? []).map((k) => <KartuKelas key={k.kelas_id} k={k} tautan />)}
+      {data && data.kelas.length > 1 && (
+        <div className="chip-bar" role="tablist" aria-label="Mata pelajaran">
+          {data.kelas.map((k) => (
+            <button key={k.kelas_id} type="button" role="tab" aria-selected={(pilih ?? data.kelas[0].kelas_id) === k.kelas_id} className={'chip' + ((pilih ?? data.kelas[0].kelas_id) === k.kelas_id ? ' aktif' : '')} onClick={() => setPilih(k.kelas_id)}>{k.mapel}</button>
+          ))}
+        </div>
+      )}
+      {data && data.kelas.length > 0 && (() => {
+        const k = data.kelas.find((x) => x.kelas_id === pilih) ?? data.kelas[0]
+        return <KartuKelas key={k.kelas_id} k={k} tautan />
+      })()}
       <p className="catatan jarak"><Link to="/portal">Kembali ke portal</Link></p>
     </Halaman>
   )

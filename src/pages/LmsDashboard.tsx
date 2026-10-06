@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import KelolaPertemuan, { AksesPertemuan } from './LmsKelola'
 import Halaman from '../components/Halaman'
+import Ikon from '../components/Ikon'
 import { panggil, tgl, tglJam } from '../lib/rpc'
 
 // Dashboard pembelajaran: satu pertemuan yang sama di semua kelas yang diampu, dipantau dan diabsen sekaligus.
@@ -79,6 +80,7 @@ export default function DashboardPembelajaran() {
   const [kode, setKode] = useState(true)
   const [langsung, setLangsung] = useState(true)
   const pilih = sp.get('p')
+  const [tab, setTab] = useState<'pantau' | 'absen' | 'atur' | 'forum'>('pantau')
   const [forum, setForum] = useState<Menunggu[]>([])
   const muatForum = useCallback(async () => { try { setForum(await panggil<Menunggu[]>('lms_forum_menunggu')) } catch { /* abaikan */ } }, [])
   useEffect(() => { void muatForum() }, [muatForum])
@@ -129,11 +131,27 @@ export default function DashboardPembelajaran() {
   const adaLatihan = k.some((x) => x.total_latihan > 0)
   const adaLembar = k.some((x) => x.total_lembar > 0)
 
+  const kelasAcuan = k.find((x) => x.pertemuan_id === pilih) ?? k[0]
+  const tabs: { id: typeof tab; label: string; ikon: string; angka?: number }[] = [
+    { id: 'pantau', label: 'Pantauan kelas', ikon: 'grafik' },
+    { id: 'absen', label: 'Absen kode', ikon: 'centang' },
+    { id: 'atur', label: 'Atur pertemuan', ikon: 'pena' },
+    { id: 'forum', label: 'Forum', ikon: 'surat', angka: forum.length },
+  ]
+
   return (
-    <Halaman judul="Pantau semua kelas" lead="Satu pertemuan, semua kelas yang Anda ampu. Aktif otomatis saat bahan bacaan dan lembar kerja ada. Kehadiran dan kemajuan siswa dipantau langsung.">
+    <Halaman judul="Pantau semua kelas" lead="Satu pertemuan, semua kelas yang Anda ampu. Kehadiran dan kemajuan siswa dipantau langsung.">
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
-      <div className="aksi">
-        <button type="button" className="tombol tombol-isi" onClick={() => setBaru(!baru)}>{baru ? 'Tutup formulir' : 'Pertemuan baru'}</button>
+      <div className="pantau-bar">
+        {daftar && daftar.length > 0 ? (
+          <label className="pantau-pilih">
+            <span>Pertemuan</span>
+            <select value={pilih ?? ''} onChange={(e) => { setSp({ p: e.target.value }); setTab('pantau') }}>
+              {daftar.map((g) => <option key={g.pertemuan_id} value={g.pertemuan_id}>{g.judul} ({g.mapel}, {tgl(g.tanggal)}, {g.jumlah_kelas} kelas)</option>)}
+            </select>
+          </label>
+        ) : <span className="catatan">Belum ada pertemuan.</span>}
+        <button type="button" className="tombol tombol-isi" onClick={() => setBaru(!baru)}><Ikon nama={baru ? 'tutup' : 'tambah'} ukuran={16} /> {baru ? 'Tutup' : 'Pertemuan baru'}</button>
       </div>
       {baru && (
         <form className="kartu form jarak" onSubmit={buatBaru}>
@@ -181,50 +199,28 @@ export default function DashboardPembelajaran() {
           <div className="aksi"><button className="tombol tombol-isi" disabled={sibuk || fb.kelas.length === 0}>{sibuk ? 'Membuat...' : 'Buat dan isi pertemuan'}</button></div>
         </form>
       )}
-      {daftar && daftar.length === 0 && <div className="kartu"><p>Belum ada pertemuan. Buat pertemuan di Ruang belajar, lalu bagikan ke semua kelas.</p><p><Link to="/portal/lms">Ke Ruang belajar</Link></p></div>}
-      {daftar && daftar.length > 0 && (
-        <div className="kartu form">
-          <label>Pertemuan
-            <select value={pilih ?? ''} onChange={(e) => setSp({ p: e.target.value })}>
-              {daftar.map((g) => <option key={g.pertemuan_id} value={g.pertemuan_id}>{g.judul} ({g.mapel}, {tgl(g.tanggal)}, {g.jumlah_kelas} kelas)</option>)}
-            </select>
-          </label>
-        </div>
-      )}
+      {daftar && daftar.length === 0 && <div className="kartu"><p>Belum ada pertemuan. Buat pertemuan dengan tombol Pertemuan baru di atas, lalu isi bahan bacaan dan lembar kerjanya.</p><p><Link to="/portal/lms">Ke Kelas saya</Link></p></div>}
 
       {d && (
         <>
-          {k.length > 0 && pilih && <AksesPertemuan key={`a${pilih}`} pertemuanId={pilih} status={k.some((x) => x.status === 'terbit') ? 'terbit' : 'draf'} ditutup={k.filter((x) => x.status === 'terbit').every((x) => x.ditutup)} bukaSampai={k.find((x) => x.status === 'terbit')?.buka_sampai ?? null} setelah={muat} />}
-          {k.length > 0 && pilih && <KelolaPertemuan key={pilih} kelasId={(k.find((x) => x.pertemuan_id === pilih) ?? k[0]).kelas_id} pertemuanId={pilih} setelahUbah={async () => { const g = await panggil<Grup[]>('lms_dashboard_daftar'); setDaftar(g); await muat() }} setelahHapus={async () => { const g = await panggil<Grup[]>('lms_dashboard_daftar'); setDaftar(g); setD(null); setSp(g.length > 0 ? { p: g[0].pertemuan_id } : {}, { replace: true }) }} />}
-          {k.length > 0 && <div className="aksi jarak"><Link className="tombol" style={{ color: 'var(--warna-utama)' }} to={`/portal/lms/${(k.find((x) => x.pertemuan_id === pilih) ?? k[0]).kelas_id}/pertemuan/${pilih ?? k[0].pertemuan_id}`}>Atur isi pertemuan ini (materi, latihan, forum)</Link></div>}
-          <details className="kartu jarak">
-            <summary><strong>Absen dengan kode (opsional)</strong></summary>
-            <p className="catatan">Kehadiran sudah tercatat otomatis saat siswa membaca, mengumpulkan lembar kerja, atau menulis di forum. Kode hanya perlu bila Anda ingin absen tatap muka.</p>
-            {terbuka.length > 0 ? (
-              <>
-                <p>Absen dibuka di {terbuka.length} dari {k.length} kelas{tutupAktif ? <>, sampai <strong>{tglJam(tutupAktif)}</strong></> : null}.</p>
-                {kodeAktif && <p>Kode absen untuk semua kelas: <strong style={{ fontSize: '2.4rem', letterSpacing: '.25em' }}>{kodeAktif}</strong><br /><span className="catatan">Tulis di papan. Satu kode berlaku di semua kelas.</span></p>}
-                <div className="aksi"><button className="tombol tombol-isi" disabled={sibuk} onClick={() => void tutup()}>Tutup absen semua kelas</button></div>
-              </>
-            ) : (
-              <div className="form">
-                <div className="grid grid-2">
-                  <label>Durasi (menit)<input type="number" min={1} max={240} value={menit} onChange={(e) => setMenit(Number(e.target.value))} /></label>
-                  <label className="baris-centang" style={{ alignSelf: 'end' }}><input type="checkbox" checked={kode} onChange={(e) => setKode(e.target.checked)} /> Pakai kode 4 digit</label>
-                </div>
-                <div className="aksi"><button className="tombol tombol-isi" disabled={sibuk} onClick={() => void buka()}>Buka absen semua kelas</button></div>
-              </div>
-            )}
-            {pesan && <p className="catatan" role="status">{pesan}</p>}
-          </details>
-
-          <div className="grid grid-3 jarak">
-            <div className="kartu"><small>Hadir (otomatis dari aktivitas)</small><p style={{ margin: 0, fontSize: '1.4rem' }}>{jml((x) => x.hadir + x.izin_sakit)} dari {total}</p><small>{jml((x) => x.belum)} belum hadir</small></div>
-            <div className="kartu"><small>Materi dibaca tuntas</small><p style={{ margin: 0, fontSize: '1.4rem' }}>{adaMateri ? `${jml((x) => x.materi_tuntas)} siswa` : '-'}</p><small>{adaMateri ? `${jml((x) => x.materi_mulai)} sudah mulai membaca` : 'Belum ada materi'}</small></div>
-            <div className="kartu"><small>Latihan selesai</small><p style={{ margin: 0, fontSize: '1.4rem' }}>{adaLatihan ? `${jml((x) => x.latihan_selesai)} siswa` : '-'}</p><small>{adaLembar ? `${jml((x) => x.lembar_kumpul)} lembar kerja terkumpul, ` : ''}{jml((x) => x.forum_aktif)} aktif di forum</small></div>
+          <div className="pantau-ringkas">
+            <div className="ringkas-kartu"><span className="ringkas-ikon"><Ikon nama="centang" ukuran={20} /></span><div><strong>{jml((x) => x.hadir + x.izin_sakit)} <small>dari {total}</small></strong><span>Sudah hadir, {jml((x) => x.belum)} belum</span></div></div>
+            <div className="ringkas-kartu"><span className="ringkas-ikon"><Ikon nama="buku" ukuran={20} /></span><div><strong>{adaMateri ? jml((x) => x.materi_tuntas) : '-'} <small>siswa</small></strong><span>{adaMateri ? `Materi tuntas, ${jml((x) => x.materi_mulai)} sudah mulai` : 'Belum ada materi'}</span></div></div>
+            <div className="ringkas-kartu"><span className="ringkas-ikon"><Ikon nama="dokumen" ukuran={20} /></span><div><strong>{adaLembar ? jml((x) => x.lembar_kumpul) : '-'} <small>lembar</small></strong><span>Lembar kerja terkumpul</span></div></div>
+            <div className="ringkas-kartu"><span className="ringkas-ikon"><Ikon nama="surat" ukuran={20} /></span><div><strong>{jml((x) => x.forum_aktif)} <small>siswa</small></strong><span>Aktif di forum{adaLatihan ? `, ${jml((x) => x.latihan_selesai)} selesai latihan` : ''}</span></div></div>
           </div>
 
-          <div className="aksi jarak"><label className="baris-centang"><input type="checkbox" checked={langsung} onChange={(e) => setLangsung(e.target.checked)} /> Pantau langsung (segar tiap 15 detik)</label></div>
+          <div className="tab-bar" role="tablist" aria-label="Bagian pantauan">
+            {tabs.map((t) => (
+              <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} className={'tab-item' + (tab === t.id ? ' aktif' : '')} onClick={() => setTab(t.id)}>
+                <Ikon nama={t.ikon} ukuran={16} /> {t.label}{t.angka ? <span className="angka">{t.angka}</span> : null}
+              </button>
+            ))}
+            <label className="tab-langsung baris-centang"><input type="checkbox" checked={langsung} onChange={(e) => setLangsung(e.target.checked)} /> Segar otomatis</label>
+          </div>
+
+          {tab === 'pantau' && (
+            <div role="tabpanel">
           <div className="tabel-bungkus">
             <table>
               <thead><tr><th>Kelas</th><th>Akses</th><th>Belum hadir</th><th>Materi dibaca</th><th>Latihan</th><th>Lembar kerja</th><th>Forum</th></tr></thead>
@@ -245,11 +241,47 @@ export default function DashboardPembelajaran() {
               </tbody>
             </table>
           </div>
-          <p className="catatan">Kelas dengan judul pertemuan yang sama dihitung satu kelompok. Klik nama kelas untuk melihat siswa satu per satu.</p>
+              <p className="catatan">Klik nama kelas untuk melihat siswa satu per satu.</p>
+            </div>
+          )}
+          {tab === 'absen' && (
+            <div role="tabpanel">
+          <div className="kartu">
+            <h3>Absen dengan kode (opsional)</h3>
+            <p className="catatan">Kehadiran sudah tercatat otomatis saat siswa membaca, mengumpulkan lembar kerja, atau menulis di forum. Kode hanya perlu bila Anda ingin absen tatap muka.</p>
+            {terbuka.length > 0 ? (
+              <>
+                <p>Absen dibuka di {terbuka.length} dari {k.length} kelas{tutupAktif ? <>, sampai <strong>{tglJam(tutupAktif)}</strong></> : null}.</p>
+                {kodeAktif && <p>Kode absen untuk semua kelas: <strong style={{ fontSize: '2.4rem', letterSpacing: '.25em' }}>{kodeAktif}</strong><br /><span className="catatan">Tulis di papan. Satu kode berlaku di semua kelas.</span></p>}
+                <div className="aksi"><button className="tombol tombol-isi" disabled={sibuk} onClick={() => void tutup()}>Tutup absen semua kelas</button></div>
+              </>
+            ) : (
+              <div className="form">
+                <div className="grid grid-2">
+                  <label>Durasi (menit)<input type="number" min={1} max={240} value={menit} onChange={(e) => setMenit(Number(e.target.value))} /></label>
+                  <label className="baris-centang" style={{ alignSelf: 'end' }}><input type="checkbox" checked={kode} onChange={(e) => setKode(e.target.checked)} /> Pakai kode 4 digit</label>
+                </div>
+                <div className="aksi"><button className="tombol tombol-isi" disabled={sibuk} onClick={() => void buka()}>Buka absen semua kelas</button></div>
+              </div>
+            )}
+            {pesan && <p className="catatan" role="status">{pesan}</p>}
+          </div>
+
+            </div>
+          )}
+          {tab === 'atur' && k.length > 0 && pilih && kelasAcuan && (
+            <div role="tabpanel">
+              <AksesPertemuan key={`a${pilih}`} pertemuanId={pilih} status={k.some((x) => x.status === 'terbit') ? 'terbit' : 'draf'} ditutup={k.filter((x) => x.status === 'terbit').every((x) => x.ditutup)} bukaSampai={k.find((x) => x.status === 'terbit')?.buka_sampai ?? null} setelah={muat} />
+              <KelolaPertemuan key={pilih} kelasId={kelasAcuan.kelas_id} pertemuanId={pilih} setelahUbah={async () => { const g = await panggil<Grup[]>('lms_dashboard_daftar'); setDaftar(g); await muat() }} setelahHapus={async () => { const g = await panggil<Grup[]>('lms_dashboard_daftar'); setDaftar(g); setD(null); setSp(g.length > 0 ? { p: g[0].pertemuan_id } : {}, { replace: true }) }} />
+              <div className="aksi jarak"><Link className="tombol" style={{ color: 'var(--warna-utama)' }} to={`/portal/lms/${kelasAcuan.kelas_id}/pertemuan/${pilih}`}>Atur isi pertemuan ini (materi, latihan, forum)</Link></div>
+            </div>
+          )}
         </>
       )}
-      <div className="kartu jarak">
-        <h3 style={{ marginTop: 0 }}>Forum menunggu balasan guru ({forum.length})</h3>
+
+      {tab === 'forum' && (
+        <div role="tabpanel" className="kartu">
+          <h3 style={{ marginTop: 0 }}>Forum menunggu balasan guru ({forum.length})</h3>
         {forum.length === 0 ? <p className="catatan">Semua kiriman siswa sudah dibalas.</p> : (
           <div className="tabel-bungkus">
             <table>
@@ -267,7 +299,8 @@ export default function DashboardPembelajaran() {
             </table>
           </div>
         )}
-      </div>
+        </div>
+      )}
     </Halaman>
   )
 }

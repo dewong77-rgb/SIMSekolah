@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Halaman from '../components/Halaman'
+import Ikon from '../components/Ikon'
 import { panggil, tgl, tglJam } from '../lib/rpc'
 import { htmlAman } from '../lib/dokumen'
 import { LembarSiswa, LembarPratinjau } from './LmsLembar'
@@ -178,18 +179,29 @@ export function PertemuanSiswa({ kelasId, id }: { kelasId: string; id: string })
   return (
     <Halaman judul={p?.judul ?? 'Pertemuan'} lead={kelas && p ? `${kelas.mapel} ${kelas.rombel}, ${tgl(p.tanggal)}` : undefined}>
       {galat && <p className="catatan galat" role="alert">{galat}</p>}
+      {!butuhAbsen && wajibItem.length > 0 && (
+        <div className="belajar-progres" role="status">
+          <div className="belajar-progres-teks">
+            <strong>{selesaiSemua ? 'Semua tahap wajib selesai' : `${wajibItem.filter((x) => x.selesai).length} dari ${wajibItem.length} tahap wajib selesai`}</strong>
+            {selesaiSemua && nl?.nilai != null && <span>Nilai pertemuan <strong>{nl.nilai}</strong></span>}
+          </div>
+          <div className="belajar-bar" aria-hidden="true"><div style={{ width: `${Math.round((wajibItem.filter((x) => x.selesai).length / wajibItem.length) * 100)}%` }} /></div>
+        </div>
+      )}
       {selesaiSemua && (
         <div className="kartu hasil">
-          <strong>Tiga tahap wajib selesai.</strong>{' '}
           {nl?.nilai != null
             ? <>Nilai pertemuan: <strong>{nl.nilai}</strong> (KKTP {nl.kktp ?? 70}{(nl.bonus ?? 0) > 0 ? ` + bonus ${nl.bonus}` : ''}).</>
-            : 'Nilai keluar otomatis sebesar KKTP begitu tiga tahap wajib selesai.'}
+            : 'Nilai keluar otomatis sebesar KKTP begitu tahap wajib selesai.'}
           {' '}Kuis (maksimal +10) dan pertanyaan atau tanggapan di forum (+2 per tulisan, maksimal +5) menambah nilai ini.
         </div>
       )}
-      {p?.tujuan && <div className="kartu"><small>Tujuan belajar</small><p style={{ marginBottom: 0, whiteSpace: 'pre-line' }}>{p.tujuan}</p></div>}
-      <KartuKriteria pertemuanId={id} nilai={nl?.nilai ?? null} />
-      {!selesaiSemua && <PengingatNilai ringkas />}
+      <details className="kartu info-ringkas">
+        <summary><Ikon nama="info" ukuran={16} /> Tujuan, kriteria, dan cara penilaian</summary>
+        {p?.tujuan && <div><small>Tujuan belajar</small><p style={{ whiteSpace: 'pre-line' }}>{p.tujuan}</p></div>}
+        <KartuKriteria pertemuanId={id} nilai={nl?.nilai ?? null} />
+        <PengingatNilai ringkas />
+      </details>
 
       {!butuhAbsen && !selesaiSemua && wajibItem.length > 0 && (() => {
         const next = wajibItem.find((x) => !x.selesai) ?? wajibItem[0]
