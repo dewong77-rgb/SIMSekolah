@@ -11,7 +11,7 @@ const peranMasuk: { id: PeranMasuk; nama: string; usernameLabel: string; petunju
   { id: 'guru', nama: 'Guru dan staf', usernameLabel: 'NIP (atau NUPTK)', petunjuk: 'Pertama kali masuk? Password awal adalah NPSN sekolah. Anda akan diminta menggantinya.' },
   { id: 'siswa', nama: 'Siswa', usernameLabel: 'NISN', petunjuk: 'Pertama kali masuk? Password awal adalah tanggal lahir dengan format DDMMYYYY, misalnya 17082009. Anda akan diminta menggantinya.' },
   { id: 'alumni', nama: 'Alumni', usernameLabel: 'NISN', petunjuk: 'Pertama kali masuk? Password awal adalah tanggal lahir dengan format DDMMYYYY. Anda akan diminta menggantinya.' },
-  { id: 'orang_tua', nama: 'Orang tua', usernameLabel: 'NIK ibu (16 digit)', petunjuk: 'Pertama kali masuk? Username adalah NIK ibu yang tercatat di data sekolah. Password awal adalah NPSN sekolah. Anda akan diminta menggantinya. Bila NIK tidak bisa dipakai, hubungi admin sekolah.' },
+  { id: 'orang_tua', nama: 'Orang tua', usernameLabel: 'NIK ibu (16 digit)', petunjuk: 'Username adalah NIK ibu yang tercatat di data sekolah. Bila tidak bisa dipakai, hubungi admin sekolah.' },
   { id: 'admin', nama: 'Admin', usernameLabel: 'Username', petunjuk: 'Username dan password admin diatur dari menu Profil setelah masuk pertama dengan tautan email.' },
 ]
 
@@ -22,7 +22,7 @@ const formatAwal: Partial<Record<PeranMasuk, string>> = {
   siswa: 'Belum pernah ganti password? Isi tanggal lahir DDMMYYYY, contoh 17082009.',
   alumni: 'Belum pernah ganti password? Isi tanggal lahir DDMMYYYY, contoh 17082009.',
   guru: 'Belum pernah ganti password? Isi NPSN sekolah.',
-  orang_tua: 'Belum pernah ganti password? Isi NPSN sekolah.',
+  orang_tua: 'Belum pernah ganti password? Isi NPSN sekolah. Username memakai NIK ibu di data sekolah.',
 }
 
 export default function Masuk() {
@@ -107,14 +107,13 @@ export default function Masuk() {
 
   return (
     <Halaman judul="Masuk" lead="Pilih peran Anda, lalu masuk dengan username dan password.">
-      <div className="kartu form" style={{ maxWidth: 520 }}>
-        <div role="tablist" aria-label="Masuk sebagai" className="pilih-peran">
-          {peranMasuk.map((p) => (
-            <button key={p.id} type="button" role="tab" aria-selected={peran === p.id} className={peran === p.id ? 'aktif' : ''} onClick={() => pilih(p.id)}>
-              {p.nama}
-            </button>
-          ))}
-        </div>
+      <div className="kartu form" style={{ maxWidth: 440 }}>
+        <label className="pilih-peran-label">
+          Masuk sebagai
+          <select value={peran} onChange={(e) => pilih(e.target.value as PeranMasuk)} disabled={status === 'kirim'}>
+            {peranMasuk.map((p) => <option key={p.id} value={p.id}>{p.nama}</option>)}
+          </select>
+        </label>
 
         {(
           <form className="form" onSubmit={masuk}>
@@ -130,7 +129,7 @@ export default function Masuk() {
             </label>
             <KolomSandi
               label="Password" required autoComplete="current-password" value={sandi} onChange={(e) => setSandi(e.target.value)}
-              disabled={status === 'kirim'} petunjuk={formatAwal[peran]}
+              disabled={status === 'kirim'} petunjuk={formatAwal[peran] ?? info.petunjuk}
             />
             <button className="tombol tombol-isi" disabled={status === 'kirim' || !username || !sandi}>
               {status === 'kirim' ? 'Memeriksa...' : `Masuk sebagai ${info.nama.toLowerCase()}`}
@@ -152,14 +151,13 @@ export default function Masuk() {
                 </div>
               )}
             </div>
-            <p className="catatan">{info.petunjuk}</p>
           </form>
         )}
 
         {adaTautanEmail.includes(peran) && (
           <div>
-            <button type="button" className="tombol" style={{ color: 'var(--warna-utama)' }} aria-expanded={bukaEmail} onClick={() => setBukaEmail(!bukaEmail)}>
-              {bukaEmail ? 'Tutup' : 'Masuk dengan tautan email'}
+            <button type="button" className="tautan-teks" aria-expanded={bukaEmail} onClick={() => setBukaEmail(!bukaEmail)}>
+              {bukaEmail ? 'Tutup masuk dengan email' : 'Atau masuk dengan tautan email'}
             </button>
             {bukaEmail && <div className="jarak">{formEmail}</div>}
           </div>
