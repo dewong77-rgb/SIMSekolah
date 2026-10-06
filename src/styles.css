@@ -842,6 +842,26 @@ tbody tr:hover td { background: #f8fafd; }
   .pantau-bar .tombol { width: 100%; justify-content: center; }
 }
 
+/* Tampilan siswa: progres, chip mapel, info ringkas */
+.chip-bar { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 10px; margin-bottom: 4px; -webkit-overflow-scrolling: touch; }
+.chip { flex: none; min-height: 40px; padding: 0 16px; border: 1px solid var(--garis); border-radius: 99px; background: #fff; color: var(--teks); font: inherit; font-weight: 600; cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
+.chip:hover { border-color: var(--warna-utama); }
+.chip.aktif { background: var(--warna-utama); border-color: var(--warna-utama); color: #fff; box-shadow: 0 2px 8px rgba(26, 62, 111, .3); }
+.info-ringkas { margin-bottom: 12px; padding: 12px 16px; }
+.info-ringkas > summary { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; color: var(--warna-utama); list-style: none; }
+.info-ringkas > summary::-webkit-details-marker { display: none; }
+.info-ringkas > summary::after { content: '\25BE'; margin-left: auto; transition: transform .2s; }
+.info-ringkas[open] > summary::after { transform: rotate(180deg); }
+.info-ringkas > :not(summary) { margin-top: 10px; }
+.info-ringkas .kartu { box-shadow: none; }
+.belajar-progres { margin-bottom: 12px; padding: 12px 16px; background: #fff; border: 1px solid var(--garis); border-radius: var(--radius); box-shadow: var(--bayangan-1); }
+.belajar-progres-teks { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.belajar-bar { height: 8px; border-radius: 99px; background: #e6e9ef; overflow: hidden; }
+.belajar-bar > div { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #2f6fc0, var(--warna-utama)); transition: width .4s var(--ease); }
+.progres-ringkas { grid-template-columns: repeat(3, 1fr); }
+.progres-kelas .tabel-bungkus { margin-top: 0; }
+@media (max-width: 560px) { .progres-ringkas { grid-template-columns: 1fr; } .progres-ringkas .ringkas-kartu { flex-direction: row; align-items: center; } }
+
 /* Animasi halus: isi halaman muncul naik, kartu berurutan */
 @keyframes muncul { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @keyframes naik { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
