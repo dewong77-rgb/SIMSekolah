@@ -1128,3 +1128,57 @@ a.bt-tag:hover, button.bt-tag:hover, .bt-tag.aktif { background: var(--warna-uta
 .bt-isi figure img { display: block; max-width: 100%; height: auto; border-radius: 4px; }
 .bt-isi figure.ta-tengah img { margin: 0 auto; }
 .bt-isi figcaption { font-family: system-ui, sans-serif; font-size: .82rem; color: var(--teks-lembut); padding-top: 6px; }
+
+/* Beranda: judul bagian berlabel, skeleton, kartu unggulan, kartu jurusan */
+.judul-beranda { align-items: flex-end; margin-bottom: 20px; }
+.judul-label { display: block; margin-bottom: 4px; font-size: .74rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #9a6400; }
+.judul-beranda h2 { font-size: clamp(1.5rem, 3vw, 1.9rem); }
+.judul-tautan { display: inline-flex; align-items: center; gap: 4px; padding: 8px 14px; border-radius: 99px; background: #eef3fb; color: var(--warna-utama); font-weight: 600; font-size: .9rem; text-decoration: none; white-space: nowrap; transition: background .15s, gap .15s var(--ease); }
+.judul-tautan:hover { background: #e0e9f6; gap: 8px; }
+.bagian { padding-top: 56px; }
+
+@keyframes kilau { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+.rangka i, .rangka-angka { display: block; border-radius: 8px; background: linear-gradient(90deg, #eef2f7 25%, #f8fafc 50%, #eef2f7 75%); background-size: 200% 100%; animation: kilau 1.4s linear infinite; }
+.rangka { display: grid; gap: 10px; min-height: 170px; align-content: start; }
+.rangka i:nth-child(1) { width: 44px; height: 44px; border-radius: 12px; }
+.rangka i:nth-child(2) { height: 16px; width: 70%; }
+.rangka i:nth-child(3) { height: 12px; width: 90%; }
+.stat strong.rangka-angka { width: 90px; height: 36px; margin: 4px 0 6px; background: linear-gradient(90deg, #eef2f7 25%, #f8fafc 50%, #eef2f7 75%) 0 0 / 200% 100%; -webkit-background-clip: border-box; background-clip: border-box; }
+
+.kartu-jurusan { overflow: hidden; display: flex; flex-direction: column; }
+.kartu-jurusan::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: linear-gradient(180deg, var(--warna-aksen), #f3c36b); opacity: .0; transition: opacity .2s; }
+.kartu-jurusan:hover::before { opacity: 1; }
+.jurusan-no { font-size: 2.2rem; font-weight: 800; line-height: 1; letter-spacing: -.04em; color: #dbe6f5; margin-bottom: 10px; transition: color .2s; }
+.kartu-jurusan:hover .jurusan-no { color: var(--warna-aksen); }
+.kartu-jurusan p { color: var(--teks-lembut); }
+.chip-prospek { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: auto 0 0; padding: 10px 0 14px; }
+.chip-prospek li { padding: 3px 10px; border-radius: 99px; background: var(--latar-lembut); border: 1px solid var(--garis); font-size: .76rem; font-weight: 600; color: var(--teks-lembut); }
+
+/* Layanan: kartu pertama (portal) melebar dan berwarna */
+.grid-layanan .kartu p { color: var(--teks-lembut); font-size: .95rem; }
+.grid-layanan .kartu-unggul { grid-column: span 2; background: linear-gradient(135deg, #1d4a85, var(--warna-utama-tua)); border-color: transparent; color: #fff; padding: 28px; overflow: hidden; }
+.grid-layanan .kartu-unggul::before { content: ''; position: absolute; right: -60px; top: -60px; width: 220px; height: 220px; border-radius: 50%; background: radial-gradient(circle, rgba(232, 160, 32, .35), transparent 70%); pointer-events: none; }
+.grid-layanan .kartu-unggul h3 { color: #fff; font-size: 1.35rem; }
+.grid-layanan .kartu-unggul p { color: rgba(255, 255, 255, .85); max-width: 46ch; font-size: 1rem; }
+.grid-layanan .kartu-unggul .kartu-ikon { background: rgba(255, 255, 255, .14); color: #fff; }
+.grid-layanan .kartu-unggul::after { color: var(--warna-aksen) !important; }
+.grid-layanan .kartu-unggul:hover { border-color: transparent; }
+.grid-layanan .kartu-unggul:hover .kartu-ikon { background: var(--warna-aksen); color: #2b1d00; }
+
+.kosong-berita { text-align: center; color: var(--teks-lembut); padding: 36px 22px; border-style: dashed; box-shadow: none; }
+
+/* Ajakan */
+.ajakan { position: relative; overflow: hidden; }
+.ajakan::before { content: ''; position: absolute; right: -80px; top: -120px; width: 360px; height: 360px; border-radius: 50%; background: radial-gradient(circle, rgba(255, 255, 255, .55), transparent 70%); pointer-events: none; }
+.ajakan-isi { position: relative; }
+.ajakan .judul-label { color: #8a5a00; }
+
+@media (min-width: 901px) { .grid-layanan .kartu:last-child { grid-column: span 2; } }
+@media (max-width: 900px) { .grid-layanan .kartu-unggul { grid-column: span 2; } }
+@media (max-width: 600px) {
+  .grid-layanan .kartu-unggul { grid-column: auto; padding: 22px; }
+  .judul-beranda { align-items: flex-start; flex-direction: column; gap: 10px; }
+  .bagian { padding-top: 44px; }
+  .stat-melayang { margin-top: -72px; }
+}
+@media (prefers-reduced-motion: reduce) { .rangka i, .rangka-angka { animation: none; } }
