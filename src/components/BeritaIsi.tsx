@@ -1,6 +1,7 @@
-// Menampilkan isi berita dari teks biasa. Tidak memakai HTML mentah, jadi aman dari penyisipan skrip.
+// Menampilkan isi berita. Isi HTML disaring dulu (lib/isiBerita); isi lama berupa teks ringan dirender langsung tanpa HTML mentah.
 import { Fragment, type ReactNode } from 'react'
 import { gambarAman, uraiIsi, type Foto } from '../lib/berita'
+import { adalahHtml, bersihkanHtml } from '../lib/isiBerita'
 
 /** **tebal** dan *miring* di dalam satu baris. */
 function Sebaris({ teks }: { teks: string }) {
@@ -22,6 +23,7 @@ const Baris = ({ teks }: { teks: string }) => (
 )
 
 export default function BeritaIsi({ isi, foto, kredit }: { isi: string; foto: Foto[]; kredit?: string | null }) {
+  if (adalahHtml(isi)) return <div className="bt-isi" dangerouslySetInnerHTML={{ __html: bersihkanHtml(isi) }} />
   return (
     <div className="bt-isi">
       {uraiIsi(isi).map((b, i) => {

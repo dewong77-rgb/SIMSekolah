@@ -1105,3 +1105,26 @@ a.bt-tag:hover, button.bt-tag:hover, .bt-tag.aktif { background: var(--warna-uta
 .kosong-info { background: var(--latar-lembut); border-style: dashed; }
 @media (max-width: 900px) { .as-ringkas { grid-template-columns: repeat(2, 1fr); } .alur-daftar { grid-template-columns: 1fr 1fr; } }
 @media (prefers-reduced-motion: reduce) { .cbt-status.aktif .cbt-status-titik { animation: none; } }
+
+/* penyunting visual dan isi HTML */
+.ed-wys { border: 1px solid var(--garis); border-radius: 10px; background: #fff; }
+.ed-wys .ed-alat { position: sticky; top: 68px; z-index: 4; border-radius: 10px 10px 0 0; align-items: center; border-bottom: 1px solid var(--garis); }
+.ed-grup { display: inline-flex; gap: 2px; padding-right: 6px; margin-right: 2px; border-right: 1px solid var(--garis); }
+.ed-grup:last-child { border-right: 0; }
+.ed-wys .ed-alat button.aktif { background: var(--warna-utama); color: #fff; border-color: var(--warna-utama); }
+.ed-wys .ed-alat button { min-width: 34px; }
+.ed-wys .ed-isi { border: 0; min-height: 360px; padding: 18px 20px; outline: none; border-radius: 0 0 10px 10px; resize: none; }
+.ed-wys .ed-isi:focus { box-shadow: inset 0 0 0 2px rgba(26,62,111,.25); }
+.ed-wys .ed-isi:empty::before, .ed-wys .ed-isi > p:only-child:has(> br:only-child)::before { content: attr(data-kosong); color: var(--teks-lembut); pointer-events: none; position: absolute; }
+.ed-wys .ed-isi figure { user-select: all; }
+.ed-sisip { display: flex !important; grid-auto-flow: column; align-items: center; gap: 8px; }
+.ed-sisip select { width: auto !important; max-width: 100%; }
+.bt-isi .ta-tengah { text-align: center; } .bt-isi .ta-kanan { text-align: right; } .bt-isi .ta-penuh { text-align: justify; } .bt-isi .ta-kiri { text-align: left; }
+.bt-isi ol { margin: 0 0 1.15em; padding-left: 1.5em; }
+.bt-isi h3 { font-family: system-ui, sans-serif; font-size: 1.08rem; margin: 1.4em 0 .4em; color: var(--warna-utama); }
+.bt-isi a { color: var(--warna-utama); text-underline-offset: 2px; }
+.bt-isi hr { border: 0; border-top: 1px solid var(--garis); margin: 1.8em 0; }
+.bt-isi figure { margin: 1.4em 0; }
+.bt-isi figure img { display: block; max-width: 100%; height: auto; border-radius: 4px; }
+.bt-isi figure.ta-tengah img { margin: 0 auto; }
+.bt-isi figcaption { font-family: system-ui, sans-serif; font-size: .82rem; color: var(--teks-lembut); padding-top: 6px; }

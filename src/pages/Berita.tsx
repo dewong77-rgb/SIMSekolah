@@ -226,7 +226,7 @@ export function BeritaBaca() {
   }
   const sampul = urlGambarBerita(d)
   const dipakaiDiIsi = new Set([...d.isi.matchAll(/\[foto:(\d{1,2})\]/gi)].map((m) => Number(m[1])))
-  const sisaFoto = d.foto.filter((f, i) => !dipakaiDiIsi.has(i + 1) && f.url !== sampul && gambarAman(f.url))
+  const sisaFoto = d.foto.filter((f, i) => !dipakaiDiIsi.has(i + 1) && !d.isi.includes(f.url) && f.url !== sampul && gambarAman(f.url))
   const penulis = d.byline || 'Redaksi'
 
   return (
