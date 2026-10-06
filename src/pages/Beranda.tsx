@@ -31,7 +31,6 @@ export default function Beranda() {
     { to: '/alumni', ikon: 'perisai', judul: 'Cek Data Alumni', isi: 'Periksa data kelulusan dengan NISN dan tanggal lahir.' },
     { to: '/alumni/tracer', ikon: 'grafik', judul: 'Tracer Study', isi: 'Alumni melaporkan kelanjutan studi dan pekerjaan untuk perbaikan pembelajaran.' },
     { to: '/struktur-organisasi', ikon: 'kelompok', judul: 'Struktur Organisasi', isi: 'Kepala sekolah, wakil kepala, dan pembagian tugas.' },
-    { to: '/ppdb', ikon: 'sekolah', judul: 'Pendaftaran Siswa Baru', isi: 'Informasi dan alur pendaftaran peserta didik baru.' },
   ]
   return (
     <>

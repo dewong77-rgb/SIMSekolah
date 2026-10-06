@@ -24,6 +24,7 @@ export const menuUtama: ItemMenu[] = [
       { label: 'LMS', to: '/lms' },
     ],
   },
+  { label: 'Asesmen CBT', to: '/asesmen' },
   {
     label: 'Industri dan Alumni',
     anak: [
