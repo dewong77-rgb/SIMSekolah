@@ -7,7 +7,7 @@ export default function PanduanLms() {
   const { profil } = useAuth()
   const siswa = profil?.peran === 'siswa'
   return (
-    <Halaman judul="Panduan singkat ruang belajar" lead={siswa ? 'Langkah mengikuti pertemuan dari HP.' : 'Urutan menyiapkan dan menjalankan satu pertemuan.'}>
+    <Halaman judul="Panduan singkat kelas daring" lead={siswa ? 'Langkah mengikuti pertemuan dari HP.' : 'Urutan menyiapkan dan menjalankan satu pertemuan.'}>
       {siswa ? (
         <ol className="panduan">
           <li><strong>Masuk dan buka kelas.</strong> Halaman utama menampilkan pertemuan yang perlu Anda kerjakan sekarang untuk tiap mata pelajaran. Ketuk Mulai belajar.</li>
@@ -18,8 +18,8 @@ export default function PanduanLms() {
         </ol>
       ) : (
         <ol className="panduan">
-          <li><strong>Buat kelas ajar</strong> dari tombol di halaman Ruang belajar (pilih rombel dan mata pelajaran).</li>
-          <li><strong>Buat pertemuan</strong> dari Dashboard pembelajaran (centang kelas, atau ambil dari Rencana ajar), lalu impor tiga dokumen Word: Bahan Bacaan, Lembar Kerja, dan File Pertemuan (handout Anda, pilih Guru saja).</li>
+          <li><strong>Buat kelas ajar</strong> dari tombol di halaman Kelas saya (pilih rombel dan mata pelajaran).</li>
+          <li><strong>Buat pertemuan</strong> dari Pantau semua kelas (centang kelas, atau ambil dari Rencana ajar), lalu impor tiga dokumen Word: Bahan Bacaan, Lembar Kerja, dan File Pertemuan (handout Anda, pilih Guru saja).</li>
           <li><strong>Aktif otomatis.</strong> Begitu bahan bacaan dan lembar kerja ada, pertemuan aktif di semua kelas yang Anda ampu, topik diskusi dibuat, dan kehadiran siswa tercatat dari aktivitas mereka (baca, lembar kerja, forum). Kuis opsional.</li>
           <li><strong>Atur akses.</strong> Panel Akses siswa menutup atau membuka pertemuan kapan saja, atau memberi batas waktu (1 hari sampai 1 bulan, atau tanggal tertentu). Siswa wajib menuntaskan pertemuan yang terbuka sebelum membuka berikutnya.</li>
           <li><strong>Pantau.</strong> Dashboard dan Rekap pertemuan menyegarkan diri otomatis: filter Belum mengumpulkan lembar menunjukkan siapa yang perlu didatangi, dan forum menunggu balasan tampil di dashboard. Kehadiran bisa diubah manual bila perlu.</li>

@@ -1,4 +1,5 @@
 import TombolIkon from '../components/TombolIkon'
+import Ikon from '../components/Ikon'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import Halaman from '../components/Halaman'
@@ -47,6 +48,15 @@ function Kembali({ ke, teks }: { ke: string; teks: string }) {
   return <p className="catatan jarak"><Link to={ke}>{teks}</Link></p>
 }
 
+/** Warna tetap per mata pelajaran, supaya kelas mudah dikenali sekilas. */
+const WARNA_KELAS = ['#1a3e6f', '#0f766e', '#7c3aed', '#b45309', '#be185d', '#1d4ed8', '#4d7c0f']
+function warnaKelas(mapel: string) {
+  let h = 0
+  for (const c of mapel) h = (h * 31 + c.charCodeAt(0)) >>> 0
+  return WARNA_KELAS[h % WARNA_KELAS.length]
+}
+const inisialKelas = (mapel: string) => mapel.split(/\s+/).filter(Boolean).slice(0, 2).map((x) => x[0]).join('').toUpperCase()
+
 /** Daftar kelas ajar milik pengguna. Guru dan admin TU bisa membuat kelas ajar baru. */
 export function DaftarKelas() {
   const { profil } = useAuth()
@@ -79,21 +89,38 @@ export function DaftarKelas() {
     setSibuk(false)
   }
 
+  const siswa = profil?.peran === 'siswa'
   return (
-    <Halaman judul="Ruang belajar" lead={profil?.peran === 'siswa' ? 'Kelas yang Anda ikuti semester ini.' : 'Kelas yang Anda ajar semester ini.'}>
-      {profil?.peran === 'siswa' && <BerandaBelajar />}
+    <Halaman judul="Kelas saya" lead={siswa ? 'Pilih kelas, lalu ketuk Mulai belajar. Semua langkah dibimbing satu per satu.' : 'Kelas yang Anda ajar semester ini.'}>
+      {siswa && <BerandaBelajar />}
       <PengingatLms maks={4} />
-      <p className="catatan"><Link to="/portal/panduan-lms">Panduan singkat ruang belajar</Link></p>
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
       {bolehBuat && (
-        <div className="aksi">
-          <button className="tombol tombol-isi" onClick={() => setForm(!form)}>{form ? 'Tutup formulir' : 'Buat kelas ajar'}</button>
-          <Link to="/portal/lms/dashboard" className="tombol" style={{ color: 'var(--warna-utama)' }}>Dashboard pembelajaran</Link>
-          <Link to="/portal/lms/administrasi" className="tombol" style={{ color: 'var(--warna-utama)' }}>Administrasi guru</Link>
-        </div>
+        <section aria-label="Mulai dari sini" className="lms-mulai">
+          <h2 className="menu-bagian-judul">Mulai dari sini</h2>
+          <div className="alat-grid">
+            <button type="button" className="alat-kartu alat-utama" onClick={() => setForm(!form)} aria-expanded={form}>
+              <span className="alat-ikon"><Ikon nama="tambah" ukuran={22} /></span>
+              <span><strong>{form ? 'Tutup formulir' : 'Buat kelas baru'}</strong><small>Pilih rombel dan mata pelajaran</small></span>
+            </button>
+            <Link to="/portal/lms/dashboard" className="alat-kartu">
+              <span className="alat-ikon"><Ikon nama="grafik" ukuran={22} /></span>
+              <span><strong>Pantau semua kelas</strong><small>Siapa sudah hadir dan mengumpulkan</small></span>
+            </Link>
+            <Link to="/portal/lms/administrasi" className="alat-kartu">
+              <span className="alat-ikon"><Ikon nama="dokumen" ukuran={22} /></span>
+              <span><strong>Administrasi guru</strong><small>Perangkat ajar dan supervisi</small></span>
+            </Link>
+            <Link to="/portal/panduan-lms" className="alat-kartu">
+              <span className="alat-ikon"><Ikon nama="info" ukuran={22} /></span>
+              <span><strong>Panduan singkat</strong><small>Urutan menjalankan satu pertemuan</small></span>
+            </Link>
+          </div>
+        </section>
       )}
       {form && (
         <form className="kartu form jarak" onSubmit={buat}>
+          <h3>Buat kelas baru</h3>
           <div className="grid grid-2">
             <label>Rombel
               <select required value={v.rombel} onChange={(e) => setV({ ...v, rombel: e.target.value })}>
@@ -105,17 +132,22 @@ export function DaftarKelas() {
               <input required minLength={2} maxLength={80} value={v.mapel} onChange={(e) => setV({ ...v, mapel: e.target.value })} placeholder="Informatika" />
             </label>
           </div>
-          <div className="aksi"><button className="tombol tombol-isi" disabled={sibuk}>{sibuk ? 'Menyimpan...' : 'Simpan kelas ajar'}</button></div>
+          <div className="aksi"><button className="tombol tombol-isi" disabled={sibuk}>{sibuk ? 'Menyimpan...' : 'Simpan kelas'}</button></div>
         </form>
       )}
-      <div className="grid grid-3 jarak">
+      <h2 className="menu-bagian-judul jarak">{siswa ? 'Semua mata pelajaran' : 'Daftar kelas'}</h2>
+      <div className="grid grid-3">
         {!kelas && <p className="catatan">Memuat...</p>}
-        {kelas && kelas.length === 0 && <div className="kartu"><p>Belum ada kelas.</p><p className="catatan">{bolehBuat ? 'Buat kelas ajar dari tombol di atas.' : 'Kelas muncul setelah guru membuat kelas ajar untuk rombel Anda.'}</p></div>}
+        {kelas && kelas.length === 0 && <div className="kartu"><p>Belum ada kelas.</p><p className="catatan">{bolehBuat ? 'Buat kelas baru dari tombol di atas.' : 'Kelas muncul setelah guru membuat kelas ajar untuk rombel Anda.'}</p></div>}
         {(kelas ?? []).map((k) => (
-          <Link key={k.id} to={`/portal/lms/${k.id}`} className="kartu tautan">
-            <small>{k.rombel}</small>
-            <h3>{k.mapel}</h3>
-            <small>{k.guru}<br />{k.jumlah_pertemuan} pertemuan{k.peran === 'pengelola' ? ' (Anda pengelola)' : ''}</small>
+          <Link key={k.id} to={`/portal/lms/${k.id}`} className="kartu tautan kartu-kelas" style={{ ['--w' as string]: warnaKelas(k.mapel) }}>
+            <span className="kelas-inisial" aria-hidden="true">{inisialKelas(k.mapel)}</span>
+            <span className="kelas-isi">
+              <small>{k.rombel}</small>
+              <h3>{k.mapel}</h3>
+              <small>{k.guru}</small>
+              <span className="kelas-meta">{k.jumlah_pertemuan} pertemuan{k.peran === 'pengelola' ? ' · Anda pengelola' : ''}</span>
+            </span>
           </Link>
         ))}
       </div>
@@ -196,14 +228,24 @@ export function DetailKelas() {
   return (
     <Halaman judul={kelas ? `${kelas.mapel} ${kelas.rombel}` : 'Kelas'} lead={kelas ? `Pengampu: ${kelas.guru}` : undefined}>
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
+      {kelas && (
+        <div className="kelas-kepala" style={{ ['--w' as string]: warnaKelas(kelas.mapel) }}>
+          <span className="kelas-inisial" aria-hidden="true">{inisialKelas(kelas.mapel)}</span>
+          <div>
+            <strong>{kelas.mapel}</strong>
+            <small>{kelas.rombel} · {kelas.jumlah_pertemuan} pertemuan</small>
+          </div>
+        </div>
+      )}
       {kelola && (
-        <div className="aksi">
-          <button className="tombol tombol-isi" onClick={() => setForm(!form)}>{form ? 'Tutup formulir' : 'Tambah pertemuan'}</button>
-          <Link to={`/portal/lms/${kelasId}/rekap`} className="tombol" style={{ color: 'var(--warna-utama)' }}>Rekap kehadiran</Link>
-          <Link to={`/portal/lms/${kelasId}/nilai`} className="tombol" style={{ color: 'var(--warna-utama)' }}>Buku nilai</Link>
-          <Link to={`/portal/lms/${kelasId}/jurnal`} className="tombol" style={{ color: 'var(--warna-utama)' }}>Jurnal mengajar</Link>
-          <button className="tombol" style={{ color: 'var(--warna-utama)' }} disabled={!kelas || mengunduh} onClick={() => void unduhSemua()}>
-            {mengunduh ? 'Menyiapkan berkas...' : 'Unduh rekap (Excel)'}
+        <div className="alat-bar">
+          <button className="tombol tombol-isi" onClick={() => setForm(!form)}><Ikon nama={form ? 'tutup' : 'tambah'} ukuran={16} /> {form ? 'Tutup formulir' : 'Tambah pertemuan'}</button>
+          <span className="alat-pemisah" aria-hidden="true" />
+          <Link to={`/portal/lms/${kelasId}/rekap`} className="alat-pil"><Ikon nama="centang" ukuran={16} /> Rekap kehadiran</Link>
+          <Link to={`/portal/lms/${kelasId}/nilai`} className="alat-pil"><Ikon nama="grafik" ukuran={16} /> Buku nilai</Link>
+          <Link to={`/portal/lms/${kelasId}/jurnal`} className="alat-pil"><Ikon nama="pena" ukuran={16} /> Jurnal mengajar</Link>
+          <button type="button" className="alat-pil" disabled={!kelas || mengunduh} onClick={() => void unduhSemua()}>
+            <Ikon nama="unduh" ukuran={16} /> {mengunduh ? 'Menyiapkan berkas...' : 'Unduh Excel'}
           </button>
         </div>
       )}
@@ -224,7 +266,7 @@ export function DetailKelas() {
           {daftar && daftar.length === 0 && <div className="kartu"><p className="catatan">Belum ada pertemuan.</p></div>}
           {(daftar ?? []).filter((p) => p.status === 'terbit').slice().sort((a, b) => b.nomor - a.nomor).map((p, i) => (
             <Link key={p.id} to={`/portal/lms/${kelasId}/pertemuan/${p.id}`} className="kartu tautan kartu-pertemuan">
-              <small>{i === 0 ? 'Terbaru, ' : ''}{tgl(p.tanggal)}</small>
+              <small>Pertemuan {p.nomor} · {i === 0 ? 'Terbaru, ' : ''}{tgl(p.tanggal)}</small>
               <h3>{p.judul}</h3>
               {p.tuntas_saya ? <span className="status status-selesai">Selesai</span>
                 : p.terbuka === false ? <span className="status status-dibatalkan">Ditutup</span>
@@ -768,7 +810,7 @@ export function RuangPertemuan() {
           )}
           <div className="aksi"><label className="baris-centang"><input type="checkbox" checked={pratinjau} onChange={(e) => setPratinjau(e.target.checked)} /> Lihat sebagai siswa (pratinjau, tidak ada yang tersimpan)</label></div>
           <details className="jarak"><summary>Salin ke kelas tertentu saja</summary><SalinPertemuan pertemuanId={id} versi={versi} terbit={p.status === 'terbit'} /></details>
-          <p className="catatan"><Link to={`/portal/lms/dashboard?p=${id}`}>Buka di Dashboard pembelajaran (aktifkan dan pantau semua kelas)</Link></p>
+          <p className="catatan"><Link to={`/portal/lms/dashboard?p=${id}`}>Buka di Pantau semua kelas (aktifkan dan pantau semua kelas)</Link></p>
           <details className="jarak"><summary>Absen dengan kode (opsional)</summary><p className="catatan">Kehadiran sudah tercatat otomatis dari aktivitas siswa. Kode hanya untuk absen tatap muka.</p><KontrolAbsen p={p} muat={muat} /></details>
         </>
       )}
