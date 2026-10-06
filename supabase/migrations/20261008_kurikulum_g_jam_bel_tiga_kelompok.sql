@@ -83,3 +83,9 @@ insert into public.jam_bel (kelompok, urutan, label, jenis, mulai, selesai, akti
   ('jumat', 5, 'Istirahat', 'istirahat', '09:50', '10:10', true), ('jumat', 6, 'Jam ke-5', 'pelajaran', '10:10', '10:50', true),
   ('jumat', 7, 'Jam ke-6', 'pelajaran', '10:50', '11:30', true), ('jumat', 8, 'Salat Jumat dan kegiatan', 'lainnya', '11:30', '13:00', true)
 on conflict (kelompok, urutan) do update set label = excluded.label, jenis = excluded.jenis, mulai = excluded.mulai, selesai = excluded.selesai, aktif = true;
+
+-- Sekolah masuk 06.30. Pukul 06.30 sampai 07.10 dipakai kegiatan pagi (literasi, numerasi, upacara) dan tidak dihitung sebagai JP.
+insert into public.jam_bel (kelompok, urutan, label, jenis, mulai, selesai, aktif)
+select v.k, (select coalesce(max(urutan), 0) + 1 from public.jam_bel where kelompok = v.k), 'Literasi, numerasi, upacara', 'lainnya', '06:30', '07:10', true
+  from (values ('senin'), ('selasa_kamis'), ('jumat')) v(k)
+ where not exists (select 1 from public.jam_bel x where x.kelompok = v.k and x.aktif and x.mulai = '06:30');

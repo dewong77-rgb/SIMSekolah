@@ -11,10 +11,10 @@ type Kel = Exclude<JamBel['kelompok'], 'senin_kamis'>
 const dua = (n: number) => String(n).padStart(2, '0')
 const jamDari = (m: number) => `${dua(Math.floor(m / 60))}:${dua(m % 60)}`
 
-/** Pola jam sekolah: mulai 07.10, istirahat pertama 09.50 (20 menit), istirahat kedua 12.10 (40 menit).
+/** Pola jam sekolah: masuk 06.30 dengan kegiatan pagi (literasi, numerasi, upacara) yang bukan JP, pembelajaran mulai 07.10, istirahat pertama 09.50 (20 menit), istirahat kedua 12.10 (40 menit).
  *  Senin 11 JP, Selasa sampai Kamis 10 JP, Jumat 6 JP lalu salat Jumat dan kegiatan sampai 13.00. Titik awal, wajib disesuaikan. */
 function contoh(kel: Kel, durasi: number): Baris[] {
-  const hasil: Baris[] = []
+  const hasil: Baris[] = [{ label: 'Literasi, numerasi, upacara', jenis: 'lainnya', mulai: '06:30', selesai: '07:10' }]
   const target = kel === 'senin' ? 11 : kel === 'jumat' ? 6 : 10
   let t = 7 * 60 + 10
   let ke = 1
