@@ -133,6 +133,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
       judul: 'Persuratan',
       item: [
         { to: '/portal/surat', label: 'Persuratan', ikon: 'surat', ket: 'Register surat masuk dan keluar, disposisi', lencana: 'surat' },
+        { to: '/portal/surat/draf', label: 'Draf surat dan SK', ikon: 'dokumen', ket: 'Draf SK dari bidang yang sudah disetujui Kepala Sekolah, siap didaftarkan' },
         disposisi,
       ],
     },
@@ -233,6 +234,9 @@ const menuIzin: { izin: string; nama: string; bidang: string; ikon: string; to?:
   { izin: 'tamu.baca_semua', nama: 'Buku tamu', bidang: 'Keamanan dan tamu', ikon: 'kelompok', to: '/portal/buku-tamu' },
   { izin: 'surat.catat', nama: 'Persuratan', bidang: 'Persuratan', ikon: 'surat', to: '/portal/surat' },
   { izin: 'surat.baca_semua', nama: 'Persuratan', bidang: 'Persuratan', ikon: 'surat', to: '/portal/surat' },
+  { izin: 'surat.draf', nama: 'Draf surat dan SK', bidang: 'Persuratan', ikon: 'dokumen', to: '/portal/surat/draf' },
+  { izin: 'surat.setujui_draf', nama: 'Draf surat dan SK', bidang: 'Persuratan', ikon: 'dokumen', to: '/portal/surat/draf' },
+  { izin: 'surat.catat', nama: 'Draf surat dan SK', bidang: 'Persuratan', ikon: 'dokumen', to: '/portal/surat/draf' },
   { izin: 'surat.disposisi', nama: 'Persuratan dan disposisi', bidang: 'Persuratan', ikon: 'surat', to: '/portal/surat' },
   { izin: 'surat.teruskan', nama: 'Persuratan', bidang: 'Persuratan', ikon: 'surat', to: '/portal/surat' },
   { izin: 'siswa.lihat_pribadi', nama: 'Daftar siswa', bidang: 'Kesiswaan', ikon: 'kelompok', to: '/portal/peserta-didik' },
