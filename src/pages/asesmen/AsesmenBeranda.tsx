@@ -4,10 +4,10 @@ import { UjianDaftar } from './AsesmenAdmin'
 import { JadwalSiswa } from './AsesmenSiswa'
 
 export default function AsesmenBeranda() {
-  const { profil, superAdmin } = useAuth()
+  const { profil, punyaIzin } = useAuth()
   if (!profil) return null
   if (profil.peran === 'siswa') return <JadwalSiswa />
-  if (profil.peran === 'admin_ujian' || superAdmin) return <UjianDaftar />
+  if (punyaIzin('asesmen.kelola')) return <UjianDaftar />
   return (
     <>
       <h1>Asesmen Digital</h1>

@@ -481,10 +481,10 @@ createRoot(document.getElementById('root')!).render(
           <Route path="portal/tautan-ortu" element={<RequireRole peran={['admin_tu']}><Suspense fallback={null}><TautanOrtu /></Suspense></RequireRole>} />
           <Route path="portal/anak-lms" element={<RequireRole peran={['orang_tua']}><Suspense fallback={null}><LmsAnak /></Suspense></RequireRole>} />
         </Route>
-        <Route path="asesmen" element={<RequireRole peran={['admin_tu', 'guru', 'staf', 'siswa', 'admin_ujian']}><Suspense fallback={null}><AsesmenLayout /></Suspense></RequireRole>}>
+        <Route path="asesmen" element={<Suspense fallback={null}><AsesmenLayout /></Suspense>}>
           <Route index element={<RequireRole peran={['admin_tu', 'guru', 'staf', 'siswa', 'admin_ujian']}><Suspense fallback={null}><AsesmenBeranda /></Suspense></RequireRole>} />
-          <Route path="ujian/:id" element={<RequireRole peran={['admin_ujian', 'admin_tu']}><Suspense fallback={null}><UjianDetail /></Suspense></RequireRole>} />
-          <Route path="ruang" element={<RequireRole peran={['admin_ujian', 'admin_tu']}><Suspense fallback={null}><RuangDaftar /></Suspense></RequireRole>} />
+          <Route path="ujian/:id" element={<RequireRole peran={['admin_tu', 'guru', 'staf']} izin="asesmen.kelola"><Suspense fallback={null}><UjianDetail /></Suspense></RequireRole>} />
+          <Route path="ruang" element={<RequireRole peran={['admin_tu', 'guru', 'staf']} izin="asesmen.kelola"><Suspense fallback={null}><RuangDaftar /></Suspense></RequireRole>} />
           <Route path="bank" element={<RequireRole peran={['admin_tu', 'guru', 'staf', 'admin_ujian']}><Suspense fallback={null}><BankDaftar /></Suspense></RequireRole>} />
           <Route path="bank/:id" element={<RequireRole peran={['admin_tu', 'guru', 'staf', 'admin_ujian']}><Suspense fallback={null}><BankDetail /></Suspense></RequireRole>} />
           <Route path="pengawas" element={<RequireRole peran={['admin_tu', 'guru', 'staf']}><Suspense fallback={null}><PengawasDaftar /></Suspense></RequireRole>} />

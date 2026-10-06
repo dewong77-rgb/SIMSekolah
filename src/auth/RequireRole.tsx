@@ -4,8 +4,9 @@ import Halaman from '../components/Halaman'
 import type { Peran } from '../lib/supabase'
 import { useAuth } from './AuthContext'
 
-export default function RequireRole({ peran, superAdmin = false, children }: { peran: Peran[]; superAdmin?: boolean; children: ReactNode }) {
-  const { session, profil, superAdmin: adalahSuper, memuat, keluar, galatProfil, muatUlang } = useAuth()
+/** `izin` (opsional): selain peran, pengguna harus super admin atau punya izin ini lewat penugasan jabatan. */
+export default function RequireRole({ peran, superAdmin = false, izin, children }: { peran: Peran[]; superAdmin?: boolean; izin?: string; children: ReactNode }) {
+  const { session, profil, superAdmin: adalahSuper, memuat, keluar, galatProfil, muatUlang, punyaIzin } = useAuth()
   const lokasi = useLocation()
 
   if (memuat) {
@@ -49,7 +50,7 @@ export default function RequireRole({ peran, superAdmin = false, children }: { p
     return <Navigate to="/portal/ganti-sandi" replace />
   }
 
-  if (!peran.includes(profil.peran) || (superAdmin && !adalahSuper)) {
+  if (!peran.includes(profil.peran) || (superAdmin && !adalahSuper) || (izin && !punyaIzin(izin))) {
     return (
       <Halaman judul="Tidak ada akses" lead="Peran akun Anda tidak dapat membuka halaman ini.">
         <Link to="/portal" className="tombol tombol-isi">Kembali ke portal</Link>
