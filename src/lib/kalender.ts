@@ -7,7 +7,8 @@ export type Agenda = {
   id: string; judul: string; kategori: Kategori; mulai: string; selesai: string
   jam_mulai: string | null; jam_selesai: string | null; tempat: string | null; keterangan: string | null; tampil_beranda: boolean
 }
-export type JamBel = { kelompok: 'senin_kamis' | 'jumat'; urutan: number; label: string; jenis: 'pelajaran' | 'istirahat' | 'lainnya'; mulai: string; selesai: string }
+export type KelompokBel = 'senin' | 'selasa_kamis' | 'jumat' | 'senin_kamis'
+export type JamBel = { kelompok: KelompokBel; urutan: number; label: string; jenis: 'pelajaran' | 'istirahat' | 'lainnya'; mulai: string; selesai: string }
 
 export const KATEGORI: Record<Kategori, { label: string; warna: string }> = {
   kalender_pendidikan: { label: 'Kalender pendidikan', warna: '#1a3e6f' },
@@ -18,6 +19,20 @@ export const KATEGORI: Record<Kategori, { label: string; warna: string }> = {
 export const URUT_KATEGORI = Object.keys(KATEGORI) as Kategori[]
 
 export const URL_ICS = `${import.meta.env.VITE_SUPABASE_URL ?? 'https://myjdtybkfgscerdhyemb.supabase.co'}/functions/v1/kalender-ics`
+
+/** Pengelompokan hari pada jam bel. 'senin_kamis' adalah pengelompokan lama dan hanya dipakai bila kelompok baru belum diisi. */
+export const KELOMPOK_HARI: { kel: Exclude<KelompokBel, 'senin_kamis'>; judul: string; hari: number[] }[] = [
+  { kel: 'senin', judul: 'Senin', hari: [1] },
+  { kel: 'selasa_kamis', judul: 'Selasa sampai Kamis', hari: [2, 3, 4] },
+  { kel: 'jumat', judul: 'Jumat', hari: [5] },
+]
+export const kelompokDariHari = (hari: number): Exclude<KelompokBel, 'senin_kamis'> => (hari === 1 ? 'senin' : hari === 5 ? 'jumat' : 'selasa_kamis')
+/** Baris jam bel untuk satu hari (1 Senin sampai 5 Jumat), terurut menurut jam mulai. */
+export function barisBelHari(bel: JamBel[], hari: number): JamBel[] {
+  const baru = bel.filter((b) => b.kelompok === kelompokDariHari(hari))
+  const pakai = baru.length ? baru : bel.filter((b) => b.kelompok === (hari === 5 ? 'jumat' : 'senin_kamis'))
+  return [...pakai].sort((a, b) => menitDari(a.mulai) - menitDari(b.mulai))
+}
 
 // ------------------------------------------------------------ waktu WIB
 const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23', weekday: 'short' })
@@ -62,7 +77,7 @@ export function posisiJam(bel: JamBel[], agenda: Agenda[], n: Wib): Posisi {
   const libur = agenda.find((a) => a.kategori === 'libur' && a.mulai <= n.tanggal && a.selesai >= n.tanggal)
   if (libur) return { status: 'libur', alasan: libur.judul }
   if (n.hari === 0 || n.hari === 6) return { status: 'akhir_pekan' }
-  const set = bel.filter((b) => b.kelompok === (n.hari === 5 ? 'jumat' : 'senin_kamis')).sort((a, b) => menitDari(a.mulai) - menitDari(b.mulai))
+  const set = barisBelHari(bel, n.hari)
   if (!set.length) return { status: 'belum_diatur' }
   const m = n.menitHari
   const i = set.findIndex((s) => m >= menitDari(s.mulai) && m < menitDari(s.selesai))

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Halaman from '../../components/Halaman'
 import { panggil } from '../../lib/rpc'
-import { muatJamBel, type JamBel } from '../../lib/kalender'
+import { barisBelHari, muatJamBel, type JamBel } from '../../lib/kalender'
 import { NAMA_HARI_JADWAL, WARNA_NADA, pilihanTahunAjaran, tahunAjaranSekarang, type BebanMapel, type Pengaturan, type SlotJadwal } from '../../lib/kurikulum'
 import GerbangKurikulum from './GerbangKurikulum'
 
@@ -32,10 +32,12 @@ function Isi({ p }: { p: Pengaturan }) {
   }, [ta])
   useEffect(() => { setMemuat(true); void muat() }, [muat])
 
-  const pelajaran = (k: JamBel['kelompok']) => (bel ?? []).filter((x) => x.kelompok === k && x.jenis === 'pelajaran').sort((a, b) => a.mulai.localeCompare(b.mulai))
-  const snk = pelajaran('senin_kamis'), jmt = pelajaran('jumat')
-  const maksJam = Math.max(snk.length, jmt.length)
-  const jamHari = (h: number) => (h === 5 ? jmt : snk)
+  const pelajaranHari = (h: number): JamBel[] => barisBelHari(bel ?? [], h).filter((x) => x.jenis === 'pelajaran')
+  const perHari = HARI.map((h) => pelajaranHari(h))
+  const jamHari = (h: number) => perHari[h - 1] ?? []
+  const maksJam = Math.max(0, ...perHari.map((x) => x.length))
+  const terpanjang = perHari.reduce<JamBel[]>((a, b) => (b.length > a.length ? b : a), [])
+  const snk = terpanjang
 
   const daftarRombel = useMemo(() => {
     const m = new Map<string, { id: string; nama: string; tingkat: number; jp: number }>()
@@ -73,10 +75,10 @@ function Isi({ p }: { p: Pengaturan }) {
     setSibuk(false)
   }
 
-  if (bel && snk.length === 0) {
+  if (bel && maksJam === 0) {
     return (
       <Halaman judul="Jadwal pelajaran" lead="Jadwal memakai jam ke-n dari jam bel sekolah.">
-        <p className="kartu">Jam pelajaran belum diatur. Isi dulu jam bel Senin sampai Kamis dan Jumat di <Link to="/portal/jam-pelajaran">Jam pelajaran</Link>, lalu kembali ke sini.</p>
+        <p className="kartu">Jam pelajaran belum diatur. Isi dulu jam bel Senin, Selasa sampai Kamis, dan Jumat di <Link to="/portal/jam-pelajaran">Jam pelajaran</Link>, lalu kembali ke sini.</p>
       </Halaman>
     )
   }
