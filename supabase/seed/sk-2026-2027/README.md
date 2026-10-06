@@ -14,3 +14,10 @@ Urutan:
    Kelas X dan XI di SK 390 berjumlah 48 JP per minggu, satu JP lebih banyak dari slot: 22 JP (satu per kelas, dari mapel kejuruan terbesar) belum terjadwal dan perlu diputuskan Waka Kurikulum.
 
 `sk_data.py` adalah transkripsi lampiran SK 390 yang dipakai untuk menghitung dan memeriksa data (total 1.608 JP; tiap rombel 48 JP untuk X dan XI, 46 JP untuk XII).
+
+## Penyesuaian 47 JP (07_sesuaikan_47.sql)
+
+Fakta: jam bel nyata menyediakan 47 slot pelajaran per minggu; SK 390 memuat 48 JP untuk kelas X dan XI.
+Penyesuaian: 22 unit dikurangi 1 JP (X: Dasar-Dasar program 12→11; XI: mapel konsentrasi per program 18→17).
+Hasil: X/XI = 47 JP, XII = 46 JP, total 1.586 JP, jadwal tanpa bentrok.
+Angka ini berbeda dari SK 390 yang ditandatangani; terbitkan revisi SK lewat fitur Draf surat.
