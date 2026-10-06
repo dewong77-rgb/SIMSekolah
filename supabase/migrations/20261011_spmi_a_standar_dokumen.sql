@@ -61,7 +61,7 @@ create table if not exists public.spmi_dokumen (
   diubah_pada timestamptz not null default now()
 );
 
-create or replace function private.spmi_sentuh() returns trigger language plpgsql as $fn$
+create or replace function private.spmi_sentuh() returns trigger language plpgsql set search_path = '' as $fn$
 begin new.diubah_pada := now(); return new; end $fn$;
 create trigger spmi_standar_sentuh before update on public.spmi_standar for each row execute function private.spmi_sentuh();
 create trigger spmi_indikator_sentuh before update on public.spmi_indikator for each row execute function private.spmi_sentuh();
