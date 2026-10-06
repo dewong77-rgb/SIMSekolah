@@ -487,6 +487,20 @@ input[type="search"] { font: inherit; padding: 8px 12px; border: 1px solid #b9c1
 .kartu-pertemuan h3{margin:0}
 .langkah-opsi{border-style:dashed}
 
+/* Kartu inventaris (KIR dan KIB) */
+.kartu-kop { text-align: center; display: grid; gap: 2px; margin-bottom: 12px; }
+.kartu-kop h2 { margin: 8px 0 0; font-size: 1.1rem; letter-spacing: .04em; }
+.kartu-data { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 16px; margin: 0 0 12px; }
+.kartu-data dt { font-size: .8rem; color: #555; }
+.kartu-data dd { margin: 0; font-weight: 600; }
+.kartu-tanda-tangan { display: flex; justify-content: space-between; gap: 24px; margin-top: 28px; text-align: center; }
+@media print {
+  .kepala-halaman, .kartu-cetak { border: 0 !important; box-shadow: none !important; }
+  .kepala-halaman { display: none !important; }
+  .kartu-cetak .tabel-bungkus { border: 0; overflow: visible; }
+  .kartu-cetak table { font-size: 9pt; }
+  .kartu-cetak th { position: static !important; }
+}
 @media print {
   .portal-samping, .portal-atas, .portal-kaki, .portal-tabir, .tanpa-cetak, .remah, .header, .footer { display: none !important; }
   .portal-utama, .portal-isi { margin: 0 !important; padding: 0 !important; max-width: none !important; }

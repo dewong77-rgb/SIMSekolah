@@ -7,7 +7,7 @@ import JamSistem from './JamSistem'
 import { panggil } from '../lib/rpc'
 import Ikon from './Ikon'
 
-export type Lencana = Partial<Record<'ajuan_masuk' | 'ajuan_saya' | 'disposisi' | 'surat' | 'sarpras' | 'kesiswaan', number>>
+export type Lencana = Partial<Record<'ajuan_masuk' | 'ajuan_saya' | 'disposisi' | 'surat' | 'sarpras' | 'sarpras_kerusakan' | 'sarpras_permintaan' | 'kesiswaan', number>>
 
 type NilaiPortal = { menu: MenuPortal; lencana: Lencana; nama: string | null }
 const KonteksPortal = createContext<NilaiPortal | null>(null)
@@ -66,14 +66,14 @@ export default function PortalLayout() {
       const [aj, sr, sp, ks] = await Promise.allSettled([
         panggil<{ menunggu: number; antrean: number; saya: number }>('ajuan_ringkasan'),
         panggil<{ disposisi_menunggu: number; belum_disposisi: number }>('surat_ringkasan'),
-        panggil<{ perlu_aksi: number }>('sarpras_ringkasan'),
+        panggil<{ perlu_aksi: number; perlu_kerusakan: number; perlu_permintaan: number }>('sarpras_ringkasan'),
         panggil<{ pelanggaran: number; prestasi: number; izin: number }>('kesiswaan_lencana'),
       ])
       if (batal) return
       const l: Lencana = {}
       if (aj.status === 'fulfilled') { l.ajuan_masuk = aj.value.menunggu + aj.value.antrean; l.ajuan_saya = aj.value.saya }
       if (sr.status === 'fulfilled') { l.disposisi = sr.value.disposisi_menunggu; l.surat = sr.value.belum_disposisi }
-      if (sp.status === 'fulfilled' && sp.value) l.sarpras = sp.value.perlu_aksi
+      if (sp.status === 'fulfilled' && sp.value) { l.sarpras = sp.value.perlu_aksi; l.sarpras_kerusakan = sp.value.perlu_kerusakan; l.sarpras_permintaan = sp.value.perlu_permintaan }
       if (ks.status === 'fulfilled' && ks.value) l.kesiswaan = ks.value.pelanggaran + ks.value.prestasi + ks.value.izin
       setLencana(l)
     })()
@@ -105,7 +105,7 @@ export default function PortalLayout() {
   const ada = (to: string) => menu.kelompok.some((k) => k.item.some((i) => i.to === to))
   const nAjuan = ada('/portal/ajuan-masuk') ? lencana.ajuan_masuk ?? 0 : 0
   const nDisposisi = ada('/portal/disposisi') ? lencana.disposisi ?? 0 : 0
-  const nSarpras = ada('/portal/sarpras/usulan') ? lencana.sarpras ?? 0 : 0
+  const nSarpras = (ada('/portal/sarpras/usulan') ? lencana.sarpras ?? 0 : 0) + (ada('/portal/sarpras/kerusakan') ? lencana.sarpras_kerusakan ?? 0 : 0) + (ada('/portal/sarpras/permintaan') ? lencana.sarpras_permintaan ?? 0 : 0)
   const totalPerhatian = nAjuan + nDisposisi + nSarpras
 
   return (
