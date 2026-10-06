@@ -157,6 +157,10 @@ const pengaturanSuper: ItemPortal[] = [
   { to: '/portal/profil-sekolah', label: 'Profil sekolah', ikon: 'sekolah', ket: 'Alamat, koordinat, kontak, media sosial, visi dan misi' },
   { to: '/portal/kalender', label: 'Kalender sekolah', ikon: 'kalender', ket: 'Kalender pendidikan, kegiatan, libur, dan ujian' },
   { to: '/portal/jam-pelajaran', label: 'Jam pelajaran', ikon: 'kalender', ket: 'Jam masuk, jam pelajaran, dan istirahat' },
+  { to: '/portal/kurikulum/struktur', label: 'Struktur kurikulum', ikon: 'buku', ket: 'Durasi jam pelajaran, daftar mapel, dan jam per minggu per tingkat dan program' },
+  { to: '/portal/kurikulum/beban', label: 'Beban mengajar', ikon: 'kelompok', ket: 'Pembagian guru per mapel dan kelas, linieritas dari Dapodik, dan rekap jam per guru' },
+  { to: '/portal/kurikulum/jadwal', label: 'Jadwal pelajaran', ikon: 'kalender', ket: 'Susun jadwal per kelas dengan penjagaan bentrok guru dan kuota jam mapel' },
+  { to: '/portal/kurikulum/wali-kelas', label: 'Wali kelas', ikon: 'sekolah', ket: 'Usulan wali kelas, persetujuan Kepala Sekolah, dan lampiran SK' },
   { to: '/portal/sarpras/buku', label: 'Sarana dan prasarana', ikon: 'tas', ket: 'Inventaris, kerusakan, permintaan, usulan bertingkat, kartu inventaris, dan pembukuan' },
 ]
 
@@ -171,6 +175,11 @@ const menuIzin: { izin: string; nama: string; bidang: string; ikon: string; to?:
   { izin: 'hubin.tracer', nama: 'Tracer study alumni', bidang: 'Hubungan industri dan humas', ikon: 'grafik', to: '/portal/hubin/tracer' },
   { izin: 'kurikulum.atur_jadwal', nama: 'Jam pelajaran', bidang: 'Kurikulum', ikon: 'kalender', to: '/portal/jam-pelajaran' },
   { izin: 'kurikulum.kalender', nama: 'Kalender sekolah', bidang: 'Kurikulum', ikon: 'kalender', to: '/portal/kalender' },
+  { izin: 'kurikulum.struktur', nama: 'Struktur kurikulum', bidang: 'Kurikulum', ikon: 'buku', to: '/portal/kurikulum/struktur' },
+  { izin: 'kurikulum.struktur', nama: 'Beban mengajar', bidang: 'Kurikulum', ikon: 'kelompok', to: '/portal/kurikulum/beban' },
+  { izin: 'kurikulum.struktur', nama: 'Jadwal pelajaran', bidang: 'Kurikulum', ikon: 'kalender', to: '/portal/kurikulum/jadwal' },
+  { izin: 'kurikulum.struktur', nama: 'Wali kelas', bidang: 'Kurikulum', ikon: 'sekolah', to: '/portal/kurikulum/wali-kelas' },
+  { izin: 'kurikulum.setujui', nama: 'Persetujuan wali kelas', bidang: 'Kurikulum', ikon: 'centang', to: '/portal/kurikulum/wali-kelas' },
   { izin: 'kegiatan.kelola', nama: 'Kalender sekolah', bidang: 'Kegiatan sekolah', ikon: 'kalender', to: '/portal/kalender' },
   { izin: 'kurikulum.kelola_info', nama: 'Informasi akademik', bidang: 'Kurikulum', ikon: 'dokumen' },
   { izin: 'program.kelola', nama: 'Program keahlian', bidang: 'Kurikulum', ikon: 'sekolah' },
