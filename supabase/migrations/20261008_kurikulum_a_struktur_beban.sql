@@ -36,7 +36,7 @@ create table if not exists public.kur_struktur (
   tingkat int not null check (tingkat in (10, 11, 12)),
   program text not null default '*' check (char_length(btrim(program)) between 1 and 20),
   mapel_id uuid not null references public.kur_mapel(id),
-  jp_minggu int not null check (jp_minggu between 1 and 20),
+  jp_minggu int not null check (jp_minggu between 1 and 40),
   unique (tahun_ajaran, tingkat, program, mapel_id)
 );
 alter table public.kur_struktur enable row level security;

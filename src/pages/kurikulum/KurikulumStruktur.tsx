@@ -153,7 +153,7 @@ function Struktur({ p, boleh }: { p: Pengaturan; boleh: boolean }) {
     for (const b of baris) {
       if (!b.mapel_id) return setGalat('Pilih mapel di setiap baris.')
       const n = Number(b.jp)
-      if (!Number.isInteger(n) || n < 1 || n > 20) return setGalat('Jam per minggu harus bilangan bulat 1 sampai 20.')
+      if (!Number.isInteger(n) || n < 1 || n > 40) return setGalat('Jam per minggu harus bilangan bulat 1 sampai 40.')
     }
     setSibuk(true)
     try {
@@ -221,7 +221,7 @@ function Struktur({ p, boleh }: { p: Pengaturan; boleh: boolean }) {
                     </select>
                   </td>
                   <td>{m ? namaKelompok(m.kelompok) : '-'}</td>
-                  <td><input type="number" min={1} max={20} value={b.jp} disabled={!boleh} aria-label={`JP baris ${i + 1}`} onChange={(e) => ubah(i, 'jp', e.target.value)} style={{ width: 80 }} /></td>
+                  <td><input type="number" min={1} max={40} value={b.jp} disabled={!boleh} aria-label={`JP baris ${i + 1}`} onChange={(e) => ubah(i, 'jp', e.target.value)} style={{ width: 80 }} /></td>
                   <td>{(Number(b.jp) || 0) * p.durasi_jp}</td>
                   <td>{boleh && <button type="button" className="tombol" style={{ padding: '4px 10px', color: '#a11' }} onClick={() => setBaris((x) => x.filter((_, j) => j !== i))} aria-label={`Hapus baris ${i + 1}`}>Hapus</button>}</td>
                 </tr>
