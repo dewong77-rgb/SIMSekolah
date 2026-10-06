@@ -84,6 +84,7 @@ export function RegisterSurat() {
         </select>
         {ring?.boleh_catat && <button className="tombol tombol-isi" onClick={() => setForm(!form)}>{form ? 'Tutup formulir' : 'Catat surat'}</button>}
         <Link to="/portal/disposisi" className="tombol" style={{ color: 'var(--warna-utama)' }}>Disposisi saya{ring && ring.disposisi_menunggu > 0 ? ` (${ring.disposisi_menunggu})` : ''}</Link>
+        <Link to="/portal/surat/draf" className="tombol" style={{ color: 'var(--warna-utama)' }}>Draf surat dan SK</Link>
       </div>
 
       {form && (

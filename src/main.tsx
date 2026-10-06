@@ -52,6 +52,7 @@ const KurikulumStruktur = lazy(() => import('./pages/kurikulum/KurikulumStruktur
 const KurikulumBeban = lazy(() => import('./pages/kurikulum/KurikulumBeban'))
 const KurikulumWali = lazy(() => import('./pages/kurikulum/KurikulumWali'))
 const KurikulumJadwal = lazy(() => import('./pages/kurikulum/KurikulumJadwal'))
+const DrafSurat = lazy(() => import('./pages/DrafSurat'))
 const RegisterSurat = lazy(() => import('./pages/Persuratan').then((m) => ({ default: m.RegisterSurat })))
 const DetailSurat = lazy(() => import('./pages/Persuratan').then((m) => ({ default: m.DetailSurat })))
 const KotakDisposisi = lazy(() => import('./pages/Persuratan').then((m) => ({ default: m.KotakDisposisi })))
@@ -523,6 +524,7 @@ createRoot(document.getElementById('root')!).render(
           />
           <Route path="portal/buku-tamu" element={<RequireRole peran={['admin_tu', 'guru', 'staf']}><Suspense fallback={null}><BukuTamuPortal /></Suspense></RequireRole>} />
           <Route path="portal/surat" element={<RequireRole peran={['admin_tu', 'guru', 'staf']}><Suspense fallback={null}><RegisterSurat /></Suspense></RequireRole>} />
+          <Route path="portal/surat/draf" element={<RequireRole peran={['admin_tu', 'guru', 'staf']}><Suspense fallback={null}><DrafSurat /></Suspense></RequireRole>} />
           <Route path="portal/surat/:id" element={<RequireRole peran={['admin_tu', 'guru', 'staf']}><Suspense fallback={null}><DetailSurat /></Suspense></RequireRole>} />
           <Route path="portal/disposisi" element={<RequireRole peran={['admin_tu', 'guru', 'staf']}><Suspense fallback={null}><KotakDisposisi /></Suspense></RequireRole>} />
           <Route path="portal/lms" element={<RequireRole peran={['admin_tu', 'guru', 'siswa']}><Suspense fallback={null}><DaftarKelas /></Suspense></RequireRole>} />
