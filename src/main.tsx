@@ -48,6 +48,7 @@ const SarprasBuku = lazy(() => import('./pages/sarpras/SarprasBuku'))
 const SarprasKerusakan = lazy(() => import('./pages/sarpras/SarprasKerusakan'))
 const SarprasPermintaan = lazy(() => import('./pages/sarpras/SarprasPermintaan'))
 const SarprasKartu = lazy(() => import('./pages/sarpras/SarprasKartu'))
+const SpmiBeranda = lazy(() => import('./pages/spmi/SpmiBeranda'))
 const KurikulumStruktur = lazy(() => import('./pages/kurikulum/KurikulumStruktur'))
 const KurikulumBeban = lazy(() => import('./pages/kurikulum/KurikulumBeban'))
 const KurikulumWali = lazy(() => import('./pages/kurikulum/KurikulumWali'))
@@ -262,6 +263,14 @@ createRoot(document.getElementById('root')!).render(
             element={
               <RequireRole peran={['admin_tu', 'guru', 'staf']}>
                 <Suspense fallback={null}><SarprasBuku /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/spmi"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf']}>
+                <Suspense fallback={null}><SpmiBeranda /></Suspense>
               </RequireRole>
             }
           />

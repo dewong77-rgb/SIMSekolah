@@ -162,6 +162,7 @@ const pengaturanSuper: ItemPortal[] = [
   { to: '/portal/kurikulum/jadwal', label: 'Jadwal pelajaran', ikon: 'kalender', ket: 'Susun jadwal per kelas dengan penjagaan bentrok guru dan kuota jam mapel' },
   { to: '/portal/kurikulum/wali-kelas', label: 'Wali kelas', ikon: 'sekolah', ket: 'Usulan wali kelas, persetujuan Kepala Sekolah, dan lampiran SK' },
   { to: '/portal/sarpras/buku', label: 'Sarana dan prasarana', ikon: 'tas', ket: 'Inventaris, kerusakan, permintaan, usulan bertingkat, kartu inventaris, dan pembukuan' },
+  { to: '/portal/spmi', label: 'Penjaminan mutu (SPMI)', ikon: 'centang', ket: 'Standar mutu, indikator, dan dokumen satuan penjamin mutu internal' },
 ]
 
 /** Menu dari izin penugasan. Item tanpa `to` belum punya halaman. */
@@ -221,6 +222,9 @@ const menuIzin: { izin: string; nama: string; bidang: string; ikon: string; to?:
   { izin: 'sarpras.operasional', nama: 'Pembukuan sarpras', bidang: 'Sarana dan prasarana', ikon: 'grafik', to: '/portal/sarpras/buku' },
   { izin: 'sarpras.lihat', nama: 'Pembukuan sarpras', bidang: 'Sarana dan prasarana', ikon: 'grafik', to: '/portal/sarpras/buku' },
   { izin: 'perpus.kelola', nama: 'Perpustakaan', bidang: 'Perpustakaan', ikon: 'buku' },
+  { izin: 'spmi.kelola', nama: 'Penjaminan mutu (SPMI)', bidang: 'Penjaminan mutu', ikon: 'centang', to: '/portal/spmi' },
+  { izin: 'spmi.catat', nama: 'Penjaminan mutu (SPMI)', bidang: 'Penjaminan mutu', ikon: 'centang', to: '/portal/spmi' },
+  { izin: 'spmi.lihat', nama: 'Penjaminan mutu (SPMI)', bidang: 'Penjaminan mutu', ikon: 'centang', to: '/portal/spmi' },
   { izin: 'laporan.lihat', nama: 'Laporan sekolah', bidang: 'Pimpinan', ikon: 'grafik' },
   { izin: 'profil.setujui_guru', nama: 'Ajuan perbaikan data', bidang: 'Tata usaha', ikon: 'kotak', to: '/portal/ajuan-masuk' },
   { izin: 'profil.setujui_siswa', nama: 'Ajuan perbaikan data', bidang: 'Tata usaha', ikon: 'kotak', to: '/portal/ajuan-masuk' },
