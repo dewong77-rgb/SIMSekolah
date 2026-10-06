@@ -25,6 +25,7 @@ export default function Beranda() {
   ]
   const layanan = [
     { to: pintuPortal, ikon: 'buku', judul: 'Portal dan LMS', isi: 'Kelas daring, lembar kerja, kuis, dan progres belajar untuk siswa, guru, dan orang tua. ' + (session ? 'Buka portal Anda.' : 'Masuk dengan akun sekolah.') },
+    { to: session ? '/asesmen' : '/masuk', ikon: 'pena', judul: 'Asesmen Digital (CBT)', isi: 'Ujian sekolah berbasis komputer: UTS dan UAS dengan token, layar penuh, dan pengawasan.' },
     { to: '/akademik', ikon: 'kalender', judul: 'Kalender Akademik', isi: 'Jadwal kegiatan, libur, dan asesmen. Bisa dilanggan di Google Kalender.' },
     { to: '/hubungan-industri', ikon: 'tautan', judul: 'Hubungan Industri', isi: 'Mitra dunia usaha dan industri untuk praktik kerja dan penyerapan lulusan.' },
     { to: '/alumni', ikon: 'perisai', judul: 'Cek Data Alumni', isi: 'Periksa data kelulusan dengan NISN dan tanggal lahir.' },
