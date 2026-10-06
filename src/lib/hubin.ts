@@ -14,32 +14,9 @@ export function useIzinHubin() {
   return { izin: izin ?? [], memuat: izin === null, punya: (...k: string[]) => (izin ?? []).some((i) => k.includes(i)) }
 }
 
-export const KATEGORI_BERITA = [
-  ['kegiatan', 'Kegiatan'], ['prestasi', 'Prestasi'], ['pengumuman', 'Pengumuman'],
-  ['kemitraan', 'Kemitraan'], ['akademik', 'Akademik'], ['lainnya', 'Lainnya'],
-] as const
-export const namaKategori = (k: string) => KATEGORI_BERITA.find((x) => x[0] === k)?.[1] ?? k
-
-export type BeritaRingkas = {
-  slug: string; judul: string; kategori: string; ringkasan: string | null; gambar_url: string | null; terbit_pada: string; unggulan: boolean
-}
-export type BeritaKelola = {
-  id: string; slug: string; judul: string; kategori: string; ringkasan: string | null; status: string; unggulan: boolean
-  terbit_pada: string | null; penulis_nama: string; diperbarui_pada: string; bisa_ubah: boolean
-}
-
-export function useBeritaPublik(batas = 12, kategori: string | null = null, mulai = 0) {
-  const [hasil, setHasil] = useState<{ total: number; baris: BeritaRingkas[] } | null>(null)
-  const [galat, setGalat] = useState(false)
-  useEffect(() => {
-    let batal = false
-    setHasil(null); setGalat(false)
-    panggil<{ total: number; baris: BeritaRingkas[] }>('berita_publik', { p_kategori: kategori, p_batas: batas, p_mulai: mulai })
-      .then((x) => { if (!batal) setHasil(x) }).catch(() => { if (!batal) setGalat(true) })
-    return () => { batal = true }
-  }, [batas, kategori, mulai])
-  return { hasil, galat }
-}
+// Berita dipindah ke ./berita. Diekspor ulang agar impor lama tetap jalan.
+export { KATEGORI_BERITA, namaKategori, useBeritaPublik } from './berita'
+export type { BeritaRingkas, BeritaKelola } from './berita'
 
 export const STATUS_TRACER = [
   ['bekerja', 'Bekerja'], ['wirausaha', 'Wirausaha'], ['kuliah', 'Melanjutkan kuliah'], ['bekerja_kuliah', 'Bekerja dan kuliah'],
