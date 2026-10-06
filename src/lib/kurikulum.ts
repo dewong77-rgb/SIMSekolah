@@ -18,6 +18,13 @@ export type Guru = {
   jp_total: number; jumlah_rombel: number; jp_tidak_linier: number; status: Record<string, string>
 }
 
+export type BarisWali = {
+  rombel_id: string; rombel: string; tingkat: number; program: string; jumlah_siswa: number
+  wali_dapodik_id: string | null; wali_dapodik: string | null
+  usulan_id: string | null; ptk_id: string | null; wali: string | null
+  status: 'usulan' | 'disetujui' | 'ditolak' | null; catatan: string | null; diputuskan_pada: string | null
+}
+
 export const KELOMPOK_MAPEL = [
   ['umum', 'Umum'], ['kejuruan', 'Kejuruan'], ['muatan_lokal', 'Muatan lokal'], ['projek', 'Projek'], ['pkl', 'PKL'], ['lainnya', 'Lainnya'],
 ] as const
