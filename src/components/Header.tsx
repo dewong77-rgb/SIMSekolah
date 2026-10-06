@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { menuUtama } from '../data/menu'
 import { sekolah } from '../data/contoh'
+import { useSekolah } from '../lib/profilSekolah'
 import { useAuth } from '../auth/AuthContext'
 
 export default function Header() {
+  const { logoUrl } = useSekolah()
   const [terbuka, setTerbuka] = useState(false)
   const [sub, setSub] = useState<string | null>(null)
   const lokasi = useLocation()
@@ -21,7 +23,9 @@ export default function Header() {
     <header className="header">
       <div className="wadah header-baris">
         <Link to="/" className="merek" aria-label="Beranda">
-          <span className="logo" aria-hidden="true">S1</span>
+          {logoUrl
+            ? <img src={logoUrl} alt="" className="logo-gambar" width={42} height={42} />
+            : <span className="logo" aria-hidden="true">S1</span>}
           <span className="merek-teks">
             <strong>{sekolah.nama}</strong>
             <small>Sistem Informasi Sekolah</small>

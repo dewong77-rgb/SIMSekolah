@@ -21,7 +21,7 @@ export const KATEGORI_BERITA = [
 export const namaKategori = (k: string) => KATEGORI_BERITA.find((x) => x[0] === k)?.[1] ?? k
 
 export type BeritaRingkas = {
-  slug: string; judul: string; kategori: string; ringkasan: string | null; gambar_url: string | null; terbit_pada: string; unggulan: boolean
+  slug: string; judul: string; kategori: string; ringkasan: string | null; gambar_url: string | null; gambar_path?: string | null; terbit_pada: string; unggulan: boolean
 }
 export type BeritaKelola = {
   id: string; slug: string; judul: string; kategori: string; ringkasan: string | null; status: string; unggulan: boolean

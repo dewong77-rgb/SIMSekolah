@@ -6,12 +6,18 @@ import Halaman from '../../components/Halaman'
 import { panggil, tglJam } from '../../lib/rpc'
 import { KATEGORI_BERITA, namaKategori, type BeritaKelola } from '../../lib/hubin'
 import Gerbang from './Gerbang'
+import PilihGambar from '../../components/PilihGambar'
+import { hapusGambar, kodeBerkas, tahunIni, UKURAN, unggahGambar, urlPublik } from '../../lib/gambar'
+import { useAuth } from '../../auth/AuthContext'
 
 const NAMA_STATUS: Record<string, string> = { draf: 'Draf', diajukan: 'Menunggu terbit', terbit: 'Terbit', diarsipkan: 'Diarsipkan' }
-type Form = { id?: string; judul: string; kategori: string; ringkasan: string; isi: string; gambar_url: string; gambar_keterangan: string; unggulan: boolean; status: string }
-const BARU: Form = { judul: '', kategori: 'kegiatan', ringkasan: '', isi: '', gambar_url: '', gambar_keterangan: '', unggulan: false, status: 'draf' }
+type Form = { id?: string; judul: string; kategori: string; ringkasan: string; isi: string; gambar_url: string; gambar_path: string; gambar_keterangan: string; unggulan: boolean; status: string }
+const BARU: Form = { judul: '', kategori: 'kegiatan', ringkasan: '', isi: '', gambar_url: '', gambar_path: '', gambar_keterangan: '', unggulan: false, status: 'draf' }
 
 function Isi() {
+  const { session } = useAuth()
+  const [unggah, setUnggah] = useState(false)
+  const [baruDiunggah, setBaruDiunggah] = useState<string[]>([])
   const [daftar, setDaftar] = useState<BeritaKelola[]>([])
   const [bisa, setBisa] = useState({ tulis: false, terbitkan: false })
   const [status, setStatus] = useState('semua')
@@ -34,7 +40,7 @@ function Isi() {
       const x = await panggil<Record<string, unknown>>('berita_ambil', { p_id: b.id })
       setForm({
         id: b.id, judul: String(x.judul ?? ''), kategori: String(x.kategori ?? 'kegiatan'), ringkasan: String(x.ringkasan ?? ''), isi: String(x.isi ?? ''),
-        gambar_url: String(x.gambar_url ?? ''), gambar_keterangan: String(x.gambar_keterangan ?? ''), unggulan: !!x.unggulan, status: String(x.status ?? 'draf'),
+        gambar_url: String(x.gambar_url ?? ''), gambar_path: String(x.gambar_path ?? ''), gambar_keterangan: String(x.gambar_keterangan ?? ''), unggulan: !!x.unggulan, status: String(x.status ?? 'draf'),
       })
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (e) { setGalat((e as Error).message) }
@@ -43,10 +49,10 @@ function Isi() {
   async function simpan(e: FormEvent, statusBaru?: string) {
     e.preventDefault(); if (!form) return
     setGalat(''); setInfo('')
-    if (form.gambar_url.trim() && !/^https:\/\/\S+$/i.test(form.gambar_url.trim())) return setGalat('Tautan gambar harus diawali https://')
     setSibuk(true)
     try {
       await panggil('berita_simpan', { p_id: form.id ?? null, p_data: { ...form, status: statusBaru ?? form.status } })
+      await bersihkan(form.gambar_path)
       setForm(null); setInfo(statusBaru === 'terbit' ? 'Berita terbit di situs publik.' : statusBaru === 'diajukan' ? 'Berita diajukan ke Waka Hubinmas.' : 'Tersimpan.')
       void baca()
     } catch (er) { setGalat((er as Error).message) } finally { setSibuk(false) }
@@ -55,6 +61,23 @@ function Isi() {
   async function pindah(b: BeritaKelola, s: string) {
     setGalat(''); setInfo('')
     try { await panggil('berita_status', { p_id: b.id, p_status: s }); void baca() } catch (e) { setGalat((e as Error).message) }
+  }
+
+  async function pilihGambar(f: File) {
+    const uid = session?.user.id
+    if (!uid) return
+    setGalat(''); setUnggah(true)
+    try {
+      const path = await unggahGambar('publik', `berita/${tahunIni()}/${uid}/${kodeBerkas()}.webp`, f, UKURAN.berita)
+      setBaruDiunggah((x) => [...x, path])
+      setForm((x) => (x ? { ...x, gambar_path: path, gambar_url: '' } : x))
+    } catch (e) { setGalat((e as Error).message) }
+    setUnggah(false)
+  }
+  // Gambar yang diunggah tetapi tidak jadi dipakai dibersihkan agar tidak menumpuk.
+  async function bersihkan(dipakai: string) {
+    await Promise.all(baruDiunggah.filter((p) => p !== dipakai).map((p) => hapusGambar('publik', p)))
+    setBaruDiunggah([])
   }
 
   const u = (k: keyof Form, v: string | boolean) => setForm((x) => (x ? { ...x, [k]: v } : x))
@@ -83,14 +106,16 @@ function Isi() {
           </label>
           <label>Ringkasan<textarea rows={2} maxLength={300} value={form.ringkasan} onChange={(e) => u('ringkasan', e.target.value)} /><small className="catatan">{form.ringkasan.length}/300. Tampil di daftar berita.</small></label>
           <label>Isi berita<textarea rows={12} value={form.isi} onChange={(e) => u('isi', e.target.value)} required /><small className="catatan">Teks biasa. Pisahkan paragraf dengan baris kosong.</small></label>
-          <label>Tautan gambar (https)<input type="url" value={form.gambar_url} onChange={(e) => u('gambar_url', e.target.value)} placeholder="https://" /></label>
+          <PilihGambar label="Gambar berita" saatIni={urlPublik(form.gambar_path) ?? (form.gambar_url || null)} sibuk={unggah} onPilih={pilihGambar}
+            onHapus={() => setForm((x) => (x ? { ...x, gambar_path: '', gambar_url: '' } : x))}
+            petunjuk="Gambar sampul, rasio 16:9 paling rapi. JPG, PNG, atau WebP, diperkecil otomatis." />
           <label>Keterangan gambar<input value={form.gambar_keterangan} maxLength={200} onChange={(e) => u('gambar_keterangan', e.target.value)} /></label>
           {bisa.terbitkan && <label style={{ display: 'flex', gap: 8 }}><input type="checkbox" checked={form.unggulan} onChange={(e) => u('unggulan', e.target.checked)} /> Berita unggulan (tampil paling atas)</label>}
           <div className="aksi">
             <button className="tombol" disabled={sibuk}>Simpan {form.status === 'terbit' ? 'perubahan' : 'sebagai draf'}</button>
             {!bisa.terbitkan && form.status !== 'terbit' && <button type="button" className="tombol tombol-isi" disabled={sibuk} onClick={(e) => simpan(e, 'diajukan')}>Ajukan untuk terbit</button>}
             {bisa.terbitkan && form.status !== 'terbit' && <button type="button" className="tombol tombol-isi" disabled={sibuk} onClick={(e) => simpan(e, 'terbit')}>Terbitkan</button>}
-            <TombolIkon ikon="tutup" label="Batal" onClick={() => setForm(null)} />
+            <TombolIkon ikon="tutup" label="Batal" onClick={() => { void bersihkan(''); setForm(null) }} />
           </div>
         </form>
       )}

@@ -898,6 +898,7 @@ tbody tr:hover td { background: #f8fafd; }
 .as-masuk { max-width: 480px; margin: 16px auto 0; }
 .as-masuk .kartu { margin-top: 12px; }
 
+.logo-gambar { width: 42px; height: 42px; object-fit: contain; border-radius: 8px; flex: none; }
 /* Asesmen Digital: status, ringkasan, kesiapan, kartu mapel dan ruang */
 .cbt-status { display: flex; align-items: center; gap: 14px; padding: 14px 18px; margin-bottom: 14px; border-radius: var(--radius); border: 1px solid var(--garis); background: #fff; box-shadow: var(--bayangan-1); }
 .cbt-status > div { display: flex; flex-direction: column; line-height: 1.35; }
