@@ -6,6 +6,7 @@ import { usePengaturanKurikulum, type Pengaturan } from '../../lib/kurikulum'
 const TAUTAN = [
   { to: '/portal/kurikulum/struktur', nama: 'Struktur kurikulum' },
   { to: '/portal/kurikulum/beban', nama: 'Beban mengajar' },
+  { to: '/portal/kurikulum/jadwal', nama: 'Jadwal pelajaran' },
   { to: '/portal/kurikulum/wali-kelas', nama: 'Wali kelas' },
   { to: '/portal/jam-pelajaran', nama: 'Jam pelajaran' },
   { to: '/portal/kalender', nama: 'Kalender sekolah' },

@@ -74,3 +74,9 @@ export function usePengaturanKurikulum() {
   }, [versi])
   return { pengaturan: p, memuat, muatUlang: () => setVersi((v) => v + 1) }
 }
+
+export type SlotJadwal = {
+  rombel_id: string; rombel: string; hari: number; jam_ke: number
+  mapel_id: string; mapel: string; ptk_id: string | null; guru: string | null; ptk_beban_id: string | null
+}
+export const NAMA_HARI_JADWAL = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'] as const

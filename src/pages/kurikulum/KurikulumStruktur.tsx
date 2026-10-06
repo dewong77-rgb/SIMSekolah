@@ -59,9 +59,9 @@ function DaftarMapel({ mapel, boleh, muat }: { mapel: Mapel[]; boleh: boolean; m
     setSibuk(false)
   }
   async function hapus(m: Mapel) {
-    if (!window.confirm(`Hapus mapel "${m.nama}"? Bila sudah dipakai struktur atau pembagian guru, mapel hanya dinonaktifkan.`)) return
+    if (!window.confirm(`Nonaktifkan mapel "${m.nama}"? Struktur dan pembagian guru yang sudah ada tetap tersimpan.`)) return
     setGalat(''); setInfo(''); setSibuk(true)
-    try { const r = await panggil<string>('kur_mapel_hapus', { p_id: m.id }); setInfo(r === 'dihapus' ? 'Mapel dihapus.' : 'Mapel sudah terpakai, jadi dinonaktifkan.'); await muat() }
+    try { const r = await panggil<string>('kur_mapel_hapus', { p_id: m.id }); setInfo(r === 'dinonaktifkan' ? 'Mapel dinonaktifkan.' : 'Mapel diperbarui.'); await muat() }
     catch (e) { setGalat((e as Error).message) }
     setSibuk(false)
   }
@@ -83,7 +83,7 @@ function DaftarMapel({ mapel, boleh, muat }: { mapel: Mapel[]; boleh: boolean; m
                 <td>{boleh && (
                   <span style={{ display: 'flex', gap: 6 }}>
                     <button type="button" className="tombol" style={{ padding: '4px 10px' }} onClick={() => setEdit({ ...m, kata: m.bidang_linier.join(', ') })}>Ubah</button>
-                    <button type="button" className="tombol" style={{ padding: '4px 10px', color: '#a11' }} disabled={sibuk} onClick={() => hapus(m)}>Hapus</button>
+                    <button type="button" className="tombol" style={{ padding: '4px 10px', color: '#a11' }} disabled={sibuk} onClick={() => hapus(m)}>Nonaktifkan</button>
                   </span>
                 )}</td>
               </tr>

@@ -201,16 +201,14 @@ exception when unique_violation then
   raise exception 'Mapel dengan nama itu sudah ada.';
 end $$;
 
+-- Mapel tidak pernah dihapus keras: dinonaktifkan agar struktur dan pembagian guru lama tetap utuh.
 create or replace function public.kur_mapel_hapus(p_id uuid) returns text
 language plpgsql security definer set search_path = '' as $$
 begin
   if not private.kur_boleh() then raise exception 'Anda tidak berwenang mengatur kurikulum.'; end if;
-  if exists (select 1 from public.kur_struktur where mapel_id = p_id) or exists (select 1 from public.kur_beban where mapel_id = p_id) then
-    update public.kur_mapel set aktif = false where id = p_id;
-    return 'dinonaktifkan';
-  end if;
-  delete from public.kur_mapel where id = p_id;
-  return 'dihapus';
+  update public.kur_mapel set aktif = false where id = p_id;
+  if not found then raise exception 'Mapel tidak ditemukan.'; end if;
+  return 'dinonaktifkan';
 end $$;
 
 -- ---------------------------------------------------------------- struktur kurikulum
