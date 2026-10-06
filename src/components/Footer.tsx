@@ -24,6 +24,7 @@ export default function Footer() {
             <li><Link to="/hubungan-industri">Hubungan Industri</Link></li>
             <li><Link to="/alumni">Cek Data Alumni</Link></li>
             <li><Link to="/alumni/tracer">Tracer Study</Link></li>
+            <li><Link to="/asesmen">Asesmen Digital (CBT)</Link></li>
             <li><Link to="/ppdb">Pendaftaran siswa baru</Link></li>
           </ul>
         </div>
