@@ -77,6 +77,21 @@ export default function EntitasPanel({ entitas, semua, owner, bisaUbah, subjudul
     setNilai(awal); setEdit(b); setGalat(''); setInfo('')
   }
 
+  /** Luas dihitung dari panjang x lebar selama pengguna belum mengetik luas sendiri. */
+  function ubahIsian(kunci: string, v: string) {
+    setNilai((n) => {
+      const baru = { ...n, [kunci]: v }
+      const luas = entitas.kolom.some((k) => k.kunci === 'luas_tapak') ? 'luas_tapak' : entitas.kolom.some((k) => k.kunci === 'luas') ? 'luas' : null
+      if (luas && (kunci === 'panjang' || kunci === 'lebar')) {
+        const p = Number(baru.panjang), l = Number(baru.lebar)
+        const lama = Number(n.panjang) * Number(n.lebar)
+        const otomatis = !n[luas] || Number(n[luas]) === Math.round(lama * 100) / 100
+        if (otomatis && p > 0 && l > 0) baru[luas] = String(Math.round(p * l * 100) / 100)
+      }
+      return baru
+    })
+  }
+
   async function simpan(e: FormEvent) {
     e.preventDefault()
     setSibuk(true); setGalat(''); setInfo('')
@@ -117,7 +132,7 @@ export default function EntitasPanel({ entitas, semua, owner, bisaUbah, subjudul
             {entitas.kolom.map((k) => (
               <label key={k.kunci} htmlFor={`fr-${k.kunci}`}>
                 <span>{k.butir ? `${k.butir}. ` : ''}{k.label}{k.wajib ? ' *' : ''}{k.satuan ? ` (${k.satuan})` : ''}</span>
-                <Isian k={k} nilai={nilai[k.kunci] ?? ''} ubah={(v) => setNilai((n) => ({ ...n, [k.kunci]: v }))} rujukan={rujukan} induk={semua} />
+                <Isian k={k} nilai={nilai[k.kunci] ?? ''} ubah={(v) => ubahIsian(k.kunci, v)} rujukan={rujukan} induk={semua} />
                 {k.bantuan && <small className="petunjuk">{k.bantuan}</small>}
               </label>
             ))}
