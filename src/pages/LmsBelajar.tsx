@@ -256,7 +256,7 @@ export function PertemuanSiswa({ kelasId, id }: { kelasId: string; id: string })
       )}
       {!butuhAbsen && nomorSaatIni === 'latihan' && <p className="catatan">Kuis ini opsional. Nilainya menjadi tambahan di nilai pertemuan.</p>}
       {!butuhAbsen && nomorSaatIni === 'latihan' && <LatihanPertemuan kelasId={kelasId} pertemuanId={id} judul={p?.judul ?? ''} kelola={false} perbarui={() => void muat()} versi={versi} />}
-      {!butuhAbsen && nomorSaatIni === 'forum' && <Forum pertemuanId={id} kelola={false} setelah={() => void muat()} />}
+      {!butuhAbsen && nomorSaatIni === 'forum' && <Forum pertemuanId={id} kelasId={kelasId} kelola={false} setelah={() => void muat()} />}
 
       <p className="catatan jarak"><Link to={`/portal/lms/${kelasId}`}>Semua pertemuan {kelas?.mapel ?? ''}</Link></p>
     </Halaman>

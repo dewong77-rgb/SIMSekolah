@@ -1,4 +1,5 @@
 -- Forum bergaya media sosial: komentar bisa dibalas dan saling berbalas.
+-- Fungsi lms_forum_balas versi bersarang ada di migrasi 20261018 (bersama lampiran gambar).
 -- Dua tingkat saja (komentar dan balasannya). Membalas sebuah balasan tetap ditaruh di bawah komentar induknya,
 -- dengan nama yang dibalas disimpan di kolom balas_ke supaya tampil sebagai sebutan @nama.
 -- Semua perhitungan bonus forum memakai topik_id, jadi balasan bersarang tetap dihitung sebagai tulisan siswa.
@@ -8,31 +9,6 @@ alter table public.forum_balasan
   add column if not exists balas_ke text;
 
 create index if not exists forum_balasan_induk_idx on public.forum_balasan(induk_id);
-
--- Tanda tangan berubah (parameter ketiga), jadi versi lama dibuang agar pemanggilan tidak ambigu.
-drop function if exists public.lms_forum_balas(uuid, text);
-
-create or replace function public.lms_forum_balas(p_topik uuid, p_isi text, p_induk uuid default null) returns uuid
-language plpgsql security definer set search_path = '' as $$
-declare f public.forum_topik%rowtype; v_id uuid; v_induk uuid; v_nama text;
-begin
-  if auth.uid() is null then raise exception 'Perlu masuk.' using errcode = '28000'; end if;
-  select * into f from public.forum_topik where id = p_topik and not dihapus;
-  if not found or not private.lms_forum_akses(f.pertemuan_id) then raise exception 'Tidak tersedia.' using errcode = '42501'; end if;
-  if f.dikunci and not private.lms_kelola(f.kelas_ajar_id) then raise exception 'Diskusi ini dikunci guru.' using errcode = 'P0001'; end if;
-  if btrim(coalesce(p_isi, '')) = '' then raise exception 'Isi balasan kosong.' using errcode = '22023'; end if;
-  if p_induk is not null then
-    select coalesce(b.induk_id, b.id), b.penulis_nama into v_induk, v_nama
-    from public.forum_balasan b where b.id = p_induk and b.topik_id = p_topik and not b.dihapus;
-    if v_induk is null then raise exception 'Komentar yang dibalas sudah tidak ada.' using errcode = 'P0001'; end if;
-  end if;
-  perform private.lms_forum_batas();
-  insert into public.forum_balasan (topik_id, penulis_user, penulis_nama, penulis_peran, isi, induk_id, balas_ke)
-  values (p_topik, auth.uid(), private.lms_nama_saya(),
-          case when private.lms_kelola(f.kelas_ajar_id) then 'guru' else 'siswa' end, btrim(p_isi), v_induk, v_nama)
-  returning id into v_id;
-  return v_id;
-end $$;
 
 create or replace function public.lms_forum_balasan_daftar(p_topik uuid) returns jsonb
 language plpgsql stable security definer set search_path = '' as $$

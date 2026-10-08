@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ClipboardEvent, type FormEvent } from 'react'
 import { panggil, tglJam } from '../lib/rpc'
+import { supabase } from '../lib/supabase'
+import { AKSEPTASI_GAMBAR, kodeBerkas, siapkanGambar } from '../lib/gambar'
 import Ikon from '../components/Ikon'
 
 // Forum diskusi per pertemuan, bergaya media sosial: kiriman, komentar, dan balasan komentar.
@@ -8,11 +10,14 @@ import Ikon from '../components/Ikon'
 type Topik = {
   id: string; judul: string; isi: string; penulis_nama: string; penulis_peran: string
   dikunci: boolean; dibuat_pada: string; milik_saya: boolean; jumlah_balasan: number; terakhir: string
+  gambar?: string | null; suka?: number; suka_saya?: boolean
 }
 type Balasan = {
   id: string; isi: string; penulis_nama: string; penulis_peran: string; dibuat_pada: string; milik_saya: boolean
-  induk_id?: string | null; balas_ke?: string | null
+  induk_id?: string | null; balas_ke?: string | null; gambar?: string | null; suka?: number; suka_saya?: boolean
 }
+
+type Kirim = (isi: string, gambar: string | null) => Promise<void>
 
 const WARNA = ['#1a3e6f', '#0f766e', '#7c3aed', '#b45309', '#be185d', '#1d4ed8', '#4d7c0f']
 const inisial = (n: string) => n.split(/\s+/).filter(Boolean).slice(0, 2).map((x) => x[0]).join('').toUpperCase() || '?'
@@ -38,22 +43,93 @@ function judulDari(isi: string): string {
   return baris.length > 80 ? `${baris.slice(0, 79).trimEnd()}…` : baris
 }
 
+/** Gambar forum ada di bucket privat, jadi dibaca lewat tautan bertanda tangan yang berlaku singkat. */
+function GambarForum({ path }: { path: string }) {
+  const [src, setSrc] = useState<string | null>(null)
+  const [galat, setGalat] = useState(false)
+  useEffect(() => {
+    let batal = false
+    supabase.storage.from('privat').createSignedUrl(path, 3600).then(({ data, error }) => {
+      if (batal) return
+      if (error || !data) setGalat(true); else setSrc(data.signedUrl)
+    })
+    return () => { batal = true }
+  }, [path])
+  if (galat) return <p className="catatan">Gambar tidak dapat dimuat.</p>
+  if (!src) return <div className="forum-gambar forum-gambar-kosong">Memuat gambar...</div>
+  return <a href={src} target="_blank" rel="noopener noreferrer" className="forum-gambar"><img src={src} alt="Gambar lampiran diskusi" loading="lazy" /></a>
+}
+
+/** Tombol suka: pembaruan langsung di layar, dikembalikan bila server menolak. */
+function TombolSuka({ jenis, id, jumlah, saya }: { jenis: 'topik' | 'balasan'; id: string; jumlah: number; saya: boolean }) {
+  const [n, setN] = useState(jumlah)
+  const [aktif, setAktif] = useState(saya)
+  const [sibuk, setSibuk] = useState(false)
+  useEffect(() => { setN(jumlah); setAktif(saya) }, [jumlah, saya])
+  async function ubah() {
+    if (sibuk) return
+    const baru = !aktif
+    setSibuk(true); setAktif(baru); setN((x) => Math.max(0, x + (baru ? 1 : -1)))
+    try {
+      const r = await panggil<{ jumlah: number; saya: boolean }>('lms_forum_suka', { p_jenis: jenis, p_id: id, p_suka: baru })
+      setN(r.jumlah); setAktif(r.saya)
+    } catch { setAktif(!baru); setN((x) => Math.max(0, x + (baru ? -1 : 1))) }
+    setSibuk(false)
+  }
+  return (
+    <button type="button" className={`forum-tautan forum-suka${aktif ? ' forum-suka-aktif' : ''}`} aria-pressed={aktif} onClick={() => void ubah()}>
+      <Ikon nama="suka" ukuran={14} /> {aktif ? 'Disukai' : 'Suka'}{n > 0 ? ` · ${n}` : ''}
+    </button>
+  )
+}
+
 function NamaPenulis({ nama, peran }: { nama: string; peran: string }) {
   return <><strong>{nama}</strong>{peran === 'guru' && <span className="forum-guru">Guru</span>}</>
 }
 
-/** Kotak tulis: satu kolom, tombol kirim muncul saat ada isi. */
-function KotakTulis({ nama, placeholder, kirim, batal, fokus, label }: {
-  nama: string; placeholder: string; kirim: (isi: string) => Promise<void>; batal?: () => void; fokus?: boolean; label: string
+/** Kotak tulis: teks, plus satu gambar (tempel tangkapan layar dengan Ctrl+V atau pilih berkas). */
+function KotakTulis({ nama, placeholder, kirim, batal, fokus, label, kelasId }: {
+  nama: string; placeholder: string; kirim: Kirim; batal?: () => void; fokus?: boolean; label: string; kelasId: string | null
 }) {
   const [isi, setIsi] = useState('')
+  const [gambar, setGambar] = useState<{ blob: Blob; pratinjau: string } | null>(null)
   const [sibuk, setSibuk] = useState(false)
   const [galat, setGalat] = useState('')
+  const berkas = useRef<HTMLInputElement>(null)
+  useEffect(() => () => { if (gambar) URL.revokeObjectURL(gambar.pratinjau) }, [gambar])
+
+  async function pilihGambar(f: File | null | undefined) {
+    if (!f) return
+    setGalat('')
+    try {
+      const blob = await siapkanGambar(f, { sisi: 1600, kualitas: 0.82 })
+      setGambar({ blob, pratinjau: URL.createObjectURL(blob) })
+    } catch (e) { setGalat((e as Error).message) }
+  }
+  function saatTempel(e: ClipboardEvent<HTMLTextAreaElement>) {
+    const f = Array.from(e.clipboardData.files).find((x) => x.type.startsWith('image/'))
+    if (f) { e.preventDefault(); void pilihGambar(f) }
+  }
   async function submit(e: FormEvent) {
     e.preventDefault()
     if (!isi.trim()) return
     setSibuk(true); setGalat('')
-    try { await kirim(isi); setIsi(''); batal?.() } catch (er) { setGalat((er as Error).message) }
+    let path: string | null = null
+    try {
+      if (gambar) {
+        if (!kelasId) throw new Error('Kelas belum dikenali. Muat ulang halaman.')
+        const { data } = await supabase.auth.getUser()
+        if (!data.user) throw new Error('Perlu masuk.')
+        path = `forum/${kelasId}/${data.user.id}/${kodeBerkas()}.webp`
+        const { error } = await supabase.storage.from('privat').upload(path, gambar.blob, { contentType: 'image/webp', cacheControl: '31536000', upsert: false })
+        if (error) throw new Error(/row-level security|policy/i.test(error.message) ? 'Anda tidak berwenang mengunggah gambar di kelas ini.' : error.message)
+      }
+      await kirim(isi, path)
+      setIsi(''); setGambar(null); batal?.()
+    } catch (er) {
+      if (path) await supabase.storage.from('privat').remove([path]).catch(() => undefined)
+      setGalat((er as Error).message)
+    }
     setSibuk(false)
   }
   return (
@@ -61,23 +137,32 @@ function KotakTulis({ nama, placeholder, kirim, batal, fokus, label }: {
       <Avatar nama={nama} kecil />
       <div className="forum-tulis-isi">
         <textarea aria-label={label} required rows={isi || fokus ? 3 : 1} maxLength={5000} autoFocus={fokus} value={isi}
-          placeholder={placeholder} onChange={(e) => setIsi(e.target.value)}
+          placeholder={placeholder} onChange={(e) => setIsi(e.target.value)} onPaste={saatTempel}
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) (e.currentTarget.form as HTMLFormElement).requestSubmit() }} />
-        {galat && <p className="catatan galat" role="alert">{galat}</p>}
-        {(isi || batal) && (
-          <div className="forum-tulis-aksi">
-            {batal && <button type="button" className="forum-tautan" onClick={batal}>Batal</button>}
-            <button className="tombol tombol-isi forum-kirim" disabled={sibuk || !isi.trim()}><Ikon nama="kirim" ukuran={14} /> {sibuk ? 'Mengirim...' : 'Kirim'}</button>
+        {gambar && (
+          <div className="forum-pratinjau">
+            <img src={gambar.pratinjau} alt="Pratinjau gambar yang akan dikirim" />
+            <button type="button" className="forum-tautan forum-hapus" onClick={() => setGambar(null)}>Lepas gambar</button>
           </div>
         )}
+        {galat && <p className="catatan galat" role="alert">{galat}</p>}
+        <div className="forum-tulis-aksi">
+          <input ref={berkas} type="file" accept={AKSEPTASI_GAMBAR} hidden onChange={(e) => { void pilihGambar(e.target.files?.[0]); e.target.value = '' }} />
+          <button type="button" className="forum-tautan forum-lampir" onClick={() => berkas.current?.click()} disabled={sibuk}>
+            <Ikon nama="gambar" ukuran={14} /> {gambar ? 'Ganti gambar' : 'Gambar'}
+          </button>
+          {batal && <button type="button" className="forum-tautan" onClick={batal}>Batal</button>}
+          {(isi || gambar) && <button className="tombol tombol-isi forum-kirim" disabled={sibuk || !isi.trim()}><Ikon nama="kirim" ukuran={14} /> {sibuk ? 'Mengirim...' : 'Kirim'}</button>}
+        </div>
+        {gambar && !isi.trim() && <p className="catatan">Tambahkan keterangan singkat agar teman tahu maksud gambarnya.</p>}
       </div>
     </form>
   )
 }
 
-function Komentar({ b, balasan, terkunci, kelola, nama, balas, hapus }: {
-  b: Balasan; balasan: Balasan[]; terkunci: boolean; kelola: boolean; nama: string
-  balas: (isi: string, induk: string) => Promise<void>; hapus: (id: string) => void
+function Komentar({ b, balasan, terkunci, kelola, nama, kelasId, balas, hapus }: {
+  b: Balasan; balasan: Balasan[]; terkunci: boolean; kelola: boolean; nama: string; kelasId: string | null
+  balas: (isi: string, gambar: string | null, induk: string) => Promise<void>; hapus: (id: string) => void
 }) {
   const [membalas, setMembalas] = useState<string | null>(null)
   const bolehHapus = (x: Balasan) => kelola || x.milik_saya
@@ -89,14 +174,16 @@ function Komentar({ b, balasan, terkunci, kelola, nama, balas, hapus }: {
           <div className="forum-nama"><NamaPenulis nama={x.penulis_nama} peran={x.penulis_peran} /></div>
           <p>{anak && x.balas_ke && x.balas_ke !== x.penulis_nama && <span className="forum-sebut">@{x.balas_ke} </span>}{x.isi}</p>
         </div>
+        {x.gambar && <GambarForum path={x.gambar} />}
         <div className="forum-aksi">
           <span title={tglJam(x.dibuat_pada)}>{waktuRingkas(x.dibuat_pada)}</span>
+          <TombolSuka jenis="balasan" id={x.id} jumlah={x.suka ?? 0} saya={!!x.suka_saya} />
           {!terkunci && <button type="button" className="forum-tautan" onClick={() => setMembalas(membalas === x.id ? null : x.id)}>Balas</button>}
           {bolehHapus(x) && <button type="button" className="forum-tautan forum-hapus" onClick={() => hapus(x.id)}>Hapus</button>}
         </div>
         {membalas === x.id && (
           <KotakTulis nama={nama} fokus label={`Balasan untuk ${x.penulis_nama}`} placeholder={`Balas ${x.penulis_nama}...`}
-            kirim={(isi) => balas(isi, x.id)} batal={() => setMembalas(null)} />
+            kelasId={kelasId} kirim={(isi, g) => balas(isi, g, x.id)} batal={() => setMembalas(null)} />
         )}
       </div>
     </div>
@@ -109,7 +196,7 @@ function Komentar({ b, balasan, terkunci, kelola, nama, balas, hapus }: {
   )
 }
 
-function Kiriman({ t, kelola, nama, muat, bukaAwal }: { t: Topik; kelola: boolean; nama: string; muat: () => Promise<void>; bukaAwal: boolean }) {
+function Kiriman({ t, kelola, nama, kelasId, muat, bukaAwal }: { t: Topik; kelola: boolean; nama: string; kelasId: string | null; muat: () => Promise<void>; bukaAwal: boolean }) {
   const [buka, setBuka] = useState(bukaAwal)
   const [daftar, setDaftar] = useState<Balasan[] | null>(null)
   const [galat, setGalat] = useState('')
@@ -128,8 +215,8 @@ function Kiriman({ t, kelola, nama, muat, bukaAwal }: { t: Topik; kelola: boolea
     return { utama, anak }
   }, [daftar])
 
-  async function kirimKomentar(isi: string, induk?: string) {
-    await panggil('lms_forum_balas', { p_topik: t.id, p_isi: isi, ...(induk ? { p_induk: induk } : {}) })
+  async function kirimKomentar(isi: string, gambar: string | null, induk?: string) {
+    await panggil('lms_forum_balas', { p_topik: t.id, p_isi: isi, p_induk: induk ?? null, p_gambar: gambar })
     await muatBalasan(); await muat()
   }
   async function hapus(jenis: 'topik' | 'balasan', id: string) {
@@ -160,6 +247,8 @@ function Kiriman({ t, kelola, nama, muat, bukaAwal }: { t: Topik; kelola: boolea
       </header>
       {tampilJudul && <h3 className="forum-judul">{t.judul}</h3>}
       <p className="forum-teks">{t.isi}</p>
+      {t.gambar && <GambarForum path={t.gambar} />}
+      <div className="forum-aksi forum-aksi-kiriman"><TombolSuka jenis="topik" id={t.id} jumlah={t.suka ?? 0} saya={!!t.suka_saya} /></div>
       <button type="button" className="forum-hitung" aria-expanded={buka} onClick={() => setBuka(!buka)}>
         {buka ? 'Sembunyikan komentar' : t.jumlah_balasan > 0 ? `Lihat ${t.jumlah_balasan} komentar` : 'Tulis komentar'}
         {buka && t.jumlah_balasan > 0 ? ` (${t.jumlah_balasan})` : ''}
@@ -169,12 +258,12 @@ function Kiriman({ t, kelola, nama, muat, bukaAwal }: { t: Topik; kelola: boolea
         <div className="forum-komentar-daftar">
           {terkunci
             ? <p className="catatan">Diskusi ini dikunci guru.</p>
-            : <KotakTulis nama={nama} label="Tulis komentar" placeholder="Tulis komentar atau jawaban..." kirim={(isi) => kirimKomentar(isi)} />}
+            : <KotakTulis nama={nama} label="Tulis komentar" placeholder="Tulis komentar atau jawaban..." kelasId={kelasId} kirim={(isi, g) => kirimKomentar(isi, g)} />}
           {!daftar && !galat && <p className="catatan">Memuat...</p>}
           {daftar && utama.length === 0 && <p className="catatan">Belum ada komentar. Jadilah yang pertama.</p>}
           {utama.map((b) => (
-            <Komentar key={b.id} b={b} balasan={anak.get(b.id) ?? []} terkunci={terkunci} kelola={kelola} nama={nama}
-              balas={(isi, induk) => kirimKomentar(isi, induk)} hapus={(id) => void hapus('balasan', id)} />
+            <Komentar key={b.id} b={b} balasan={anak.get(b.id) ?? []} terkunci={terkunci} kelola={kelola} nama={nama} kelasId={kelasId}
+              balas={(isi, g, induk) => kirimKomentar(isi, g, induk)} hapus={(id) => void hapus('balasan', id)} />
           ))}
         </div>
       )}
@@ -183,7 +272,7 @@ function Kiriman({ t, kelola, nama, muat, bukaAwal }: { t: Topik; kelola: boolea
 }
 
 /** Forum satu pertemuan. Kiriman pembuka dari guru tampil di atas dan langsung terbuka. */
-export function Forum({ pertemuanId, kelola, setelah, nama }: { pertemuanId: string; kelola: boolean; setelah?: () => void; nama?: string }) {
+export function Forum({ pertemuanId, kelasId, kelola, setelah, nama }: { pertemuanId: string; kelasId?: string; kelola: boolean; setelah?: () => void; nama?: string }) {
   const [daftar, setDaftar] = useState<Topik[] | null>(null)
   const [galat, setGalat] = useState('')
   const muat = useCallback(async () => {
@@ -198,8 +287,8 @@ export function Forum({ pertemuanId, kelola, setelah, nama }: { pertemuanId: str
   }, [nama])
   const saya = nama ?? namaSaya ?? (kelola ? 'Guru' : 'Saya')
 
-  async function kirimKiriman(isi: string) {
-    await panggil('lms_forum_buat', { p_pertemuan: pertemuanId, p_judul: judulDari(isi), p_isi: isi })
+  async function kirimKiriman(isi: string, gambar: string | null) {
+    await panggil('lms_forum_buat', { p_pertemuan: pertemuanId, p_judul: judulDari(isi), p_isi: isi, p_gambar: gambar })
     await sesudahAksi()
   }
   // Kiriman guru (pembuka diskusi) di atas, sisanya menurut aktivitas terbaru.
@@ -212,11 +301,11 @@ export function Forum({ pertemuanId, kelola, setelah, nama }: { pertemuanId: str
       <div className="judul-bagian jarak"><h2>Diskusi</h2></div>
       {galat && <p className="catatan galat" role="alert">{galat}</p>}
       <div className="kartu forum-baru">
-        <KotakTulis nama={saya} label="Tulis kiriman baru" placeholder="Punya pertanyaan atau pendapat? Tulis di sini..." kirim={kirimKiriman} />
+        <KotakTulis nama={saya} label="Tulis kiriman baru" placeholder="Punya pertanyaan atau pendapat? Tulis di sini, atau tempel tangkapan layar..." kelasId={kelasId ?? null} kirim={kirimKiriman} />
       </div>
       {!daftar && !galat && <p className="catatan">Memuat...</p>}
       {daftar && daftar.length === 0 && <div className="kartu"><p className="catatan">Belum ada diskusi. Jadilah yang pertama bertanya.</p></div>}
-      {urut.map((t, i) => <Kiriman key={t.id} t={t} kelola={kelola} nama={saya} muat={sesudahAksi} bukaAwal={i === 0} />)}
+      {urut.map((t, i) => <Kiriman key={t.id} t={t} kelola={kelola} nama={saya} kelasId={kelasId ?? null} muat={sesudahAksi} bukaAwal={i === 0} />)}
     </section>
   )
 }

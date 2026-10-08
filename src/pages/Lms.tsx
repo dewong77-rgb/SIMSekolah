@@ -874,7 +874,7 @@ export function RuangPertemuan() {
         <LatihanPertemuan kelasId={kelasId} pertemuanId={id} judul={p.judul} kelola={kelola} perbarui={() => void muat()} versi={versi} />
       )}
       {p && !terkunci && (kelola || p.status === 'terbit') && (!kelola || tab === 'diskusi') && (
-        <div id="forum"><Forum pertemuanId={id} kelola={kelola} setelah={kelola ? () => void muat() : undefined} /></div>
+        <div id="forum"><Forum pertemuanId={id} kelasId={kelasId} kelola={kelola} setelah={kelola ? () => void muat() : undefined} /></div>
       )}
 
       {kelola && p && tab === 'rekap' && <RekapPertemuan pertemuanId={id} nomor={p.nomor} versi={versi} />}
