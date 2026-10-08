@@ -98,13 +98,14 @@ function ProfilPtk({ h }: { h: Extract<Hasil, { jenis: 'ptk' }> }) {
         ]} />
         <Bagian judul="Kepegawaian" baris={[
           ['Status pegawai', tampil(d.status_kepegawaian)], ['NIP', tampil(d.nip)], ['NUPTK', tampil(d.nuptk)], ['NUKS', tampil(d.nuks)],
-          ['Jenis PTK', tampil(d.jenis_ptk)], ['SK pengangkatan', tampil(d.sk_pengangkatan)], ['TMT pengangkatan', tanggal(d.tmt_pengangkatan)],
+          ['NIY / NIGK', tampil(d.niy_nigk)], ['Jenis PTK', tampil(d.jenis_ptk)], ['SK pengangkatan', tampil(d.sk_pengangkatan)], ['TMT pengangkatan', tanggal(d.tmt_pengangkatan)],
           ['Lembaga pengangkat', tampil(d.lembaga_pengangkatan)], ['Pangkat / golongan', tampil(d.pangkat_golongan)], ['Sumber gaji', tampil(d.sumber_gaji)],
           ['SK CPNS', tampil(d.sk_cpns)], ['TMT CPNS', tanggal(d.tanggal_cpns)], ['TMT PNS', tanggal(d.tmt_pns)],
           ['TMT kerja', tanggal(d.tmt_kerja)], ['Kartu pegawai', tampil(s.karpeg)], ['Karis / Karsu', tampil(s.karis_karsu)],
         ]} />
         <Bagian judul="Penugasan" baris={[
-          ['Jabatan PTK', tampil(d.jabatan_ptk)], ['Tugas tambahan', tampil(d.tugas_tambahan)], ['Mengajar', tampil(d.mengajar)],
+          ['Nomor surat tugas', tampil(d.nomor_surat_tugas)], ['Tanggal surat tugas', tanggal(d.tanggal_surat_tugas)], ['TMT tugas', tanggal(d.tmt_tugas)],
+          ['Sekolah induk', tampil(d.sekolah_induk)], ['Jabatan PTK', tampil(d.jabatan_ptk)], ['Tugas tambahan', tampil(d.tugas_tambahan)], ['Mengajar', tampil(d.mengajar)],
           ['Jam mengajar per minggu', tampil(d.jjm)], ['Jam tugas tambahan', tampil(d.jam_tugas_tambahan)], ['Total jam per minggu', tampil(d.total_jjm)],
           ['Jumlah siswa diajar', tampil(d.jml_siswa)],
         ]} />
@@ -112,6 +113,7 @@ function ProfilPtk({ h }: { h: Extract<Hasil, { jenis: 'ptk' }> }) {
           ['Jenjang pendidikan terakhir', tampil(d.jenjang_pendidikan)], ['Program studi', tampil(d.jurusan_prodi)],
           ['Sertifikasi', tampil(d.sertifikasi)], ['Kompetensi', tampil(d.kompetensi)],
           ['Lisensi kepala sekolah', tampil(d.sudah_lisensi_kepsek)], ['Diklat kepengawasan', tampil(d.pernah_diklat_kepengawasan)],
+          ['Keahlian laboratorium', tampil(d.keahlian_laboratorium)], ['Mampu menangani kebutuhan khusus', tampil(d.kebutuhan_khusus_ditangani)],
           ['Keahlian braille', tampil(d.keahlian_braille)], ['Keahlian bahasa isyarat', tampil(d.keahlian_bahasa_isyarat)],
         ]} />
       </div>
@@ -160,12 +162,18 @@ function ProfilSiswa({ h }: { h: Extract<Hasil, { jenis: 'siswa' }> }) {
         <Bagian judul="Data wali" baris={orangTua('wali')} />
         <Bagian judul="Data periodik" baris={[
           ['Tinggi badan', angka(d.tinggi_badan, 'cm')], ['Berat badan', angka(d.berat_badan, 'kg')], ['Lingkar kepala', angka(d.lingkar_kepala, 'cm')],
-          ['Jarak rumah ke sekolah', angka(d.jarak_rumah_km, 'km')], ['Jumlah saudara kandung', tampil(d.jml_saudara_kandung)],
+          ['Jarak rumah ke sekolah', angka(d.jarak_rumah_km, 'km')], ['Waktu tempuh ke sekolah', angka(d.waktu_tempuh_menit, 'menit')], ['Jumlah saudara kandung', tampil(d.jml_saudara_kandung)],
         ]} />
         <Bagian judul="Kesejahteraan" baris={[
           ['Penerima KPS', tampil(d.penerima_kps)], ['No. KPS', tampil(s.no_kps)], ['No. KKS', tampil(s.nomor_kks)],
           ['Penerima KIP', tampil(s.penerima_kip)], ['No. KIP', tampil(s.nomor_kip)], ['Nama tertera di KIP', tampil(s.nama_di_kip)],
+          ['Tetap menerima KIP', tampil(d.tetap_menerima_kip)], ['Alasan menolak PIP', tampil(d.alasan_menolak_pip)],
           ['Layak PIP', tampil(d.layak_pip)], ['Alasan layak PIP', tampil(d.alasan_layak_pip)],
+        ]} />
+        <Bagian judul="Registrasi peserta didik" baris={[
+          ['Kompetensi keahlian', tampil(d.kompetensi_keahlian)], ['Jenis pendaftaran', tampil(d.jenis_pendaftaran)],
+          ['Tanggal masuk sekolah', tanggal(d.tanggal_masuk_sekolah)], ['No. peserta ujian jenjang sebelumnya', tampil(s.no_peserta_ujian_nasional)],
+          ['No. seri ijazah jenjang sebelumnya', tampil(s.no_seri_ijazah)], ['No. SKHUN', tampil(d.skhun)],
         ]} />
         <Bagian judul="Rombongan belajar" baris={r ? [
           ['Rombel', tampil(r.nama)], ['Tingkat', tampil(r.tingkat)], ['Wali kelas', tampil(r.wali_kelas)],
