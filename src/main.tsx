@@ -68,6 +68,8 @@ const FormAjuan = lazy(() => import('./pages/Ajuan').then((m) => ({ default: m.F
 const AjuanSaya = lazy(() => import('./pages/Ajuan').then((m) => ({ default: m.AjuanSaya })))
 const AjuanMasuk = lazy(() => import('./pages/Ajuan').then((m) => ({ default: m.AjuanMasuk })))
 const ProfilOrang = lazy(() => import('./pages/ProfilDapodik').then((m) => ({ default: m.ProfilOrang })))
+const LengkapiData = lazy(() => import('./pages/LengkapiData'))
+const CetakFormulir = lazy(() => import('./pages/CetakFormulir'))
 const RiwayatUnggah = lazy(() => import('./pages/DataSekolah').then((m) => ({ default: m.RiwayatUnggah })))
 const PesertaDidik = lazy(() => import('./pages/DataSekolah').then((m) => ({ default: m.PesertaDidik })))
 const GuruTendik = lazy(() => import('./pages/DataSekolah').then((m) => ({ default: m.GuruTendik })))
@@ -449,6 +451,22 @@ createRoot(document.getElementById('root')!).render(
             element={
               <RequireRole peran={['admin_tu', 'orang_tua']}>
                 <Suspense fallback={<Memuat />}><ProfilOrang /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/lengkapi/:jenis/:id"
+            element={
+              <RequireRole peran={['guru', 'staf', 'siswa', 'orang_tua']}>
+                <Suspense fallback={<Memuat />}><LengkapiData /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/cetak/:jenis/:id"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf', 'siswa', 'orang_tua']}>
+                <Suspense fallback={<Memuat />}><CetakFormulir /></Suspense>
               </RequireRole>
             }
           />

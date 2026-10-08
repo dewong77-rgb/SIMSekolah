@@ -4,6 +4,8 @@ import { Fragment, useEffect, useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import Halaman from '../components/Halaman'
 import FotoSaya from '../components/FotoSaya'
+import RiwayatEditor from '../components/RiwayatEditor'
+import type { BarisRiwayat } from '../lib/formulir'
 import { useAuth } from '../auth/AuthContext'
 import { supabase } from '../lib/supabase'
 
@@ -26,6 +28,8 @@ const alamatBaris = (d: J) => gabung(d.alamat ?? d.alamat_jalan, d.dusun && `Dus
 const rtrw = (d: J) => (kosong(d.rt) && kosong(d.rw) ? null : `RT ${tampil(d.rt) ?? '-'} / RW ${tampil(d.rw) ?? '-'}`)
 
 type Baris = [string, ReactNode]
+export type Seksi = { judul: string; baris: Baris[] }
+export type { Hasil }
 
 function Bagian({ judul, baris }: { judul: string; baris: Baris[] }) {
   return (
@@ -60,60 +64,94 @@ function Perbaikan({ disamarkan, ajukan }: { disamarkan: boolean; ajukan: boolea
   return (
     <p className="catatan jarak">
       {disamarkan && 'NIK dan nomor kartu ditampilkan sebagian demi keamanan. '}
-      Data ini bersumber dari Dapodik.{ajukan ? ' Jika ada yang keliru, gunakan tombol "Ajukan perbaikan data". Admin TU akan memeriksanya.' : ''}
+      Data ini bersumber dari Dapodik.{ajukan ? ' Kolom yang masih kosong dapat Anda isi sendiri lewat "Lengkapi data yang kosong"; operator Dapodik menerima isian itu. Kolom yang sudah terisi tetapi keliru diperbaiki lewat "Ajukan perbaikan data". TU memeriksanya, lalu operator memperbaiki di Dapodik.' : ''}
     </p>
   )
 }
 
 function AksiAjuan({ jenis, id }: { jenis: string; id: unknown }) {
   return (
-    <div className="aksi jarak">
-      <Link to={`/portal/ajuan/baru/${jenis}/${String(id)}`} className="tombol tombol-isi">Ajukan perbaikan data</Link>
+    <div className="aksi jarak tanpa-cetak">
+      <Link to={`/portal/lengkapi/${jenis}/${String(id)}`} className="tombol tombol-isi">Lengkapi data yang kosong</Link>
+      <Link to={`/portal/ajuan/baru/${jenis}/${String(id)}`} className="tombol" style={{ color: 'var(--warna-utama)' }}>Ajukan perbaikan data</Link>
+      <Link to={`/portal/cetak/${jenis}/${String(id)}`} className="tombol" style={{ color: 'var(--warna-utama)' }}>Cetak formulir</Link>
       <Link to="/portal/ajuan" className="tombol" style={{ color: 'var(--warna-utama)' }}>Ajuan saya</Link>
     </div>
   )
 }
 
-function ProfilPtk({ h }: { h: Extract<Hasil, { jenis: 'ptk' }> }) {
+function AksiCetak({ jenis, id }: { jenis: string; id: unknown }) {
+  return (
+    <div className="aksi jarak tanpa-cetak">
+      <Link to={`/portal/cetak/${jenis}/${String(id)}`} className="tombol" style={{ color: 'var(--warna-utama)' }}>Cetak formulir</Link>
+    </div>
+  )
+}
+
+/** Riwayat berbaris (anak, diklat, prestasi, dan seterusnya) untuk satu profil. */
+function Riwayat({ jenis, id, bisaIsi }: { jenis: 'ptk' | 'siswa'; id: string; bisaIsi: boolean }) {
+  const [baris, setBaris] = useState<BarisRiwayat[]>([])
+  const [versi, setVersi] = useState(0)
+  useEffect(() => {
+    let batal = false
+    supabase.rpc('riwayat_baca', { p_jenis: jenis, p_subjek: id }).then(({ data }) => { if (!batal) setBaris((data as BarisRiwayat[] | null) ?? []) })
+    return () => { batal = true }
+  }, [jenis, id, versi])
+  return <RiwayatEditor jenis={jenis} subjekId={id} baris={baris} bisaIsi={bisaIsi} muatUlang={() => setVersi((v) => v + 1)} />
+}
+
+export function susunPtk(h: Extract<Hasil, { jenis: 'ptk' }>): Seksi[] {
   const d = h.data, s = h.sensitif
+  return [
+        { judul: 'Identitas', baris: [
+          ['Nama lengkap', tampil(d.nama)], ['NIK', tampil(s.nik)], ['Jenis kelamin', jenisKelamin(d.jk)],
+          ['Tempat, tanggal lahir', gabung(d.tempat_lahir, tanggal(d.tanggal_lahir))], ['Nama ibu kandung', tampil(s.nama_ibu_kandung)],
+          ['Agama', tampil(d.agama)], ['Kewarganegaraan', warga(d.kewarganegaraan)],
+        ] },
+        { judul: 'Alamat dan kontak', baris: [
+          ['Alamat', alamatBaris(d)], ['RT / RW', rtrw(d)], ['Kelurahan / desa', tampil(d.kelurahan)], ['Kecamatan', tampil(d.kecamatan)],
+          ['Kode pos', tampil(d.kode_pos)], ['No. HP', tampil(d.hp)], ['No. telepon', tampil(d.telepon)], ['Email', tampil(d.email)],
+          ['Lintang', koordinat(d.lintang)], ['Bujur', koordinat(d.bujur)],
+        ] },
+        { judul: 'Data pribadi', baris: [
+          ['Status kawin', tampil(s.status_perkawinan)], ['Nama suami / istri', tampil(s.nama_pasangan)],
+          ['Pekerjaan suami / istri', tampil(s.pekerjaan_pasangan)], ['NIP suami / istri', tampil(s.nip_pasangan)],
+          ['NPWP', tampil(s.npwp)], ['Nama wajib pajak', tampil(s.nama_wajib_pajak)],
+        ] },
+        { judul: 'Kepegawaian', baris: [
+          ['Status pegawai', tampil(d.status_kepegawaian)], ['NIP', tampil(d.nip)], ['NUPTK', tampil(d.nuptk)], ['NUKS', tampil(d.nuks)],
+          ['NIY / NIGK', tampil(d.niy_nigk)], ['NIGB', tampil(d.nigb)],
+          ['Jenis PTK', tampil(d.jenis_ptk)], ['SK pengangkatan', tampil(d.sk_pengangkatan)], ['TMT pengangkatan', tanggal(d.tmt_pengangkatan)],
+          ['Lembaga pengangkat', tampil(d.lembaga_pengangkatan)], ['Pangkat / golongan', tampil(d.pangkat_golongan)], ['Sumber gaji', tampil(d.sumber_gaji)],
+          ['SK CPNS', tampil(d.sk_cpns)], ['TMT CPNS', tanggal(d.tanggal_cpns)], ['TMT PNS', tanggal(d.tmt_pns)],
+          ['TMT kerja', tanggal(d.tmt_kerja)], ['Kartu pegawai', tampil(s.karpeg)], ['Karis / Karsu', tampil(s.karis_karsu)],
+        ] },
+        { judul: 'Penugasan', baris: [
+          ['Jabatan PTK', tampil(d.jabatan_ptk)], ['Tugas tambahan', tampil(d.tugas_tambahan)], ['Mengajar', tampil(d.mengajar)],
+          ['Jam mengajar per minggu', tampil(d.jjm)], ['Jam tugas tambahan', tampil(d.jam_tugas_tambahan)], ['Total jam per minggu', tampil(d.total_jjm)],
+          ['Jumlah siswa diajar', tampil(d.jml_siswa)], ['No. surat tugas', tampil(d.no_surat_tugas)], ['Tanggal surat tugas', tanggal(d.tgl_surat_tugas)],
+          ['TMT tugas', tanggal(d.tmt_tugas)], ['Sekolah induk', tampil(d.sekolah_induk)],
+        ] },
+        { judul: 'Pendidikan dan kompetensi', baris: [
+          ['Jenjang pendidikan terakhir', tampil(d.jenjang_pendidikan)], ['Program studi', tampil(d.jurusan_prodi)],
+          ['Sertifikasi', tampil(d.sertifikasi)], ['Kompetensi', tampil(d.kompetensi)],
+          ['Lisensi kepala sekolah', tampil(d.sudah_lisensi_kepsek)], ['Diklat kepengawasan', tampil(d.pernah_diklat_kepengawasan)],
+          ['Keahlian braille', tampil(d.keahlian_braille)], ['Keahlian bahasa isyarat', tampil(d.keahlian_bahasa_isyarat)],
+          ['Kode program keahlian (laboran)', tampil(d.kode_program_keahlian)], ['Jenis ketunaan yang ditangani', tampil(d.ketunaan_ditangani)],
+          ['Spesialisasi kebutuhan khusus', tampil(d.spesialisasi_khusus)], ['Keahlian kebutuhan khusus', tampil(d.keahlian_khusus)],
+        ] },
+  ]
+}
+
+function ProfilPtk({ h }: { h: Extract<Hasil, { jenis: 'ptk' }> }) {
+  const d = h.data
   const nama = [d.gelar_depan, d.nama].filter((x) => !kosong(x)).join(' ') + (kosong(d.gelar_belakang) ? '' : `, ${d.gelar_belakang}`)
   return (
     <>
       <Kepala nama={nama} anak={[String(d.jenis_ptk ?? ''), String(d.status_kepegawaian ?? ''), kosong(d.jabatan_ptk) ? '' : String(d.jabatan_ptk)]}
         catatan={h.wali_kelas_dari.length ? `Wali kelas ${h.wali_kelas_dari.join(', ')}` : null} />
       <div className="grid grid-2 jarak">
-        <Bagian judul="Identitas" baris={[
-          ['Nama lengkap', tampil(d.nama)], ['NIK', tampil(s.nik)], ['Jenis kelamin', jenisKelamin(d.jk)],
-          ['Tempat, tanggal lahir', gabung(d.tempat_lahir, tanggal(d.tanggal_lahir))], ['Nama ibu kandung', tampil(s.nama_ibu_kandung)],
-          ['Agama', tampil(d.agama)], ['Kewarganegaraan', warga(d.kewarganegaraan)],
-        ]} />
-        <Bagian judul="Alamat dan kontak" baris={[
-          ['Alamat', alamatBaris(d)], ['RT / RW', rtrw(d)], ['Kelurahan / desa', tampil(d.kelurahan)], ['Kecamatan', tampil(d.kecamatan)],
-          ['Kode pos', tampil(d.kode_pos)], ['No. HP', tampil(d.hp)], ['No. telepon', tampil(d.telepon)], ['Email', tampil(d.email)],
-        ]} />
-        <Bagian judul="Data pribadi" baris={[
-          ['Status kawin', tampil(s.status_perkawinan)], ['Nama suami / istri', tampil(s.nama_pasangan)],
-          ['Pekerjaan suami / istri', tampil(s.pekerjaan_pasangan)], ['NIP suami / istri', tampil(s.nip_pasangan)],
-          ['NPWP', tampil(s.npwp)], ['Nama wajib pajak', tampil(s.nama_wajib_pajak)],
-        ]} />
-        <Bagian judul="Kepegawaian" baris={[
-          ['Status pegawai', tampil(d.status_kepegawaian)], ['NIP', tampil(d.nip)], ['NUPTK', tampil(d.nuptk)], ['NUKS', tampil(d.nuks)],
-          ['Jenis PTK', tampil(d.jenis_ptk)], ['SK pengangkatan', tampil(d.sk_pengangkatan)], ['TMT pengangkatan', tanggal(d.tmt_pengangkatan)],
-          ['Lembaga pengangkat', tampil(d.lembaga_pengangkatan)], ['Pangkat / golongan', tampil(d.pangkat_golongan)], ['Sumber gaji', tampil(d.sumber_gaji)],
-          ['SK CPNS', tampil(d.sk_cpns)], ['TMT CPNS', tanggal(d.tanggal_cpns)], ['TMT PNS', tanggal(d.tmt_pns)],
-          ['TMT kerja', tanggal(d.tmt_kerja)], ['Kartu pegawai', tampil(s.karpeg)], ['Karis / Karsu', tampil(s.karis_karsu)],
-        ]} />
-        <Bagian judul="Penugasan" baris={[
-          ['Jabatan PTK', tampil(d.jabatan_ptk)], ['Tugas tambahan', tampil(d.tugas_tambahan)], ['Mengajar', tampil(d.mengajar)],
-          ['Jam mengajar per minggu', tampil(d.jjm)], ['Jam tugas tambahan', tampil(d.jam_tugas_tambahan)], ['Total jam per minggu', tampil(d.total_jjm)],
-          ['Jumlah siswa diajar', tampil(d.jml_siswa)],
-        ]} />
-        <Bagian judul="Pendidikan dan kompetensi" baris={[
-          ['Jenjang pendidikan terakhir', tampil(d.jenjang_pendidikan)], ['Program studi', tampil(d.jurusan_prodi)],
-          ['Sertifikasi', tampil(d.sertifikasi)], ['Kompetensi', tampil(d.kompetensi)],
-          ['Lisensi kepala sekolah', tampil(d.sudah_lisensi_kepsek)], ['Diklat kepengawasan', tampil(d.pernah_diklat_kepengawasan)],
-          ['Keahlian braille', tampil(d.keahlian_braille)], ['Keahlian bahasa isyarat', tampil(d.keahlian_bahasa_isyarat)],
-        ]} />
+        {susunPtk(h).map((b) => <Bagian key={b.judul} judul={b.judul} baris={b.baris} />)}
       </div>
       <Sinkron d={d} />
     </>
@@ -125,7 +163,7 @@ function Sinkron({ d }: { d: J }) {
   return t ? <p className="catatan jarak">Data terakhir disinkronkan dari Dapodik pada {t}.</p> : null
 }
 
-function ProfilSiswa({ h }: { h: Extract<Hasil, { jenis: 'siswa' }> }) {
+export function susunSiswa(h: Extract<Hasil, { jenis: 'siswa' }>): Seksi[] {
   const d = h.data, s = h.sensitif, r = h.rombel
   const wali = (hub: string) => h.orang_tua.find((o) => o.hubungan === hub)
   const orangTua = (hub: string): Baris[] => {
@@ -136,6 +174,46 @@ function ProfilSiswa({ h }: { h: Extract<Hasil, { jenis: 'siswa' }> }) {
     ]
   }
   const status = String(d.status_peserta_didik ?? '')
+  return [
+        { judul: 'Identitas peserta didik', baris: [
+          ['Nama lengkap', tampil(d.nama)], ['Jenis kelamin', jenisKelamin(d.jk)], ['NISN', tampil(d.nisn)], ['NIPD', tampil(d.nipd)],
+          ['NIK', tampil(s.nik)], ['No. KK', tampil(s.no_kk)], ['Tempat, tanggal lahir', gabung(d.tempat_lahir, tanggal(d.tanggal_lahir))],
+          ['Agama', tampil(d.agama)], ['Berkebutuhan khusus', tampil(d.kebutuhan_khusus)], ['No. registrasi akta lahir', tampil(s.no_registrasi_akta_lahir)],
+          ['Tanggal masuk sekolah', tanggal(d.tanggal_masuk)], ['Sekolah asal', tampil(d.sekolah_asal)], ['NPSN sekolah asal', tampil(d.npsn_sekolah_asal)],
+          ['No. seri ijazah sebelumnya', tampil(s.no_seri_ijazah)], ['No. seri SKHUN', tampil(d.skhun)], ['No. peserta ujian nasional', tampil(s.no_peserta_ujian_nasional)],
+          ['Anak ke', tampil(d.anak_ke)],
+        ] },
+        { judul: 'Alamat dan kontak', baris: [
+          ['Alamat', alamatBaris(d)], ['RT / RW', rtrw(d)], ['Kelurahan / desa', tampil(d.kelurahan)], ['Kecamatan', tampil(d.kecamatan)],
+          ['Kode pos', tampil(d.kode_pos)], ['Jenis tinggal', tampil(d.jenis_tinggal)], ['Alat transportasi', tampil(d.alat_transportasi)],
+          ['No. telepon rumah', tampil(d.telepon)], ['No. HP', tampil(d.hp)], ['Email', tampil(d.email)],
+          ['Lintang', koordinat(d.lintang)], ['Bujur', koordinat(d.bujur)],
+        ] },
+        { judul: 'Data ayah kandung', baris: orangTua('ayah') },
+        { judul: 'Data ibu kandung', baris: orangTua('ibu') },
+        { judul: 'Data wali', baris: orangTua('wali') },
+        { judul: 'Data periodik', baris: [
+          ['Tinggi badan', angka(d.tinggi_badan, 'cm')], ['Berat badan', angka(d.berat_badan, 'kg')], ['Lingkar kepala', angka(d.lingkar_kepala, 'cm')],
+          ['Jarak rumah ke sekolah', angka(d.jarak_rumah_km, 'km')], ['Waktu tempuh ke sekolah', angka(d.waktu_tempuh_menit, 'menit')], ['Jumlah saudara kandung', tampil(d.jml_saudara_kandung)],
+        ] },
+        { judul: 'Kesejahteraan', baris: [
+          ['Penerima KPS', tampil(d.penerima_kps)], ['No. KPS', tampil(s.no_kps)], ['No. KKS', tampil(s.nomor_kks)],
+          ['Penerima KIP', tampil(s.penerima_kip)], ['No. KIP', tampil(s.nomor_kip)], ['Nama tertera di KIP', tampil(s.nama_di_kip)], ['Alasan menolak KIP', tampil(s.alasan_menolak_kip)],
+          ['Layak PIP', tampil(d.layak_pip)], ['Alasan layak PIP', tampil(d.alasan_layak_pip)],
+        ] },
+        { judul: 'Rombongan belajar', baris: r ? [
+          ['Rombel', tampil(r.nama)], ['Tingkat', tampil(r.tingkat)], ['Wali kelas', tampil(r.wali_kelas)],
+          ['Kurikulum', tampil(r.kurikulum)], ['Ruangan', tampil(r.ruangan)],
+        ] : [['Rombel', null]] },
+        ...(status !== 'aktif' ? [{ judul: 'Status keluar', baris: [
+          ['Status', tampil(status)], ['Tanggal keluar', tanggal(d.tanggal_keluar)], ['Alasan keluar', tampil(d.alasan_keluar)],
+        ] as Baris[] }] : []),
+  ]
+}
+
+function ProfilSiswa({ h }: { h: Extract<Hasil, { jenis: 'siswa' }> }) {
+  const d = h.data, r = h.rombel
+  const status = String(d.status_peserta_didik ?? '')
   return (
     <>
       <Kepala nama={String(d.nama)} anak={[
@@ -143,39 +221,7 @@ function ProfilSiswa({ h }: { h: Extract<Hasil, { jenis: 'siswa' }> }) {
         r ? String(r.nama) : '',
       ]} catatan={r && !kosong(r.wali_kelas) ? `Wali kelas ${r.wali_kelas}` : null} />
       <div className="grid grid-2 jarak">
-        <Bagian judul="Identitas peserta didik" baris={[
-          ['Nama lengkap', tampil(d.nama)], ['Jenis kelamin', jenisKelamin(d.jk)], ['NISN', tampil(d.nisn)], ['NIPD', tampil(d.nipd)],
-          ['NIK', tampil(s.nik)], ['No. KK', tampil(s.no_kk)], ['Tempat, tanggal lahir', gabung(d.tempat_lahir, tanggal(d.tanggal_lahir))],
-          ['Agama', tampil(d.agama)], ['Berkebutuhan khusus', tampil(d.kebutuhan_khusus)], ['No. registrasi akta lahir', tampil(s.no_registrasi_akta_lahir)],
-          ['Sekolah asal', tampil(d.sekolah_asal)], ['Anak ke', tampil(d.anak_ke)],
-        ]} />
-        <Bagian judul="Alamat dan kontak" baris={[
-          ['Alamat', alamatBaris(d)], ['RT / RW', rtrw(d)], ['Kelurahan / desa', tampil(d.kelurahan)], ['Kecamatan', tampil(d.kecamatan)],
-          ['Kode pos', tampil(d.kode_pos)], ['Jenis tinggal', tampil(d.jenis_tinggal)], ['Alat transportasi', tampil(d.alat_transportasi)],
-          ['No. telepon rumah', tampil(d.telepon)], ['No. HP', tampil(d.hp)], ['Email', tampil(d.email)],
-          ['Lintang', koordinat(d.lintang)], ['Bujur', koordinat(d.bujur)],
-        ]} />
-        <Bagian judul="Data ayah kandung" baris={orangTua('ayah')} />
-        <Bagian judul="Data ibu kandung" baris={orangTua('ibu')} />
-        <Bagian judul="Data wali" baris={orangTua('wali')} />
-        <Bagian judul="Data periodik" baris={[
-          ['Tinggi badan', angka(d.tinggi_badan, 'cm')], ['Berat badan', angka(d.berat_badan, 'kg')], ['Lingkar kepala', angka(d.lingkar_kepala, 'cm')],
-          ['Jarak rumah ke sekolah', angka(d.jarak_rumah_km, 'km')], ['Jumlah saudara kandung', tampil(d.jml_saudara_kandung)],
-        ]} />
-        <Bagian judul="Kesejahteraan" baris={[
-          ['Penerima KPS', tampil(d.penerima_kps)], ['No. KPS', tampil(s.no_kps)], ['No. KKS', tampil(s.nomor_kks)],
-          ['Penerima KIP', tampil(s.penerima_kip)], ['No. KIP', tampil(s.nomor_kip)], ['Nama tertera di KIP', tampil(s.nama_di_kip)],
-          ['Layak PIP', tampil(d.layak_pip)], ['Alasan layak PIP', tampil(d.alasan_layak_pip)],
-        ]} />
-        <Bagian judul="Rombongan belajar" baris={r ? [
-          ['Rombel', tampil(r.nama)], ['Tingkat', tampil(r.tingkat)], ['Wali kelas', tampil(r.wali_kelas)],
-          ['Kurikulum', tampil(r.kurikulum)], ['Ruangan', tampil(r.ruangan)],
-        ] : [['Rombel', null]]} />
-        {status !== 'aktif' && (
-          <Bagian judul="Status keluar" baris={[
-            ['Status', tampil(status)], ['Tanggal keluar', tanggal(d.tanggal_keluar)], ['Alasan keluar', tampil(d.alasan_keluar)],
-          ]} />
-        )}
+        {susunSiswa(h).map((b) => <Bagian key={b.judul} judul={b.judul} baris={b.baris} />)}
       </div>
       <Sinkron d={d} />
     </>
@@ -203,8 +249,9 @@ function Isi({ hasil, galat, ajukan = false }: { hasil: Hasil | null | undefined
   if (hasil === undefined) return <p className="catatan">Memuat profil...</p>
   if (galat) return <p className="catatan" role="alert">Gagal memuat profil: {galat}</p>
   if (!hasil) return <p className="catatan">Profil tidak ditemukan, atau Anda tidak berhak melihatnya.</p>
-  if (hasil.jenis === 'ptk') return <>{ajukan && <AksiAjuan jenis="ptk" id={hasil.data.id} />}<ProfilPtk h={hasil} /><Perbaikan disamarkan={false} ajukan={ajukan} /></>
-  if (hasil.jenis === 'siswa') return <>{ajukan && <AksiAjuan jenis="siswa" id={hasil.data.id} />}<ProfilSiswa h={hasil} /><Perbaikan disamarkan={hasil.disamarkan} ajukan={ajukan} /></>
+  const aksi = (jenis: 'ptk' | 'siswa', id: unknown) => (ajukan ? <AksiAjuan jenis={jenis} id={id} /> : <AksiCetak jenis={jenis} id={id} />)
+  if (hasil.jenis === 'ptk') return <>{aksi('ptk', hasil.data.id)}<ProfilPtk h={hasil} /><Riwayat jenis="ptk" id={String(hasil.data.id)} bisaIsi={ajukan} /><Perbaikan disamarkan={false} ajukan={ajukan} /></>
+  if (hasil.jenis === 'siswa') return <>{aksi('siswa', hasil.data.id)}<ProfilSiswa h={hasil} /><Riwayat jenis="siswa" id={String(hasil.data.id)} bisaIsi={ajukan} /><Perbaikan disamarkan={hasil.disamarkan} ajukan={ajukan} /></>
   return null
 }
 

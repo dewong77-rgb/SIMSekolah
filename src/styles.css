@@ -1227,3 +1227,30 @@ a.bt-tag:hover, button.bt-tag:hover, .bt-tag.aktif { background: var(--warna-uta
   .chat-pesan { height: 58vh; }
   .gelembung { max-width: 92%; }
 }
+
+/* Formulir Dapodik (F-PTK dan F-PD) yang dapat dicetak */
+.formulir-cetak { background: #fff; color: #111; padding: 16px; font-size: .9rem; }
+.formulir-kop { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; border-bottom: 2px solid #111; padding-bottom: 8px; margin-bottom: 10px; }
+.formulir-kop h2 { margin: 0 0 4px; font-size: 1.05rem; letter-spacing: .03em; }
+.formulir-kop p { margin: 0; font-size: .8rem; }
+.formulir-kode { display: grid; text-align: right; gap: 2px; font-size: .8rem; }
+.formulir-kode strong { font-size: 1.1rem; border: 1px solid #111; padding: 2px 10px; justify-self: end; }
+.formulir-tabel { width: 100%; border-collapse: collapse; margin: 0 0 10px; break-inside: avoid; font-size: .82rem; }
+.formulir-tabel caption { text-align: left; font-weight: 700; background: #e9edf3; padding: 3px 6px; border: 1px solid #111; border-bottom: 0; }
+.formulir-tabel th, .formulir-tabel td { border: 1px solid #555; padding: 3px 6px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.formulir-tabel tbody th { width: 34%; font-weight: 500; background: #fafafa; }
+.formulir-riwayat th, .formulir-riwayat td { font-size: .72rem; padding: 2px 4px; }
+.formulir-riwayat thead th { background: #f1f3f6; font-weight: 600; }
+.formulir-riwayat tbody td { height: 1.6rem; }
+.formulir-pernyataan { margin: 14px 0 0; font-size: .8rem; }
+.pilih-baris { display: inline-flex; gap: 6px; align-items: center; font-size: .9rem; }
+.baris-riwayat { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; padding: 6px 0; border-top: 1px solid var(--garis, #dde3ea); }
+.butir-riwayat small { color: #666; margin-right: 3px; }
+@media print {
+  @page { size: A4; margin: 12mm; }
+  .formulir-cetak { padding: 0; font-size: 9pt; }
+  .formulir-tabel { font-size: 8.5pt; }
+  .formulir-riwayat th, .formulir-riwayat td { font-size: 7pt; }
+  .formulir-tabel caption, .formulir-tabel tbody th, .formulir-riwayat thead th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .wadah { max-width: none !important; padding: 0 !important; }
+}

@@ -9,6 +9,7 @@ import Pager, { efektif } from '../components/Pager'
 import { supabase } from '../lib/supabase'
 import { panggil } from '../lib/rpc'
 import { useAuth } from '../auth/AuthContext'
+import IsianBaru from './IsianBaru'
 
 type StatusAjuan = 'menunggu' | 'diteruskan' | 'dikerjakan' | 'selesai' | 'ditolak' | 'dibatalkan'
 type Kolom = {
@@ -258,7 +259,8 @@ export function AjuanSaya() {
 export function AjuanMasuk() {
   const { profil } = useAuth()
   const [daftar, setDaftar] = useState<Ajuan[] | null>(null)
-  const [tab, setTab] = useState<'keputusan' | 'operator' | 'riwayat'>('keputusan')
+  const [tab, setTab] = useState<'keputusan' | 'operator' | 'isian' | 'riwayat'>('keputusan')
+  const [jumlahIsian, setJumlahIsian] = useState(0)
   const [cari, setCari] = useState('')
   const [hal, setHal] = useState(1)
   const [ukuran, setUkuran] = useState(10)
@@ -272,6 +274,7 @@ export function AjuanMasuk() {
     try { setDaftar((await panggil<Ajuan[] | null>('ajuan_daftar')) ?? []) } catch (e) { setGalat((e as Error).message) }
   }, [])
   useEffect(() => { void muat() }, [muat])
+  useEffect(() => { panggil<number>('isian_ringkasan').then(setJumlahIsian).catch(() => undefined) }, [])
 
   const dalamTab = (a: Ajuan) =>
     tab === 'keputusan' ? a.status === 'menunggu'
@@ -306,16 +309,19 @@ export function AjuanMasuk() {
   return (
     <Halaman judul="Ajuan perbaikan data" lead="TU bagian terkait memeriksa. Operator Dapodik memperbaiki di Dapodik lalu mengunggah ulang.">
       <div className="pilih-peran" role="tablist">
-        {([['keputusan', 'Menunggu keputusan'], ['operator', 'Antrean operator Dapodik'], ['riwayat', 'Riwayat']] as const).map(([id, nama]) => (
-          <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'aktif' : ''} onClick={() => { setTab(id); setHal(1); setBuka(null) }}>
-            {nama}{id !== 'riwayat' ? ` (${jumlah(id)})` : ''}
-          </button>
-        ))}
+        {([['keputusan', 'Menunggu keputusan'], ['operator', 'Antrean operator Dapodik'], ['isian', 'Isian mandiri'], ['riwayat', 'Riwayat']] as const)
+          .filter(([id]) => id !== 'isian' || bisaKerjakan)
+          .map(([id, nama]) => (
+            <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'aktif' : ''} onClick={() => { setTab(id); setHal(1); setBuka(null) }}>
+              {nama}{id === 'isian' ? ` (${jumlahIsian})` : id !== 'riwayat' ? ` (${jumlah(id)})` : ''}
+            </button>
+          ))}
       </div>
       <div aria-live="polite">
         {info && <p className="catatan sukses jarak" role="status">{info}</p>}
         {galat && <p className="catatan galat jarak" role="alert">{galat}</p>}
       </div>
+      {tab === 'isian' ? <IsianBaru onJumlah={setJumlahIsian} /> : <>
       <div className="aksi jarak" style={{ alignItems: 'center' }}>
         <input type="search" placeholder="Cari nama atau alasan" aria-label="Cari ajuan" value={cari} onChange={(e) => { setCari(e.target.value); setHal(1) }} style={{ flex: '1 1 14rem', maxWidth: '24rem' }} />
         {tab === 'operator' && bisaKerjakan && (
@@ -381,6 +387,7 @@ export function AjuanMasuk() {
         </table>
       </div>
       <Pager halaman={hal} total={tampil.length} ukuran={ukuran} ke={setHal} ubahUkuran={setUkuran} />
+      </>}
       <p className="catatan jarak"><Link to="/portal">Kembali ke portal</Link></p>
     </Halaman>
   )
