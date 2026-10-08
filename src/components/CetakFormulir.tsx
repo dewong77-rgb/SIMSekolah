@@ -4,19 +4,24 @@ import { createPortal } from 'react-dom'
 
 export const GARIS_TTD = '..................................., ....... - ............................ - ...............'
 
-export function TandaTangan({ jabatan, kolom }: { jabatan: string; kolom?: string }) {
+export function TandaTangan({ jabatan, kolom, jabatanKiri }: { jabatan: string; kolom?: string; jabatanKiri?: string }) {
+  const blok = (j: string) => (
+    <div>
+      <p style={{ margin: 0 }}>{jabatanKiri ? '\u00a0' : GARIS_TTD}</p>
+      <p style={{ margin: 0 }}>{j}</p>
+      <div className="ruang" />
+      <p style={{ margin: 0 }}>.......................................................</p>
+      <p style={{ margin: 0 }}>{kolom ?? (jabatanKiri ? 'NIP :' : '')}</p>
+    </div>
+  )
   return (
     <>
-      <div className="ttd">
-        <div>
-          <p style={{ margin: 0 }}>{GARIS_TTD}</p>
-          <p style={{ margin: 0 }}>{jabatan}</p>
-          <div className="ruang" />
-          <p style={{ margin: 0 }}>.......................................................</p>
-          {kolom && <p style={{ margin: 0 }}>{kolom}</p>}
-        </div>
+      {jabatanKiri && <p style={{ margin: '18px 0 0', textAlign: 'right' }}>{GARIS_TTD}</p>}
+      <div className="ttd" style={jabatanKiri ? { justifyContent: 'space-between' } : undefined}>
+        {jabatanKiri && blok(jabatanKiri)}
+        {blok(jabatan)}
       </div>
-      <p className="catatan-kaki">Yang bertanda tangan {jabatan.toLowerCase()} bertanggung jawab secara hukum terhadap kebenaran data yang tercantum.</p>
+      <p className="catatan-kaki">Yang bertanda tangan {jabatanKiri ? `${jabatanKiri.toLowerCase()} dan ${jabatan.toLowerCase()}` : jabatan.toLowerCase()} bertanggung jawab secara hukum terhadap kebenaran data yang tercantum.</p>
     </>
   )
 }

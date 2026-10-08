@@ -206,6 +206,7 @@ const menuIzin: { izin: string; nama: string; bidang: string; ikon: string; to?:
   { izin: 'sarpras.operasional', nama: 'Inventaris sarpras', bidang: 'Sarana dan prasarana', ikon: 'tas', to: '/portal/sarpras/inventaris' },
   { izin: 'sarpras.catat_lab', nama: 'Inventaris sarpras', bidang: 'Sarana dan prasarana', ikon: 'tas', to: '/portal/sarpras/inventaris' },
   { izin: 'sarpras.lihat', nama: 'Inventaris sarpras', bidang: 'Sarana dan prasarana', ikon: 'tas', to: '/portal/sarpras/inventaris' },
+  { izin: 'sarpras.kelola', nama: 'Formulir Dapodik sarpras', bidang: 'Sarana dan prasarana', ikon: 'dokumen', to: '/portal/sarpras/formulir' },
   { izin: 'sarpras.kelola', nama: 'Laporan kerusakan', bidang: 'Sarana dan prasarana', ikon: 'kotak', to: '/portal/sarpras/kerusakan' },
   { izin: 'sarpras.operasional', nama: 'Laporan kerusakan', bidang: 'Sarana dan prasarana', ikon: 'kotak', to: '/portal/sarpras/kerusakan' },
   { izin: 'sarpras.catat_lab', nama: 'Laporan kerusakan', bidang: 'Sarana dan prasarana', ikon: 'kotak', to: '/portal/sarpras/kerusakan' },

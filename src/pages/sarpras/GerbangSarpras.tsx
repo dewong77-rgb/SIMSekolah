@@ -10,6 +10,7 @@ const TAUTAN: { to: string; nama: string; perlu: IzinSarpras[] }[] = [
   { to: '/portal/sarpras/usulan', nama: 'Usulan', perlu: ['kelola', 'operasional', 'catat_lab', 'verifikasi_program', 'lihat'] },
   { to: '/portal/sarpras/kartu', nama: 'Kartu inventaris', perlu: ['kelola', 'operasional', 'catat_lab', 'verifikasi_program', 'lihat'] },
   { to: '/portal/sarpras/buku', nama: 'Pembukuan', perlu: ['kelola', 'operasional', 'lihat'] },
+  { to: '/portal/sarpras/formulir', nama: 'Formulir Dapodik', perlu: ['kelola', 'operasional', 'lihat'] },
 ]
 
 /** Membatasi halaman Sarpras pada pemegang izin. Basis data tetap memeriksa ulang di setiap permintaan. */

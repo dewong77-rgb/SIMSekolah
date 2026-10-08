@@ -12,7 +12,7 @@ import { useAuth } from '../auth/AuthContext'
 
 type StatusAjuan = 'menunggu' | 'diteruskan' | 'dikerjakan' | 'selesai' | 'ditolak' | 'dibatalkan'
 type Jalur = 'langsung' | 'tu' | 'operator'
-type JenisAjuan = 'ptk' | 'siswa' | 'rombel' | 'pembelajaran' | 'ekskul'
+type JenisAjuan = 'ptk' | 'siswa' | 'rombel' | 'pembelajaran' | 'ekskul' | 'sarpras'
 type Kolom = {
   jenis: string; kunci: string; tabel: string; kolom: string; hubungan: string | null; label: string; kelompok: string
   tipe: 'teks' | 'angka' | 'tanggal' | 'pilihan'; pilihan: string[] | null; wajib: boolean; butuh_dokumen: boolean; terapkan: boolean; urutan: number
@@ -36,9 +36,9 @@ const namaJalur: Record<Jalur, string> = {
   tu: 'Perlu persetujuan TU, lalu berlaku di SIMS',
   operator: 'Lewat operator Dapodik (kolom kunci identitas)',
 }
-const namaBagian: Record<string, string> = { kepegawaian: 'TU Kepegawaian', kesiswaan: 'TU Kesiswaan', kurikulum: 'Kurikulum' }
+const namaBagian: Record<string, string> = { kepegawaian: 'TU Kepegawaian', kesiswaan: 'TU Kesiswaan', kurikulum: 'Kurikulum', sarpras: 'Sarana dan prasarana' }
 const namaPengaju: Record<string, string> = { guru: 'Guru/tendik', siswa: 'Siswa', orang_tua: 'Orang tua' }
-const namaJenis: Record<JenisAjuan, string> = { ptk: 'Guru/tendik', siswa: 'Siswa', rombel: 'Rombel (F-ROMBEL)', pembelajaran: 'SK mengajar (F-ROMBEL)', ekskul: 'Ekskul (F-EKSKUL)' }
+const namaJenis: Record<JenisAjuan, string> = { ptk: 'Guru/tendik', siswa: 'Siswa', rombel: 'Rombel (F-ROMBEL)', pembelajaran: 'SK mengajar (F-ROMBEL)', ekskul: 'Ekskul (F-EKSKUL)', sarpras: 'Sarpras (formulir Dapodik)' }
 const nilaiTampil = (kunci: string, x: string | null) => {
   if (x === null || x === '') return '(kosong)'
   if (kunci === 'jk') return x === 'L' ? 'Laki-laki' : x === 'P' ? 'Perempuan' : x

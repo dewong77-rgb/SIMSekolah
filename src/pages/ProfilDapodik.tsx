@@ -5,6 +5,7 @@ import { Link, useParams } from 'react-router-dom'
 import Halaman from '../components/Halaman'
 import FotoSaya from '../components/FotoSaya'
 import { useAuth } from '../auth/AuthContext'
+import { DataRinci } from '../components/FormulirRinci'
 import { supabase } from '../lib/supabase'
 
 type J = Record<string, unknown>
@@ -207,12 +208,12 @@ function useProfil(jenis?: string, id?: string) {
   return { hasil, galat }
 }
 
-function Isi({ hasil, galat, ajukan = false }: { hasil: Hasil | null | undefined; galat: string; ajukan?: boolean }) {
+function Isi({ hasil, galat, ajukan = false, rinciUbah = false }: { hasil: Hasil | null | undefined; galat: string; ajukan?: boolean; rinciUbah?: boolean }) {
   if (hasil === undefined) return <p className="catatan">Memuat profil...</p>
   if (galat) return <p className="catatan" role="alert">Gagal memuat profil: {galat}</p>
   if (!hasil) return <p className="catatan">Profil tidak ditemukan, atau Anda tidak berhak melihatnya.</p>
-  if (hasil.jenis === 'ptk') return <>{ajukan && <AksiAjuan jenis="ptk" id={hasil.data.id} />}<ProfilPtk h={hasil} /><Perbaikan disamarkan={false} ajukan={ajukan} /></>
-  if (hasil.jenis === 'siswa') return <>{ajukan && <AksiAjuan jenis="siswa" id={hasil.data.id} />}<ProfilSiswa h={hasil} /><Perbaikan disamarkan={hasil.disamarkan} ajukan={ajukan} /></>
+  if (hasil.jenis === 'ptk') return <>{ajukan && <AksiAjuan jenis="ptk" id={hasil.data.id} />}<ProfilPtk h={hasil} /><Perbaikan disamarkan={false} ajukan={ajukan} /><DataRinci domain="ptk" owner={String(hasil.data.id)} bisaUbah={rinciUbah} subjudul={String(hasil.data.nama ?? '')} /></>
+  if (hasil.jenis === 'siswa') return <>{ajukan && <AksiAjuan jenis="siswa" id={hasil.data.id} />}<ProfilSiswa h={hasil} /><Perbaikan disamarkan={hasil.disamarkan} ajukan={ajukan} /><DataRinci domain="siswa" owner={String(hasil.data.id)} bisaUbah={rinciUbah} subjudul={String(hasil.data.nama ?? '')} /></>
   return null
 }
 
@@ -229,7 +230,7 @@ export function ProfilSendiri() {
         </div>
       )}
       <FotoSaya />
-      <div className="jarak"><Isi hasil={hasil} galat={galat} ajukan /></div>
+      <div className="jarak"><Isi hasil={hasil} galat={galat} ajukan rinciUbah /></div>
       <p className="catatan jarak"><Link to="/portal">Kembali ke portal</Link></p>
     </Halaman>
   )
@@ -262,7 +263,7 @@ export function ProfilOrang() {
   const balik = profil?.peran === 'orang_tua' ? '/portal/anak' : jenis === 'ptk' ? '/portal/ptk' : '/portal/peserta-didik'
   return (
     <Halaman judul={jenis === 'ptk' ? 'Profil guru dan tendik' : 'Profil peserta didik'} lead="Tampilan formulir Dapodik, hanya baca.">
-      {valid ? <Isi hasil={hasil} galat={galat} ajukan={profil?.peran === 'orang_tua'} /> : <p className="catatan">Alamat tidak valid.</p>}
+      {valid ? <Isi hasil={hasil} galat={galat} ajukan={profil?.peran === 'orang_tua'} rinciUbah={profil?.peran === 'orang_tua'} /> : <p className="catatan">Alamat tidak valid.</p>}
       <p className="catatan jarak"><Link to={balik}>Kembali</Link></p>
     </Halaman>
   )
