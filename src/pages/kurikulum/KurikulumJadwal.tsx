@@ -11,9 +11,9 @@ import GerbangKurikulum from './GerbangKurikulum'
 const HARI = [1, 2, 3, 4, 5]
 const kunci = (r: string, h: number, j: number) => `${r}|${h}|${j}`
 
-export function CetakJadwal({ ta, rombel, maksJam, petaSlot, jamHari, ruang, tutup }: {
+export function CetakJadwal({ ta, rombel, maksJam, petaSlot, jamHari, ruang, wali = {}, tutup }: {
   ta: string; rombel: { id: string; nama: string }[]; maksJam: number; petaSlot: Map<string, SlotJadwal>
-  jamHari: (h: number) => unknown[]; ruang: Record<string, string>; tutup: () => void
+  jamHari: (h: number) => unknown[]; ruang: Record<string, string>; wali?: Record<string, { nama: string | null; nip: string | null }>; tutup: () => void
 }) {
   return (
     <CetakFormulir judul="Jadwal Pembelajaran SMK" kode={`Tahun ajaran ${ta}`} tutup={tutup}>
@@ -43,7 +43,7 @@ export function CetakJadwal({ ta, rombel, maksJam, petaSlot, jamHari, ruang, tut
             </tbody>
           </table>
           <p style={{ margin: '4px 0 0' }}>Mengetahui :</p>
-          <TandaTangan jabatan="Wali Kelas" jabatanKiri="Kepala Sekolah" />
+          <TandaTangan jabatan="Wali Kelas" jabatanKiri="Kepala Sekolah" nama={wali[r.id]?.nama} nip={wali[r.id]?.nip} />
         </div>
       ))}
     </CetakFormulir>
@@ -63,13 +63,17 @@ function Isi({ p }: { p: Pengaturan }) {
   const [galat, setGalat] = useState('')
   const [cetak, setCetak] = useState(false)
   const [ruang, setRuang] = useState<Record<string, string>>({})
+  const [wali, setWali] = useState<Record<string, { nama: string | null; nip: string | null }>>({})
 
   useEffect(() => { void muatJamBel(true).then(setBel) }, [])
   useEffect(() => {
     if (!cetak) return
-    panggil<{ rombel_id: string; ruangan: string | null }[] | null>('rombel_formulir_data', { p_ta: ta })
-      .then((x) => setRuang(Object.fromEntries((x ?? []).map((r) => [r.rombel_id, r.ruangan ?? '']))))
-      .catch(() => setRuang({}))
+    panggil<{ rombel_id: string; ruangan: string | null; wali: string | null; wali_nip: string | null }[] | null>('rombel_formulir_data', { p_ta: ta })
+      .then((x) => {
+        setRuang(Object.fromEntries((x ?? []).map((r) => [r.rombel_id, r.ruangan ?? ''])))
+        setWali(Object.fromEntries((x ?? []).map((r) => [r.rombel_id, { nama: r.wali, nip: r.wali_nip }])))
+      })
+      .catch(() => { setRuang({}); setWali({}) })
   }, [cetak, ta])
   const muat = useCallback(async () => {
     try {
@@ -141,7 +145,7 @@ function Isi({ p }: { p: Pengaturan }) {
         <button className={tab === 'guru' ? 'tombol tombol-isi' : 'tombol'} onClick={() => setTab('guru')}>Per guru</button>
         <button className="tombol" disabled={slot.length === 0} onClick={() => setCetak(true)}>Cetak Jadwal Pembelajaran</button>
       </div>
-      {cetak && <CetakJadwal ta={ta} rombel={daftarRombel} maksJam={maksJam} petaSlot={petaSlot} jamHari={jamHari} ruang={ruang} tutup={() => setCetak(false)} />}
+      {cetak && <CetakJadwal ta={ta} rombel={daftarRombel} maksJam={maksJam} petaSlot={petaSlot} jamHari={jamHari} ruang={ruang} wali={wali} tutup={() => setCetak(false)} />}
 
       {memuat || !bel ? <p className="catatan jarak">Memuat data...</p> : daftarRombel.length === 0 ? (
         <p className="kartu jarak">Belum ada kebutuhan mengajar untuk {ta}. Isi <Link to="/portal/kurikulum/struktur">Struktur kurikulum</Link> dan bagi guru di <Link to="/portal/kurikulum/beban">Beban mengajar</Link> lebih dulu.</p>

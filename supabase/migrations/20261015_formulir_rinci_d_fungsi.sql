@@ -65,7 +65,7 @@ declare
   e public.formulir_entitas; k record; v_npsn text := private.npsn_saya(); v_tabel text;
   v_val jsonb := '{}'::jsonb; v_baru text; v_num numeric; v_lama_row jsonb; v_baru_row jsonb; v_butir jsonb := '[]'::jsonb;
   v_id uuid := p_id; v_jumlah integer; v_batas integer; v_lama_t text; v_baru_t text; v_ada boolean; v_cols text; v_sel text; v_set text;
-  v_nama text; v_jenis text; v_subjek uuid; v_tampil text;
+  v_nama text; v_jenis text; v_subjek uuid; v_tampil text; v_luas_kol text;
 begin
   select * into e from public.formulir_entitas where kode = p_entitas;
   if not found then raise exception 'Formulir tidak dikenal.'; end if;
@@ -123,6 +123,14 @@ begin
     v_val := v_val || jsonb_build_object(k.kunci, v_baru);
   end loop;
   if v_val = '{}'::jsonb then raise exception 'Tidak ada isian.'; end if;
+
+  -- Luas tanah, bangunan, dan ruang dihitung dari panjang x lebar bila luas dikosongkan.
+  if p_entitas in ('sarpras_tanah', 'sarpras_bangunan', 'sarpras_ruang') then
+    v_luas_kol := case when p_entitas = 'sarpras_bangunan' then 'luas_tapak' else 'luas' end;
+    if nullif(v_val->>'panjang', '') is not null and nullif(v_val->>'lebar', '') is not null and (v_val ? v_luas_kol) and nullif(v_val->>v_luas_kol, '') is null then
+      v_val := v_val || jsonb_build_object(v_luas_kol, round((v_val->>'panjang')::numeric * (v_val->>'lebar')::numeric, 2)::text);
+    end if;
+  end if;
 
   execute format('select to_jsonb(r) from jsonb_populate_record(null::public.%I, $1) r', v_tabel) into v_baru_row using v_val;
 
