@@ -5,6 +5,7 @@ import Halaman from '../../components/Halaman'
 import { panggil } from '../../lib/rpc'
 import { barisBelHari, muatJamBel, type JamBel } from '../../lib/kalender'
 import { NAMA_HARI_JADWAL, WARNA_NADA, pilihanTahunAjaran, tahunAjaranSekarang, type BebanMapel, type Pengaturan, type SlotJadwal } from '../../lib/kurikulum'
+import CetakFormulir, { TandaTangan } from '../../components/CetakFormulir'
 import GerbangKurikulum from './GerbangKurikulum'
 
 const HARI = [1, 2, 3, 4, 5]
@@ -21,8 +22,16 @@ function Isi({ p }: { p: Pengaturan }) {
   const [memuat, setMemuat] = useState(true)
   const [sibuk, setSibuk] = useState(false)
   const [galat, setGalat] = useState('')
+  const [cetak, setCetak] = useState(false)
+  const [ruang, setRuang] = useState<Record<string, string>>({})
 
   useEffect(() => { void muatJamBel(true).then(setBel) }, [])
+  useEffect(() => {
+    if (!cetak) return
+    panggil<{ rombel_id: string; ruangan: string | null }[] | null>('rombel_formulir_data', { p_ta: ta })
+      .then((x) => setRuang(Object.fromEntries((x ?? []).map((r) => [r.rombel_id, r.ruangan ?? '']))))
+      .catch(() => setRuang({}))
+  }, [cetak, ta])
   const muat = useCallback(async () => {
     try {
       const [b, s] = await Promise.all([panggil<BebanMapel[]>('kur_beban_data', { p_ta: ta }), panggil<SlotJadwal[]>('kur_jadwal_data', { p_ta: ta })])
@@ -91,7 +100,34 @@ function Isi({ p }: { p: Pengaturan }) {
         <select value={ta} onChange={(e) => setTa(e.target.value)} aria-label="Tahun ajaran">{pilihanTahunAjaran().map((x) => <option key={x}>{x}</option>)}</select>
         <button className={tab === 'kelas' ? 'tombol tombol-isi' : 'tombol'} onClick={() => setTab('kelas')}>Per kelas</button>
         <button className={tab === 'guru' ? 'tombol tombol-isi' : 'tombol'} onClick={() => setTab('guru')}>Per guru</button>
+        <button className="tombol" disabled={slot.length === 0} onClick={() => setCetak(true)}>Cetak Jadwal Pembelajaran</button>
       </div>
+      {cetak && (
+        <CetakFormulir judul="Jadwal Pembelajaran SMK" kode={`Tahun ajaran ${ta}`} tutup={() => setCetak(false)}>
+          <p className="catatan-kaki">Tanpa disertakan upacara dan istirahat. Jam ke- mengikuti jam pelajaran pada jam bel sekolah.</p>
+          <table className="jadwal-tabel">
+            <thead>
+              <tr><th rowSpan={2}>No</th><th rowSpan={2}>Rombel / Kelas</th><th rowSpan={2}>Ruang / Prasarana</th><th rowSpan={2}>Pembelajaran Jam Ke-</th><th colSpan={7}>Hari</th></tr>
+              <tr>{['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'].map((h) => <th key={h}>{h}</th>)}</tr>
+            </thead>
+            <tbody>
+              {daftarRombel.flatMap((r, ri) => Array.from({ length: maksJam }, (_, i) => i + 1).map((j) => (
+                <tr key={`${r.id}-${j}`} style={{ breakInside: 'avoid' }}>
+                  {j === 1 && <td rowSpan={maksJam}>{ri + 1}</td>}
+                  {j === 1 && <td rowSpan={maksJam}><strong>{r.nama}</strong></td>}
+                  {j === 1 && <td rowSpan={maksJam}>{ruang[r.id] ?? ''}</td>}
+                  <td>{j}</td>
+                  {[1, 2, 3, 4, 5, 6, 7].map((h) => {
+                    const sl = petaSlot.get(kunci(r.id, h, j))
+                    return <td key={h} style={h <= 5 && j > jamHari(h).length ? { background: '#eee' } : undefined}>{sl ? <>{sl.mapel}<br /><small>{sl.guru ?? ''}</small></> : ''}</td>
+                  })}
+                </tr>
+              )))}
+            </tbody>
+          </table>
+          <TandaTangan jabatan="Kepala Sekolah" />
+        </CetakFormulir>
+      )}
 
       {memuat || !bel ? <p className="catatan jarak">Memuat data...</p> : daftarRombel.length === 0 ? (
         <p className="kartu jarak">Belum ada kebutuhan mengajar untuk {ta}. Isi <Link to="/portal/kurikulum/struktur">Struktur kurikulum</Link> dan bagi guru di <Link to="/portal/kurikulum/beban">Beban mengajar</Link> lebih dulu.</p>

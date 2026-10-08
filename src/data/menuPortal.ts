@@ -167,6 +167,7 @@ const pengaturanSuper: ItemPortal[] = [
   { to: '/portal/kurikulum/beban', label: 'Beban mengajar', ikon: 'kelompok', ket: 'Pembagian guru per mapel dan kelas, linieritas dari Dapodik, dan rekap jam per guru' },
   { to: '/portal/kurikulum/jadwal', label: 'Jadwal pelajaran', ikon: 'kalender', ket: 'Susun jadwal per kelas dengan penjagaan bentrok guru dan kuota jam mapel' },
   { to: '/portal/kurikulum/wali-kelas', label: 'Wali kelas', ikon: 'sekolah', ket: 'Usulan wali kelas, persetujuan Kepala Sekolah, dan lampiran SK' },
+  { to: '/portal/kurikulum/formulir', label: 'Formulir rombel', ikon: 'dokumen', ket: 'F-ROMBEL: jurusan, moving class, SK mengajar, dan cetak format Dapodik' },
   { to: '/portal/sarpras/buku', label: 'Sarana dan prasarana', ikon: 'tas', ket: 'Inventaris, kerusakan, permintaan, usulan bertingkat, kartu inventaris, dan pembukuan' },
   { to: '/portal/spmi', label: 'Penjaminan mutu (SPMI)', ikon: 'centang', ket: 'Standar mutu, indikator, dan dokumen satuan penjamin mutu internal' },
 ]
@@ -186,6 +187,7 @@ const menuIzin: { izin: string; nama: string; bidang: string; ikon: string; to?:
   { izin: 'kurikulum.struktur', nama: 'Beban mengajar', bidang: 'Kurikulum', ikon: 'kelompok', to: '/portal/kurikulum/beban' },
   { izin: 'kurikulum.struktur', nama: 'Jadwal pelajaran', bidang: 'Kurikulum', ikon: 'kalender', to: '/portal/kurikulum/jadwal' },
   { izin: 'kurikulum.struktur', nama: 'Wali kelas', bidang: 'Kurikulum', ikon: 'sekolah', to: '/portal/kurikulum/wali-kelas' },
+  { izin: 'kurikulum.struktur', nama: 'Formulir rombel', bidang: 'Kurikulum', ikon: 'dokumen', to: '/portal/kurikulum/formulir' },
   { izin: 'kurikulum.setujui', nama: 'Persetujuan wali kelas', bidang: 'Kurikulum', ikon: 'centang', to: '/portal/kurikulum/wali-kelas' },
   { izin: 'kegiatan.kelola', nama: 'Kalender sekolah', bidang: 'Kegiatan sekolah', ikon: 'kalender', to: '/portal/kalender' },
   { izin: 'kurikulum.kelola_info', nama: 'Informasi akademik', bidang: 'Kurikulum', ikon: 'dokumen' },
@@ -204,6 +206,7 @@ const menuIzin: { izin: string; nama: string; bidang: string; ikon: string; to?:
   { izin: 'sarpras.operasional', nama: 'Inventaris sarpras', bidang: 'Sarana dan prasarana', ikon: 'tas', to: '/portal/sarpras/inventaris' },
   { izin: 'sarpras.catat_lab', nama: 'Inventaris sarpras', bidang: 'Sarana dan prasarana', ikon: 'tas', to: '/portal/sarpras/inventaris' },
   { izin: 'sarpras.lihat', nama: 'Inventaris sarpras', bidang: 'Sarana dan prasarana', ikon: 'tas', to: '/portal/sarpras/inventaris' },
+  { izin: 'sarpras.kelola', nama: 'Formulir Dapodik sarpras', bidang: 'Sarana dan prasarana', ikon: 'dokumen', to: '/portal/sarpras/formulir' },
   { izin: 'sarpras.kelola', nama: 'Laporan kerusakan', bidang: 'Sarana dan prasarana', ikon: 'kotak', to: '/portal/sarpras/kerusakan' },
   { izin: 'sarpras.operasional', nama: 'Laporan kerusakan', bidang: 'Sarana dan prasarana', ikon: 'kotak', to: '/portal/sarpras/kerusakan' },
   { izin: 'sarpras.catat_lab', nama: 'Laporan kerusakan', bidang: 'Sarana dan prasarana', ikon: 'kotak', to: '/portal/sarpras/kerusakan' },

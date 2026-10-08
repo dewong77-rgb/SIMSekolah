@@ -11,16 +11,19 @@ import { panggil } from '../lib/rpc'
 import { useAuth } from '../auth/AuthContext'
 
 type StatusAjuan = 'menunggu' | 'diteruskan' | 'dikerjakan' | 'selesai' | 'ditolak' | 'dibatalkan'
+type Jalur = 'langsung' | 'tu' | 'operator'
+type JenisAjuan = 'ptk' | 'siswa' | 'rombel' | 'pembelajaran' | 'ekskul' | 'sarpras'
 type Kolom = {
   jenis: string; kunci: string; tabel: string; kolom: string; hubungan: string | null; label: string; kelompok: string
   tipe: 'teks' | 'angka' | 'tanggal' | 'pilihan'; pilihan: string[] | null; wajib: boolean; butuh_dokumen: boolean; terapkan: boolean; urutan: number
+  butir: string | null; bantuan: string | null; jalur: Jalur; min_nilai: number | null; maks_nilai: number | null
 }
-type Butir = { kunci: string; label: string; kelompok: string; lama: string | null; baru: string | null; butuh_dokumen: boolean; terapkan: boolean }
+type Butir = { kunci: string; label: string; kelompok: string; butir?: string | null; lama: string | null; baru: string | null; butuh_dokumen: boolean; terapkan: boolean; jalur?: Jalur; diterapkan?: boolean }
 type Ajuan = {
-  id: string; jenis: 'ptk' | 'siswa'; subjek_id: string; subjek_nama: string; pengaju_peran: string; perubahan: Butir[]; alasan: string
+  id: string; jenis: JenisAjuan; subjek_id: string; subjek_nama: string; pengaju_peran: string; perubahan: Butir[]; alasan: string
   butuh_dokumen: boolean; status: StatusAjuan; catatan_admin: string | null; catatan_operator: string | null
   diputuskan_pada: string | null; dibuat_pada: string; bagian: string | null; belum_terbukti: boolean
-  dikerjakan_pada: string | null; selesai_pada: string | null; aksi?: string[]
+  dikerjakan_pada: string | null; selesai_pada: string | null; diterapkan_pada?: string | null; aksi?: string[]
 }
 type Profil = { jenis: 'ptk' | 'siswa'; data: Record<string, unknown>; sensitif: Record<string, unknown>; disamarkan: boolean; orang_tua?: Record<string, unknown>[] }
 
@@ -28,9 +31,14 @@ const waktu = (t: string | null) => (t ? new Date(t).toLocaleString('id-ID', { d
 const namaStatus: Record<StatusAjuan, string> = {
   menunggu: 'Menunggu TU', diteruskan: 'Menunggu operator Dapodik', dikerjakan: 'Dikerjakan operator', selesai: 'Selesai', ditolak: 'Ditolak', dibatalkan: 'Dibatalkan',
 }
-const namaBagian: Record<string, string> = { kepegawaian: 'TU Kepegawaian', kesiswaan: 'TU Kesiswaan' }
+const namaJalur: Record<Jalur, string> = {
+  langsung: 'Berlaku langsung di SIMS',
+  tu: 'Perlu persetujuan TU, lalu berlaku di SIMS',
+  operator: 'Lewat operator Dapodik (kolom kunci identitas)',
+}
+const namaBagian: Record<string, string> = { kepegawaian: 'TU Kepegawaian', kesiswaan: 'TU Kesiswaan', kurikulum: 'Kurikulum', sarpras: 'Sarana dan prasarana' }
 const namaPengaju: Record<string, string> = { guru: 'Guru/tendik', siswa: 'Siswa', orang_tua: 'Orang tua' }
-const namaJenis = { ptk: 'Guru/tendik', siswa: 'Siswa' } as const
+const namaJenis: Record<JenisAjuan, string> = { ptk: 'Guru/tendik', siswa: 'Siswa', rombel: 'Rombel (F-ROMBEL)', pembelajaran: 'SK mengajar (F-ROMBEL)', ekskul: 'Ekskul (F-EKSKUL)', sarpras: 'Sarpras (formulir Dapodik)' }
 const nilaiTampil = (kunci: string, x: string | null) => {
   if (x === null || x === '') return '(kosong)'
   if (kunci === 'jk') return x === 'L' ? 'Laki-laki' : x === 'P' ? 'Perempuan' : x
@@ -52,6 +60,7 @@ function TabelButir({ butir }: { butir: Butir[] }) {
           {butir.map((b) => (
             <tr key={b.kunci}>
               <td>
+                {b.butir && <small className="petunjuk">{b.butir}. </small>}
                 <strong>{/^Data (ayah|ibu|wali)/.test(b.kelompok) ? `${b.kelompok.replace('Data ', '').replace(/^./, (c) => c.toUpperCase())}: ` : ''}{b.label}</strong>
                 {b.butuh_dokumen && <small className="petunjuk"> Perlu dokumen pendukung</small>}
               </td>
@@ -119,11 +128,14 @@ export function FormAjuan() {
   }, [kolom])
   const diubah = kolom.filter((c) => (nilai[c.kunci] ?? '').trim() !== (asal[c.kunci] ?? '').trim())
   const butuhDok = diubah.some((c) => c.butuh_dokumen)
+  const adaTinjau = diubah.some((c) => c.jalur !== 'langsung')
+  const adaLangsung = diubah.some((c) => c.jalur === 'langsung')
 
   async function kirim(e: FormEvent) {
     e.preventDefault()
     setGalat('')
     if (diubah.length === 0) { setGalat('Belum ada data yang diubah.'); return }
+    if (adaTinjau && alasan.trim().length < 5) { setGalat('Tulis alasan perubahan, minimal 5 karakter, untuk kolom yang perlu persetujuan TU.'); return }
     setSibuk(true)
     const { error } = await supabase.rpc('ajukan_perubahan', {
       p_jenis: jenis, p_subjek: id, p_alasan: alasan,
@@ -136,12 +148,12 @@ export function FormAjuan() {
 
   if (!valid) return <Halaman judul="Ajukan perbaikan data"><p className="catatan">Alamat tidak valid.</p></Halaman>
   return (
-    <Halaman judul="Ajukan perbaikan data" lead={nama ? `Untuk ${nama}. Ubah hanya kolom yang keliru, sisanya biarkan.` : undefined}>
+    <Halaman judul={jenis === 'ptk' ? 'Formulir PTK (F-PTK)' : 'Formulir peserta didik (F-PD)'} lead={nama ? `Untuk ${nama}. Nomor mengikuti formulir resmi Dapodik. Isi yang kosong atau ubah yang keliru, sisanya biarkan.` : undefined}>
       {memuat && <p className="catatan">Memuat formulir...</p>}
       {!memuat && kolom.length > 0 && (
         <form onSubmit={kirim}>
           <p className="catatan">
-            Ajuan diperiksa TU bagian terkait, lalu diteruskan ke operator Dapodik yang memperbaiki datanya di Dapodik dan mengunggah ulang ke sini. Data di SIMS berubah setelah itu, dan ajuan selesai otomatis. Perubahan identitas (nama, tanggal lahir, NIK, No. KK, dan sejenisnya) biasanya perlu dokumen pendukung. Unggah dokumen menyusul; sementara, siapkan KK atau akta untuk ditunjukkan ke admin.
+            Kolom bertanda "berlaku langsung" langsung berubah di SIMS saat Anda mengirim, lalu masuk antrean operator Dapodik untuk disalin ke Dapodik. Kolom yang memerlukan dokumen diperiksa TU bagian terkait lebih dulu, baru berlaku. Nama, tanggal lahir, NIK dan NUPTK guru, serta NISN hanya berubah lewat unggahan Dapodik, jadi ajuannya diteruskan ke operator. Siapkan KK, akta, atau ijazah untuk ditunjukkan ke admin.
           </p>
           <div className="grid grid-2 jarak">
             {grup.map(([judul, daftar]) => (
@@ -153,8 +165,8 @@ export function FormAjuan() {
                   return (
                     <label key={c.kunci} className={ubah ? 'diubah' : undefined}>
                       <span>
-                        {c.label}{c.wajib ? ' *' : ''}
-                        {c.butuh_dokumen && <small className="petunjuk"> Perlu dokumen</small>}
+                        {c.butir ? `${c.butir}. ` : ''}{c.label}{c.wajib ? ' *' : ''}
+                        <small className="petunjuk"> {namaJalur[c.jalur]}{c.butuh_dokumen ? ', perlu dokumen' : ''}</small>
                       </span>
                       {c.tipe === 'pilihan' ? (
                         <select value={nilai[c.kunci] ?? ''} onChange={(e) => setNilai({ ...nilai, [c.kunci]: e.target.value })}>
@@ -164,12 +176,13 @@ export function FormAjuan() {
                       ) : (
                         <input
                           type={c.tipe === 'tanggal' ? 'date' : c.tipe === 'angka' ? 'number' : 'text'}
-                          step={c.tipe === 'angka' ? 'any' : undefined} min={c.tipe === 'angka' ? 0 : undefined}
+                          step={c.tipe === 'angka' ? 'any' : undefined} min={c.tipe === 'angka' ? (c.min_nilai ?? 0) : undefined} max={c.tipe === 'angka' && c.maks_nilai !== null ? c.maks_nilai : undefined}
                           maxLength={c.tipe === 'teks' ? 200 : undefined} autoComplete="off"
                           value={nilai[c.kunci] ?? ''} placeholder={samarAsal[c.kunci] ? `Saat ini ${samarAsal[c.kunci]}` : undefined}
                           onChange={(e) => setNilai({ ...nilai, [c.kunci]: e.target.value })}
                         />
                       )}
+                      {c.bantuan && <small className="petunjuk">{c.bantuan}</small>}
                     </label>
                   )
                 })}
@@ -178,13 +191,14 @@ export function FormAjuan() {
           </div>
           <section className="kartu form jarak">
             <label>
-              <span>Alasan perubahan *</span>
+              <span>Alasan perubahan{adaTinjau ? ' *' : ' (opsional)'}</span>
               <textarea rows={3} maxLength={500} value={alasan} onChange={(e) => setAlasan(e.target.value)} placeholder="Contoh: pindah alamat, salah ketik nama saat pendataan." />
             </label>
-            {butuhDok && <p className="catatan" role="note">Ajuan ini memuat perubahan identitas. Admin dapat meminta dokumen pendukung sebelum menyetujui.</p>}
+            {adaLangsung && <p className="catatan" role="note">Kolom "berlaku langsung" langsung tersimpan di SIMS dan masuk antrean operator Dapodik.</p>}
+            {butuhDok && <p className="catatan" role="note">Ajuan ini memuat perubahan yang perlu dokumen. Admin dapat meminta dokumen pendukung sebelum menyetujui.</p>}
             <div aria-live="polite">{galat && <p className="catatan galat" role="alert">{galat}</p>}</div>
             <div className="aksi">
-              <button className="tombol tombol-isi" disabled={sibuk || diubah.length === 0}>{sibuk ? 'Mengirim...' : `Kirim ajuan${diubah.length ? ` (${diubah.length} kolom)` : ''}`}</button>
+              <button className="tombol tombol-isi" disabled={sibuk || diubah.length === 0}>{sibuk ? 'Menyimpan...' : `Simpan${diubah.length ? ` (${diubah.length} kolom)` : ''}`}</button>
               <TombolIkon ikon="tutup" label="Batal" onClick={() => nav(-1)} />
             </div>
           </section>
@@ -223,7 +237,7 @@ export function AjuanSaya() {
 
   return (
     <Halaman judul="Ajuan saya" lead="Perbaikan data yang pernah diajukan dan keputusannya.">
-      {baru && <p className="catatan sukses" role="status">Ajuan terkirim. TU bagian terkait akan memeriksanya.</p>}
+      {baru && <p className="catatan sukses" role="status">Tersimpan. Kolom yang berlaku langsung sudah berubah di SIMS dan masuk antrean operator Dapodik. Kolom yang perlu dokumen menunggu TU bagian terkait.</p>}
       {galat && <p className="catatan galat" role="alert">{galat}</p>}
       {!rows && !galat && <p className="catatan">Memuat...</p>}
       {rows?.length === 0 && <p className="catatan">Belum ada ajuan. Buka profil Anda lalu pilih "Ajukan perbaikan data".</p>}
@@ -240,9 +254,9 @@ export function AjuanSaya() {
             {a.catatan_operator && <p className="catatan"><strong>Catatan operator:</strong> {a.catatan_operator}</p>}
             <p className="catatan">
               {a.status === 'menunggu' && `Menunggu keputusan ${namaBagian[a.bagian ?? ''] ?? 'TU'}.`}
-              {a.status === 'diteruskan' && `Disetujui ${waktu(a.diputuskan_pada)}. Menunggu operator Dapodik memperbaiki datanya.`}
+              {a.status === 'diteruskan' && (a.diterapkan_pada ? `Sudah berlaku di SIMS sejak ${waktu(a.diterapkan_pada)}. Menunggu operator Dapodik menyalinnya ke Dapodik.` : `Disetujui ${waktu(a.diputuskan_pada)}. Menunggu operator Dapodik memperbaiki datanya.`)}
               {a.status === 'dikerjakan' && (a.belum_terbukti ? 'Sedang dikerjakan. Data terbaru belum menunjukkan perubahan ini, operator akan memeriksanya lagi.' : 'Operator Dapodik sedang memperbaiki datanya.')}
-              {a.status === 'selesai' && `Selesai ${waktu(a.selesai_pada)}. Data di SIMS sudah sesuai dengan Dapodik.`}
+              {a.status === 'selesai' && `Selesai ${waktu(a.selesai_pada)}. Data sudah tercatat di Dapodik.`}
             </p>
             {a.status === 'menunggu' && <div className="aksi jarak"><button className="tombol" onClick={() => batalkan(a.id)}>Batalkan ajuan</button></div>}
           </article>
@@ -304,7 +318,7 @@ export function AjuanMasuk() {
   }
 
   return (
-    <Halaman judul="Ajuan perbaikan data" lead="TU bagian terkait memeriksa. Operator Dapodik memperbaiki di Dapodik lalu mengunggah ulang.">
+    <Halaman judul="Ajuan perbaikan data" lead="Isian langsung dan ajuan yang disetujui TU masuk antrean operator sebagai tagihan kerja. Operator menyalinnya ke Dapodik, lalu mencentang selesai.">
       <div className="pilih-peran" role="tablist">
         {([['keputusan', 'Menunggu keputusan'], ['operator', 'Antrean operator Dapodik'], ['riwayat', 'Riwayat']] as const).map(([id, nama]) => (
           <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'aktif' : ''} onClick={() => { setTab(id); setHal(1); setBuka(null) }}>
@@ -325,7 +339,7 @@ export function AjuanMasuk() {
           </>
         )}
       </div>
-      {tab === 'operator' && <p className="catatan jarak">Perbaiki datanya di aplikasi Dapodik atau VervalPD, ekspor ulang, lalu unggah di menu Unggah Dapodik. Ajuan selesai otomatis bila nilainya sama dengan usulan.</p>}
+      {tab === 'operator' && <p className="catatan jarak">Salin nilai usulan ke aplikasi Dapodik atau VervalPD, lalu centang "Sudah di Dapodik". Alternatifnya ekspor ulang dan unggah di menu Unggah Dapodik; ajuan selesai otomatis bila nilai terbaru dari Dapodik sama dengan usulan. Kolom yang belum dibaca dari berkas Dapodik (misalnya NIY/NIGK dan data penugasan) hanya bisa ditutup dengan centang.</p>}
 
       <div className="tabel-bungkus jarak">
         <table>
@@ -366,7 +380,8 @@ export function AjuanMasuk() {
                           )}
                           {a.aksi?.includes('kerjakan') && (
                             <>
-                              {a.status === 'diteruskan' && <button className="tombol tombol-isi" disabled={sibuk} onClick={() => jalankan('kerjakan_ajuan', { p_id: a.id, p_aksi: 'mulai', p_catatan: catatan }, 'Ajuan ditandai sedang dikerjakan.')}>Mulai kerjakan</button>}
+                              {a.status === 'diteruskan' && <button className="tombol" disabled={sibuk} onClick={() => jalankan('kerjakan_ajuan', { p_id: a.id, p_aksi: 'mulai', p_catatan: catatan }, 'Ajuan ditandai sedang dikerjakan.')}>Mulai kerjakan</button>}
+                              <button className="tombol tombol-isi" disabled={sibuk} onClick={() => jalankan('kerjakan_ajuan', { p_id: a.id, p_aksi: 'selesai', p_catatan: catatan }, 'Ajuan ditandai selesai: sudah di Dapodik.')}>Sudah di Dapodik</button>
                               <button className="tombol" disabled={sibuk || catatan.trim().length < 3} onClick={() => jalankan('kerjakan_ajuan', { p_id: a.id, p_aksi: 'kembalikan', p_catatan: catatan }, 'Ajuan dikembalikan ke pengaju.')}>Kembalikan</button>
                             </>
                           )}
