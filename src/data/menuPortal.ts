@@ -33,10 +33,10 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
       item: [
         { to: '/portal/lms', label: 'Kelas saya', ikon: 'buku', ket: 'Materi, lembar kerja, dan diskusi per pertemuan' },
         { to: '/portal/penilaian/kuis', cocok: '/portal/penilaian', label: 'Kuis dan ulangan', ikon: 'centang', ket: 'Kuis, ulangan harian, UTS, dan UAS dari semua kelas' },
-        { to: '/asesmen', label: 'Ujian digital (CBT)', ikon: 'pena', ket: 'Jadwal dan ruang ujian sekolah. Masuk dengan token dari pengawas' },
         { to: '/portal/progres-lms', label: 'Nilai dan progres', ikon: 'grafik', ket: 'Kehadiran, materi, nilai kuis, dan tugas semua mapel' },
-        { to: '/portal/panduan-lms', label: 'Panduan belajar', ikon: 'info', ket: 'Cara mengikuti pertemuan langkah demi langkah' },
+        { to: '/asesmen', label: 'Ujian digital (CBT)', ikon: 'pena', ket: 'Jadwal dan ruang ujian sekolah. Masuk dengan token dari pengawas' },
         chat,
+        { to: '/portal/panduan-lms', label: 'Panduan belajar', ikon: 'info', ket: 'Cara mengikuti pertemuan langkah demi langkah' },
       ],
     },
     {
@@ -55,8 +55,8 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
         { to: '/portal/penilaian/kuis', cocok: '/portal/penilaian', label: 'Kuis dan ulangan', ikon: 'centang', ket: 'Kuis, ulangan harian, UTS, dan UAS semua kelas' },
         { to: '/portal/absensi', label: 'Rekap kehadiran', ikon: 'centang', ket: 'Jumlah siswa yang diajar dan rekap kehadiran per kelas' },
         { to: '/asesmen', label: 'Asesmen digital (CBT)', ikon: 'pena', ket: 'Bank soal dan pengawasan ujian sekolah (UTS, UAS)' },
-        { to: '/portal/panduan-lms', label: 'Panduan mengajar', ikon: 'info', ket: 'Urutan menyiapkan dan menjalankan satu pertemuan' },
         chat,
+        { to: '/portal/panduan-lms', label: 'Panduan mengajar', ikon: 'info', ket: 'Urutan menyiapkan dan menjalankan satu pertemuan' },
       ],
     },
     {

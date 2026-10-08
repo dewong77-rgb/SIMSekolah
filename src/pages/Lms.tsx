@@ -574,7 +574,7 @@ function PanelKelengkapan({ k }: { k: Kelengkapan | null }) {
             <a href={tuju}><strong>{nama}</strong></a> <small>(wajib)</small>: {teks}
           </li>
         ))}
-        <li><span className="status status-selesai">Otomatis</span> <a href="#forum"><strong>Forum diskusi</strong></a>: dibuat saat diterbitkan{k.forum > 0 ? ` (${k.forum} topik)` : ''}</li>
+        <li><span className="status status-selesai">Otomatis</span> <a href="#forum"><strong>Diskusi</strong></a>: dibuat saat diterbitkan{k.forum > 0 ? ` (${k.forum} topik)` : ''}</li>
         <li><span className={`status ${k.latihan > 0 ? 'status-selesai' : 'status-dibatalkan'}`}>{k.latihan > 0 ? 'Aktif' : 'Opsional'}</span> <a href="#latihan"><strong>Kuis atau latihan soal</strong></a>: {k.latihan > 0 ? `${k.latihan} latihan, jadi nilai tambah` : 'bila ingin nilai tambah'}</li>
       </ul>
       <p className="catatan">{k.lengkap ? 'Bahan bacaan dan lembar kerja sudah ada. Pertemuan siap diterbitkan.' : `Lengkapi dulu ${k.kurang.join(' dan ')} sebelum menerbitkan.`} Nilai pertemuan keluar otomatis sebesar KKTP begitu siswa absen, membaca bahan bacaan minimal 15 menit, dan mengumpulkan lembar kerja. Anda tetap bisa menilai isi lembar kerja untuk menaikkan nilai di atas KKTP, dan forum atau kuis menambah nilai lebih tinggi lagi.</p>
@@ -713,6 +713,9 @@ function ImporDokumen({ pertemuanId, muat }: { pertemuanId: string; muat: () => 
   )
 }
 
+type TabPertemuan = 'materi' | 'latihan' | 'diskusi' | 'rekap' | 'atur'
+const tabDariHash = (h: string): TabPertemuan => (h === '#forum' ? 'diskusi' : h === '#latihan' ? 'latihan' : h === '#rekap' ? 'rekap' : h === '#atur' ? 'atur' : 'materi')
+
 /** Ruang satu pertemuan. Siswa: absen lalu materi. Guru: kontrol absen, penyusun materi, rekap. */
 export function RuangPertemuan() {
   const { kelasId = '', id = '' } = useParams()
@@ -758,6 +761,12 @@ export function RuangPertemuan() {
   const kelola = kelas?.peran === 'pengelola'
   const { profil } = useAuth()
   const nav = useNavigate()
+  const [tab, setTab] = useState<TabPertemuan>(() => tabDariHash(window.location.hash))
+  useEffect(() => {
+    const ikuti = () => setTab(tabDariHash(window.location.hash))
+    window.addEventListener('hashchange', ikuti)
+    return () => window.removeEventListener('hashchange', ikuti)
+  }, [])
 
   async function absen(e: FormEvent) {
     e.preventDefault()
@@ -798,20 +807,29 @@ export function RuangPertemuan() {
       {pesan && <div className="kartu hasil"><strong>{pesan}</strong></div>}
       {p?.tujuan && <div className="kartu"><small>Tujuan pembelajaran</small><p style={{ marginBottom: 0, whiteSpace: 'pre-line' }}>{p.tujuan}</p></div>}
       {id && <KartuKriteria pertemuanId={id} />}
+      {kelola && p && <PanelKelengkapan k={p.kelengkapan} />}
 
       {kelola && p && (
+        <div className="tab-bar" role="tablist" aria-label="Bagian pertemuan">
+          {([['materi', 'Materi', 'buku'], ['latihan', 'Latihan', 'centang'], ['diskusi', 'Diskusi', 'chat'], ['rekap', 'Rekap siswa', 'grafik'], ['atur', 'Pengaturan', 'perisai']] as [TabPertemuan, string, string][]).map(([k, label, ikon]) => (
+            <button key={k} type="button" role="tab" aria-selected={tab === k} className={'tab-item' + (tab === k ? ' aktif' : '')} onClick={() => setTab(k)}>
+              <Ikon nama={ikon} ukuran={16} /> {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {kelola && p && tab === 'atur' && (
         <>
           <AksesPertemuan pertemuanId={id} status={p.status} ditutup={!!p.ditutup} bukaSampai={p.buka_sampai ?? null} setelah={muat} />
           <KelolaPertemuan kelasId={kelasId} pertemuanId={id} setelahUbah={muat} setelahHapus={() => nav(`/portal/lms/${kelasId}`)} />
-          <PanelKelengkapan k={p.kelengkapan} />
           {p.status !== 'terbit' && p.kelengkapan && !p.kelengkapan.lengkap && (
             <details className="jarak"><summary>Aktifkan sekarang walau belum lengkap</summary>
               <div className="aksi"><button type="button" className="tombol" onClick={() => void terbitPaksa()}>Aktifkan sekarang</button></div></details>
           )}
-          <div className="aksi"><label className="baris-centang"><input type="checkbox" checked={pratinjau} onChange={(e) => setPratinjau(e.target.checked)} /> Lihat sebagai siswa (pratinjau, tidak ada yang tersimpan)</label></div>
           <details className="jarak"><summary>Salin ke kelas tertentu saja</summary><SalinPertemuan pertemuanId={id} versi={versi} terbit={p.status === 'terbit'} /></details>
-          <p className="catatan"><Link to={`/portal/lms/dashboard?p=${id}`}>Buka di Pantau semua kelas (aktifkan dan pantau semua kelas)</Link></p>
           <details className="jarak"><summary>Absen dengan kode (opsional)</summary><p className="catatan">Kehadiran sudah tercatat otomatis dari aktivitas siswa. Kode hanya untuk absen tatap muka.</p><KontrolAbsen p={p} muat={muat} /></details>
+          <p className="catatan"><Link to={`/portal/lms/dashboard?p=${id}`}>Buka di Pantau semua kelas (aktifkan dan pantau semua kelas)</Link></p>
         </>
       )}
 
@@ -829,9 +847,10 @@ export function RuangPertemuan() {
         </form>
       )}
 
-      {materi && (
+      {materi && (!kelola || tab === 'materi') && (
         <>
           <div className="judul-bagian jarak" id="materi"><h2>Materi</h2></div>
+          {kelola && <div className="aksi"><label className="baris-centang"><input type="checkbox" checked={pratinjau} onChange={(e) => setPratinjau(e.target.checked)} /> Lihat sebagai siswa (pratinjau, tidak ada yang tersimpan)</label></div>}
           {materi.length === 0 && <div className="kartu"><p className="catatan">Belum ada materi pada pertemuan ini.</p></div>}
           {pratinjau && <p className="catatan">Pratinjau tampilan siswa. Materi Guru saja disembunyikan, lembar kerja bisa dicoba tetapi tidak tersimpan.</p>}
           {materi.filter((m) => !pratinjau || m.untuk === 'siswa').map((m) => (
@@ -847,23 +866,18 @@ export function RuangPertemuan() {
               )}
             </div>
           ))}
+          {kelola && p && !pratinjau && <><ImporDokumen pertemuanId={id} muat={muat} /><FormMateri pertemuanId={id} muat={muat} /></>}
         </>
       )}
 
-      {kelola && p && materi && <><ImporDokumen pertemuanId={id} muat={muat} /><FormMateri pertemuanId={id} muat={muat} /></>}
-
-      {p && !terkunci && (kelola || p.status === 'terbit') && (
-        <>
-          <LatihanPertemuan kelasId={kelasId} pertemuanId={id} judul={p.judul} kelola={kelola} perbarui={() => void muat()} versi={versi} />
-          <div id="forum"><Forum pertemuanId={id} kelola={kelola} setelah={kelola ? () => void muat() : undefined} /></div>
-        </>
+      {p && !terkunci && (kelola || p.status === 'terbit') && (!kelola || tab === 'latihan') && (
+        <LatihanPertemuan kelasId={kelasId} pertemuanId={id} judul={p.judul} kelola={kelola} perbarui={() => void muat()} versi={versi} />
+      )}
+      {p && !terkunci && (kelola || p.status === 'terbit') && (!kelola || tab === 'diskusi') && (
+        <div id="forum"><Forum pertemuanId={id} kelola={kelola} setelah={kelola ? () => void muat() : undefined} /></div>
       )}
 
-      {kelola && p && (
-        <>
-          <RekapPertemuan pertemuanId={id} nomor={p.nomor} versi={versi} />
-        </>
-      )}
+      {kelola && p && tab === 'rekap' && <RekapPertemuan pertemuanId={id} nomor={p.nomor} versi={versi} />}
       <Kembali ke={`/portal/lms/${kelasId}`} teks="Kembali ke daftar pertemuan" />
     </Halaman>
   )

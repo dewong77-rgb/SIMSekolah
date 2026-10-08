@@ -203,18 +203,6 @@ export function PertemuanSiswa({ kelasId, id }: { kelasId: string; id: string })
         <PengingatNilai ringkas />
       </details>
 
-      {!butuhAbsen && !selesaiSemua && wajibItem.length > 0 && (() => {
-        const next = wajibItem.find((x) => !x.selesai) ?? wajibItem[0]
-        const no = wajibItem.indexOf(next) + 1
-        return (
-          <div className="kartu langkah-berikut">
-            <small>Langkah berikutnya, {no} dari {wajibItem.length}</small>
-            <h3>{next.nama}</h3>
-            <p>{next.ket}</p>
-            {nomorSaatIni !== next.k && <button type="button" className="tombol tombol-isi tombol-besar" onClick={() => setAktif(next.k)}>Lanjut ke {next.nama.toLowerCase()}</button>}
-          </div>
-        )
-      })()}
       {!butuhAbsen && selesaiSemua && langkah.some((x) => !x.wajib) && <p className="catatan">Mau nilai lebih? Kuis dan forum menambah nilai pertemuan.</p>}
       {!butuhAbsen && <nav className="langkah-bar" aria-label="Langkah belajar">
         {(selesaiSemua ? langkah : wajibItem).map((x, i) => (
@@ -224,6 +212,10 @@ export function PertemuanSiswa({ kelasId, id }: { kelasId: string; id: string })
           </button>
         ))}
       </nav>}
+
+      {!butuhAbsen && !selesaiSemua && wajibItem.length > 0 && nomorSaatIni && (
+        <p className="catatan">Langkah {Math.max(1, wajibItem.findIndex((x) => x.k === nomorSaatIni) + 1)} dari {wajibItem.length}: {langkah.find((x) => x.k === nomorSaatIni)?.ket}</p>
+      )}
 
       {butuhAbsen && (
         <div className="kartu jarak">
@@ -264,7 +256,6 @@ export function PertemuanSiswa({ kelasId, id }: { kelasId: string; id: string })
       )}
       {!butuhAbsen && nomorSaatIni === 'latihan' && <p className="catatan">Kuis ini opsional. Nilainya menjadi tambahan di nilai pertemuan.</p>}
       {!butuhAbsen && nomorSaatIni === 'latihan' && <LatihanPertemuan kelasId={kelasId} pertemuanId={id} judul={p?.judul ?? ''} kelola={false} perbarui={() => void muat()} versi={versi} />}
-      {!butuhAbsen && nomorSaatIni === 'forum' && <p className="catatan">Tanyakan atau komentari bahan bacaan dan lembar kerja di sini.</p>}
       {!butuhAbsen && nomorSaatIni === 'forum' && <Forum pertemuanId={id} kelola={false} setelah={() => void muat()} />}
 
       <p className="catatan jarak"><Link to={`/portal/lms/${kelasId}`}>Semua pertemuan {kelas?.mapel ?? ''}</Link></p>
