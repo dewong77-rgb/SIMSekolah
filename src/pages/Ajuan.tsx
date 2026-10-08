@@ -15,7 +15,7 @@ type Jalur = 'langsung' | 'tu' | 'operator'
 type JenisAjuan = 'ptk' | 'siswa' | 'rombel' | 'pembelajaran' | 'ekskul' | 'sarpras'
 type Kolom = {
   jenis: string; kunci: string; tabel: string; kolom: string; hubungan: string | null; label: string; kelompok: string
-  tipe: 'teks' | 'angka' | 'tanggal' | 'pilihan'; pilihan: string[] | null; wajib: boolean; butuh_dokumen: boolean; terapkan: boolean; urutan: number
+  tipe: 'teks' | 'angka' | 'tanggal' | 'pilihan'; pilihan: string[] | null; label_pilihan?: Record<string, string> | null; wajib: boolean; butuh_dokumen: boolean; terapkan: boolean; urutan: number
   butir: string | null; bantuan: string | null; jalur: Jalur; min_nilai: number | null; maks_nilai: number | null
 }
 type Butir = { kunci: string; label: string; kelompok: string; butir?: string | null; lama: string | null; baru: string | null; butuh_dokumen: boolean; terapkan: boolean; jalur?: Jalur; diterapkan?: boolean }
@@ -171,7 +171,7 @@ export function FormAjuan() {
                       {c.tipe === 'pilihan' ? (
                         <select value={nilai[c.kunci] ?? ''} onChange={(e) => setNilai({ ...nilai, [c.kunci]: e.target.value })}>
                           {!c.wajib && <option value="">(kosong)</option>}
-                          {opsi.map((o) => <option key={o} value={o}>{c.kunci === 'jk' ? (o === 'L' ? 'Laki-laki' : 'Perempuan') : o}</option>)}
+                          {opsi.map((o) => <option key={o} value={o}>{c.kunci === 'jk' ? (o === 'L' ? 'Laki-laki' : 'Perempuan') : (c.label_pilihan?.[o] ?? o)}</option>)}
                         </select>
                       ) : (
                         <input
