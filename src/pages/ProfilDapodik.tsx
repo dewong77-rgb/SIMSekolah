@@ -20,7 +20,7 @@ const tanggal = (t: unknown) =>
   kosong(t) ? null : new Date(String(t).slice(0, 10) + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
 const gabung = (...a: unknown[]) => a.filter((x) => !kosong(x)).join(', ') || null
 const jenisKelamin = (x: unknown) => (x === 'L' ? 'Laki-laki' : x === 'P' ? 'Perempuan' : tampil(x))
-const warga = (x: unknown) => (x === 'ID' ? 'Indonesia' : tampil(x))
+const warga = (x: unknown) => (x === 'ID' ? 'Indonesia' : x === 'WNA' ? 'Asing (WNA)' : tampil(x))
 const angka = (x: unknown, satuan: string) => (kosong(x) || Number(x) === 0 ? null : `${x} ${satuan}`)
 const koordinat = (x: unknown) => (kosong(x) || Number(x) === 0 ? null : Number(x).toFixed(6))
 const alamatBaris = (d: J) => gabung(d.alamat ?? d.alamat_jalan, d.dusun && `Dusun ${d.dusun}`)
@@ -86,7 +86,7 @@ function ProfilPtk({ h }: { h: Extract<Hasil, { jenis: 'ptk' }> }) {
         <Bagian judul="Identitas" baris={[
           ['Nama lengkap', tampil(d.nama)], ['NIK', tampil(s.nik)], ['Jenis kelamin', jenisKelamin(d.jk)],
           ['Tempat, tanggal lahir', gabung(d.tempat_lahir, tanggal(d.tanggal_lahir))], ['Nama ibu kandung', tampil(s.nama_ibu_kandung)],
-          ['Agama', tampil(d.agama)], ['Kewarganegaraan', warga(d.kewarganegaraan)],
+          ['Agama', tampil(d.agama)], ['Kewarganegaraan', warga(d.kewarganegaraan)], ['Nama negara', tampil(d.nama_negara)],
         ]} />
         <Bagian judul="Alamat dan kontak" baris={[
           ['Alamat', alamatBaris(d)], ['RT / RW', rtrw(d)], ['Kelurahan / desa', tampil(d.kelurahan)], ['Kecamatan', tampil(d.kecamatan)],
@@ -149,7 +149,7 @@ function ProfilSiswa({ h }: { h: Extract<Hasil, { jenis: 'siswa' }> }) {
         <Bagian judul="Identitas peserta didik" baris={[
           ['Nama lengkap', tampil(d.nama)], ['Jenis kelamin', jenisKelamin(d.jk)], ['NISN', tampil(d.nisn)], ['NIPD', tampil(d.nipd)],
           ['NIK', tampil(s.nik)], ['No. KK', tampil(s.no_kk)], ['Tempat, tanggal lahir', gabung(d.tempat_lahir, tanggal(d.tanggal_lahir))],
-          ['Agama', tampil(d.agama)], ['Berkebutuhan khusus', tampil(d.kebutuhan_khusus)], ['No. registrasi akta lahir', tampil(s.no_registrasi_akta_lahir)],
+          ['Agama', tampil(d.agama)], ['Kewarganegaraan', warga(d.kewarganegaraan)], ['Nama negara', tampil(d.nama_negara)], ['Berkebutuhan khusus', tampil(d.kebutuhan_khusus)], ['No. registrasi akta lahir', tampil(s.no_registrasi_akta_lahir)],
           ['Sekolah asal', tampil(d.sekolah_asal)], ['Anak ke', tampil(d.anak_ke)],
         ]} />
         <Bagian judul="Alamat dan kontak" baris={[

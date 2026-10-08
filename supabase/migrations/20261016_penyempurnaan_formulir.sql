@@ -40,3 +40,19 @@ select 'siswa', h.hub || '.penghasilan', 'orang_tua_wali', 'penghasilan', h.hub,
 from (values ('ayah','Data ayah kandung',200,28), ('ibu','Data ibu kandung',220,35), ('wali','Data wali',240,42)) as h(hub, judul, urut, awal)
 on conflict (jenis, kunci) do update set label = excluded.label, kelompok = excluded.kelompok, pilihan = excluded.pilihan, urutan = excluded.urutan,
   butir = excluded.butir, bantuan = excluded.bantuan, jalur = excluded.jalur, dari_dapodik = excluded.dari_dapodik;
+
+-- Kewarganegaraan dan nama negara (F-PTK butir 20, F-PD butir 10). Nilai disimpan sebagai kode seperti data Dapodik:
+-- ID untuk WNI dan WNA untuk asing, dengan label ramah lewat kolom label_pilihan. Hanya bisa ditutup operator dengan centang.
+alter table public.ptk add column if not exists nama_negara text;
+alter table public.peserta_didik add column if not exists kewarganegaraan text, add column if not exists nama_negara text;
+alter table public.kolom_ajuan add column if not exists label_pilihan jsonb;
+
+insert into public.kolom_ajuan
+  (jenis, kunci, tabel, kolom, hubungan, label, kelompok, tipe, tipe_sql, pilihan, label_pilihan, pola, wajib, butuh_dokumen, urutan, butir, bantuan, jalur, dari_dapodik, terapkan)
+values
+('ptk','kewarganegaraan','ptk','kewarganegaraan',null,'Kewarganegaraan','Data pribadi','pilihan','text','["ID","WNA"]','{"ID":"Indonesia (WNI)","WNA":"Asing (WNA)"}',null,false,true,128,'20','Kewarganegaraan PTK. Bagi WNA isi juga nama negara.','tu',false,true),
+('ptk','nama_negara','ptk','nama_negara',null,'Nama negara (WNA)','Data pribadi','teks','text',null,null,null,false,true,129,'20','Diisi bila kewarganegaraan Asing (WNA).','tu',false,true),
+('siswa','kewarganegaraan','peserta_didik','kewarganegaraan',null,'Kewarganegaraan','Data pribadi','pilihan','text','["ID","WNA"]','{"ID":"Indonesia (WNI)","WNA":"Asing (WNA)"}',null,false,true,111,'10','Kewarganegaraan peserta didik. Bagi WNA isi juga nama negara.','tu',false,true),
+('siswa','nama_negara','peserta_didik','nama_negara',null,'Nama negara (WNA)','Data pribadi','teks','text',null,null,null,false,true,112,'10','Diisi bila kewarganegaraan Asing (WNA).','tu',false,true)
+on conflict (jenis, kunci) do update set label = excluded.label, kelompok = excluded.kelompok, pilihan = excluded.pilihan, label_pilihan = excluded.label_pilihan,
+  urutan = excluded.urutan, butir = excluded.butir, bantuan = excluded.bantuan, jalur = excluded.jalur, dari_dapodik = excluded.dari_dapodik, butuh_dokumen = excluded.butuh_dokumen;
