@@ -1,6 +1,7 @@
 // Ajuan perubahan profil: formulir pengaju, riwayat "Ajuan saya", dan layar keputusan admin TU.
 // Alur: menunggu -> diteruskan (TU bagian setuju) -> dikerjakan (operator Dapodik) -> selesai (otomatis saat unggahan Dapodik cocok).
-// Persetujuan tidak mengubah data SIMS. Data berubah hanya lewat unggahan Dapodik.
+// Perbaikan jalur "langsung" berlaku seketika di SIMS dan menjadi acuan: unggahan Dapodik tidak menimpa kolom yang sedang dikoreksi.
+// Operator menyalin koreksi ke Dapodik, lalu mencocokkannya tiap akhir semester (tab Pencocokan semester).
 import TombolIkon from '../components/TombolIkon'
 import { Fragment, useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
@@ -9,6 +10,7 @@ import Pager, { efektif } from '../components/Pager'
 import { supabase } from '../lib/supabase'
 import { panggil } from '../lib/rpc'
 import { useAuth } from '../auth/AuthContext'
+import { unduhCsv } from './lmsUtil'
 
 type StatusAjuan = 'menunggu' | 'diteruskan' | 'dikerjakan' | 'selesai' | 'ditolak' | 'dibatalkan'
 type Jalur = 'langsung' | 'tu' | 'operator'
@@ -70,6 +72,47 @@ function TabelButir({ butir }: { butir: Butir[] }) {
           ))}
         </tbody>
       </table>
+    </div>
+  )
+}
+
+type StatusKonfirmasi = { semester: string; sudah: boolean; pada: string | null; koreksi_aktif: number }
+const labelSemester = (s: string) => { const t = Number(s.slice(0, 4)); return `${s.slice(4) === '1' ? 'Ganjil' : 'Genap'} ${t}/${t + 1}` }
+
+/** Pengguna menyatakan datanya sudah benar untuk semester berjalan. Operator melihat jumlah yang sudah mengonfirmasi. */
+function KartuKonfirmasi({ jenis, id, adaPerubahan }: { jenis: 'ptk' | 'siswa'; id: string; adaPerubahan: boolean }) {
+  const [st, setSt] = useState<StatusKonfirmasi | null>(null)
+  const [galat, setGalat] = useState('')
+  const [sibuk, setSibuk] = useState(false)
+  useEffect(() => {
+    panggil<StatusKonfirmasi>('konfirmasi_status', { p_jenis: jenis, p_subjek: id }).then(setSt).catch((e: Error) => setGalat(e.message))
+  }, [jenis, id])
+  async function konfirmasi() {
+    setSibuk(true); setGalat('')
+    try { setSt(await panggil<StatusKonfirmasi>('konfirmasi_data_saya', { p_jenis: jenis, p_subjek: id })) } catch (e) { setGalat((e as Error).message) }
+    setSibuk(false)
+  }
+  if (!st && !galat) return null
+  return (
+    <div className="kartu jarak" role="region" aria-label="Konfirmasi data">
+      {st && (
+        <>
+          <strong>{st.sudah ? `Data sudah dikonfirmasi untuk semester ${labelSemester(st.semester)}` : `Konfirmasi data semester ${labelSemester(st.semester)}`}</strong>
+          <p className="catatan">
+            {st.sudah
+              ? `Dikonfirmasi ${waktu(st.pada)}. Bila ada yang berubah, perbaiki di bawah dan konfirmasi lagi.`
+              : 'Periksa data di bawah. Perbaiki yang keliru atau kosong, lalu tekan "Data saya sudah benar". Perbaikan langsung berlaku di SIMS dan dicatat untuk operator Dapodik.'}
+            {st.koreksi_aktif > 0 ? ` ${st.koreksi_aktif} kolom hasil perbaikan Anda masih menunggu operator menyalinnya ke Dapodik. Selama itu nilai di SIMS tidak ditimpa unggahan Dapodik.` : ''}
+          </p>
+          <div className="aksi">
+            <button type="button" className="tombol tombol-isi" disabled={sibuk || adaPerubahan} onClick={() => void konfirmasi()}>
+              {sibuk ? 'Menyimpan...' : st.sudah ? 'Konfirmasi ulang' : 'Data saya sudah benar'}
+            </button>
+            {adaPerubahan && <small className="petunjuk">Kirim perubahan di bawah dulu, lalu konfirmasi.</small>}
+          </div>
+        </>
+      )}
+      {galat && <p className="catatan galat" role="alert">{galat}</p>}
     </div>
   )
 }
@@ -150,10 +193,11 @@ export function FormAjuan() {
   return (
     <Halaman judul={jenis === 'ptk' ? 'Formulir PTK (F-PTK)' : 'Formulir peserta didik (F-PD)'} lead={nama ? `Untuk ${nama}. Nomor mengikuti formulir resmi Dapodik. Isi yang kosong atau ubah yang keliru, sisanya biarkan.` : undefined}>
       {memuat && <p className="catatan">Memuat formulir...</p>}
+      {!memuat && kolom.length > 0 && id && <KartuKonfirmasi jenis={jenis as 'ptk' | 'siswa'} id={id} adaPerubahan={diubah.length > 0} />}
       {!memuat && kolom.length > 0 && (
         <form onSubmit={kirim}>
           <p className="catatan">
-            Perubahan langsung berlaku di SIMS saat Anda mengirim, tanpa menunggu persetujuan. Setiap perubahan tercatat sebagai ajuan di TU Kepegawaian atau TU Kesiswaan dan masuk antrean operator Dapodik untuk disalin ke Dapodik. Nama, tanggal lahir, NIK dan NUPTK guru, serta NISN tidak bisa diubah langsung karena menjadi kunci pencocokan data Dapodik. Perubahan kolom itu diajukan ke operator. Siapkan KK, akta, atau ijazah bila diminta.
+            Data di sini berasal dari Dapodik dan menjadi data awal Anda. Perbaiki yang keliru atau kosong: perubahan langsung berlaku di SIMS dan menjadi acuan, tanpa menunggu persetujuan. Setiap perubahan tercatat di TU Kepegawaian atau TU Kesiswaan dan masuk antrean operator Dapodik, yang menyalin hal yang sama ke Dapodik. Selama belum tersalin, unggahan Dapodik tidak menimpa perbaikan Anda. Nama, tanggal lahir, NIK dan NUPTK guru, serta NISN tidak bisa diubah langsung karena menjadi kunci pencocokan data Dapodik. Perubahannya diajukan ke operator. Siapkan KK, akta, atau ijazah bila diminta.
           </p>
           <div className="grid grid-2 jarak">
             {grup.map(([judul, daftar]) => (
@@ -272,7 +316,7 @@ export function AjuanSaya() {
 export function AjuanMasuk() {
   const { profil } = useAuth()
   const [daftar, setDaftar] = useState<Ajuan[] | null>(null)
-  const [tab, setTab] = useState<'keputusan' | 'operator' | 'riwayat'>('keputusan')
+  const [tab, setTab] = useState<'keputusan' | 'operator' | 'riwayat' | 'pencocokan'>('keputusan')
   const [cari, setCari] = useState('')
   const [hal, setHal] = useState(1)
   const [ukuran, setUkuran] = useState(10)
@@ -290,7 +334,8 @@ export function AjuanMasuk() {
   const dalamTab = (a: Ajuan) =>
     tab === 'keputusan' ? a.status === 'menunggu'
       : tab === 'operator' ? a.status === 'diteruskan' || a.status === 'dikerjakan'
-        : !['menunggu', 'diteruskan', 'dikerjakan'].includes(a.status)
+        : tab === 'pencocokan' ? false
+          : !['menunggu', 'diteruskan', 'dikerjakan'].includes(a.status)
   const q = cari.trim().toLowerCase()
   const tampil = useMemo(
     () => (daftar ?? []).filter((a) => dalamTab(a) && (!q || a.subjek_nama.toLowerCase().includes(q) || a.alasan.toLowerCase().includes(q))),
@@ -301,6 +346,11 @@ export function AjuanMasuk() {
   const halaman = tampil.slice((hal - 1) * per, hal * per)
   const jumlah = (t: 'keputusan' | 'operator') => (daftar ?? []).filter((a) => (t === 'keputusan' ? a.status === 'menunggu' : a.status === 'diteruskan' || a.status === 'dikerjakan')).length
   const bisaKerjakan = (daftar ?? []).some((a) => a.aksi?.includes('kerjakan')) || profil?.peran === 'admin_tu'
+
+  const daftarTab: [typeof tab, string][] = [
+    ['keputusan', 'Menunggu keputusan'], ['operator', 'Antrean operator Dapodik'],
+    ...(bisaKerjakan ? [['pencocokan', 'Pencocokan semester'] as [typeof tab, string]] : []), ['riwayat', 'Riwayat'],
+  ]
 
   async function jalankan(fn: string, args: Record<string, unknown>, ok: string) {
     setSibuk(true); setGalat(''); setInfo('')
@@ -320,9 +370,9 @@ export function AjuanMasuk() {
   return (
     <Halaman judul="Ajuan perbaikan data" lead="Isian langsung dan ajuan yang disetujui TU masuk antrean operator sebagai tagihan kerja. Operator menyalinnya ke Dapodik, lalu mencentang selesai.">
       <div className="pilih-peran" role="tablist">
-        {([['keputusan', 'Menunggu keputusan'], ['operator', 'Antrean operator Dapodik'], ['riwayat', 'Riwayat']] as const).map(([id, nama]) => (
+        {daftarTab.map(([id, nama]) => (
           <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'aktif' : ''} onClick={() => { setTab(id); setHal(1); setBuka(null) }}>
-            {nama}{id !== 'riwayat' ? ` (${jumlah(id)})` : ''}
+            {nama}{id === 'keputusan' || id === 'operator' ? ` (${jumlah(id)})` : ''}
           </button>
         ))}
       </div>
@@ -330,6 +380,8 @@ export function AjuanMasuk() {
         {info && <p className="catatan sukses jarak" role="status">{info}</p>}
         {galat && <p className="catatan galat jarak" role="alert">{galat}</p>}
       </div>
+      {tab === 'pencocokan' && <Pencocokan />}
+      {tab !== 'pencocokan' && <>
       <div className="aksi jarak" style={{ alignItems: 'center' }}>
         <input type="search" placeholder="Cari nama atau alasan" aria-label="Cari ajuan" value={cari} onChange={(e) => { setCari(e.target.value); setHal(1) }} style={{ flex: '1 1 14rem', maxWidth: '24rem' }} />
         {tab === 'operator' && bisaKerjakan && (
@@ -396,7 +448,94 @@ export function AjuanMasuk() {
         </table>
       </div>
       <Pager halaman={hal} total={tampil.length} ukuran={ukuran} ke={setHal} ubahUkuran={setUkuran} />
+      </>}
       <p className="catatan jarak"><Link to="/portal">Kembali ke portal</Link></p>
     </Halaman>
+  )
+}
+
+// ------------------------------------------------------------------ pencocokan akhir semester
+
+type BarisCocok = {
+  id: string; jenis: 'ptk' | 'siswa'; subjek_id: string; nama: string; kunci: string; label: string; kelompok: string; butir: string | null
+  nilai_sims: string | null; nilai_dapodik: string | null; dikoreksi_pada: string; dapodik_dilihat_pada: string | null; sudah_dilihat: boolean
+}
+type Pencocokan = {
+  semester: string; belum_cocok: BarisCocok[]; sudah_sama: number
+  konfirmasi: { ptk_sudah: number; ptk_total: number; siswa_sudah: number; siswa_total: number }
+  riwayat: { id: string; semester: string; dibuat_pada: string; belum_cocok: number; catatan: string | null }[]
+}
+
+/** Daftar koreksi pengguna yang nilainya belum sama di Dapodik. SIMS acuan, Dapodik yang perlu disamakan. */
+function Pencocokan() {
+  const [d, setD] = useState<Pencocokan | null>(null)
+  const [galat, setGalat] = useState('')
+  const [info, setInfo] = useState('')
+  const [catatan, setCatatan] = useState('')
+  const [sibuk, setSibuk] = useState(false)
+  const muat = useCallback(async () => {
+    try { setD(await panggil<Pencocokan>('pencocokan_daftar')) } catch (e) { setGalat((e as Error).message) }
+  }, [])
+  useEffect(() => { void muat() }, [muat])
+  async function catat() {
+    setSibuk(true); setGalat(''); setInfo('')
+    try { await panggil('pencocokan_catat', { p_catatan: catatan }); setCatatan(''); setInfo('Pencocokan semester ini tercatat.'); await muat() } catch (e) { setGalat((e as Error).message) }
+    setSibuk(false)
+  }
+  const pct = (a: number, b: number) => (b > 0 ? `${a} dari ${b} (${Math.round((a / b) * 100)}%)` : '-')
+  return (
+    <div className="jarak">
+      <p className="catatan">SIMS menjadi acuan. Daftar ini memuat perbaikan pengguna yang nilainya belum sama di Dapodik. Salin nilai SIMS ke Dapodik, lalu unggah ulang ekspor Dapodik: baris yang sudah sama keluar dari daftar sendiri. Kolom "Nilai Dapodik" menunjukkan nilai terakhir yang terbaca dari unggahan.</p>
+      <div aria-live="polite">
+        {info && <p className="catatan sukses" role="status">{info}</p>}
+        {galat && <p className="catatan galat" role="alert">{galat}</p>}
+      </div>
+      {!d && !galat && <p className="catatan">Memuat...</p>}
+      {d && (
+        <>
+          <div className="grid grid-2">
+            <div className="kartu"><small>Semester {labelSemester(d.semester)}</small><h3>{d.belum_cocok.length} perbaikan belum sama di Dapodik</h3><p className="catatan">{d.sudah_sama} perbaikan sudah sama di Dapodik.</p></div>
+            <div className="kartu"><small>Konfirmasi data semester ini</small><p style={{ margin: '4px 0' }}>Guru dan tendik: <strong>{pct(d.konfirmasi.ptk_sudah, d.konfirmasi.ptk_total)}</strong></p><p style={{ margin: '4px 0' }}>Siswa aktif: <strong>{pct(d.konfirmasi.siswa_sudah, d.konfirmasi.siswa_total)}</strong></p></div>
+          </div>
+          <div className="tabel-bungkus jarak">
+            <table>
+              <thead><tr><th>Nama</th><th>Kolom</th><th>Nilai SIMS (acuan)</th><th>Nilai Dapodik</th><th>Dikoreksi</th></tr></thead>
+              <tbody>
+                {d.belum_cocok.length === 0 && <tr><td colSpan={5}>Semua perbaikan sudah sama di Dapodik.</td></tr>}
+                {d.belum_cocok.map((b) => (
+                  <tr key={b.id}>
+                    <td>{b.nama}<br /><small>{b.jenis === 'ptk' ? 'Guru/tendik' : 'Siswa'}</small></td>
+                    <td>{b.butir && <small className="petunjuk">{b.butir}. </small>}{b.label}</td>
+                    <td><strong>{nilaiTampil(b.kunci, b.nilai_sims)}</strong></td>
+                    <td>{nilaiTampil(b.kunci, b.nilai_dapodik)}{!b.sudah_dilihat && <><br /><small className="petunjuk">belum ada unggahan sejak dikoreksi</small></>}</td>
+                    <td>{waktu(b.dikoreksi_pada)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="form jarak">
+            <label><span>Catatan pencocokan (opsional)</span><textarea rows={2} maxLength={500} value={catatan} onChange={(e) => setCatatan(e.target.value)} /></label>
+            <div className="aksi">
+              <button className="tombol tombol-isi" disabled={sibuk} onClick={() => void catat()}>Catat pencocokan semester ini</button>
+              <button className="tombol" style={{ color: 'var(--warna-utama)' }} disabled={d.belum_cocok.length === 0} onClick={() => unduhCsv(`pencocokan-${d.semester}.csv`, [
+                ['Nama', 'Jenis', 'Kolom', 'Nilai SIMS', 'Nilai Dapodik', 'Dikoreksi'],
+                ...d.belum_cocok.map((b) => [b.nama, b.jenis === 'ptk' ? 'Guru/tendik' : 'Siswa', b.label, b.nilai_sims, b.nilai_dapodik, b.dikoreksi_pada]),
+              ])}>Unduh CSV</button>
+            </div>
+          </div>
+          {d.riwayat.length > 0 && (
+            <>
+              <h3 className="jarak">Pencocokan sebelumnya</h3>
+              <ul className="agenda-daftar">
+                {d.riwayat.map((r) => (
+                  <li key={r.id}><span>{labelSemester(r.semester)}, dicatat {waktu(r.dibuat_pada)}{r.catatan ? ` · ${r.catatan}` : ''}</span><strong>{r.belum_cocok} belum sama</strong></li>
+                ))}
+              </ul>
+            </>
+          )}
+        </>
+      )}
+    </div>
   )
 }
