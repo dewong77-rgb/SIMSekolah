@@ -30,5 +30,9 @@ export function tampilNilai(k: KolomF, b: BarisF, rujukan: Record<string, BarisF
     const baris = (rujukan[k.rujukan ?? ''] ?? []).find((x) => x.id === v)
     return baris && kolom ? String(baris[kolom] ?? '') : ''
   }
-  return String(v) + (k.satuan && (k.tipe === 'angka' || k.tipe === 'bulat') ? ` ${k.satuan}` : '')
+  if (k.tipe === 'angka') {
+    const n = Number(v).toLocaleString('id-ID', { maximumFractionDigits: 2 })
+    return k.satuan === 'Rp' ? `Rp ${n}` : k.satuan ? `${n} ${k.satuan}` : n
+  }
+  return String(v) + (k.satuan && k.tipe === 'bulat' ? ` ${k.satuan}` : '')
 }

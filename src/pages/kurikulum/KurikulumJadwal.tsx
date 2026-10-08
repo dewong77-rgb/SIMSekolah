@@ -11,6 +11,45 @@ import GerbangKurikulum from './GerbangKurikulum'
 const HARI = [1, 2, 3, 4, 5]
 const kunci = (r: string, h: number, j: number) => `${r}|${h}|${j}`
 
+export function CetakJadwal({ ta, rombel, maksJam, petaSlot, jamHari, ruang, tutup }: {
+  ta: string; rombel: { id: string; nama: string }[]; maksJam: number; petaSlot: Map<string, SlotJadwal>
+  jamHari: (h: number) => unknown[]; ruang: Record<string, string>; tutup: () => void
+}) {
+  return (
+    <CetakFormulir judul="Jadwal Pembelajaran SMK" kode={`Tahun ajaran ${ta}`} tutup={tutup}>
+      {rombel.map((r, ri) => (
+        <div key={r.id} className="jadwal-halaman" style={ri > 0 ? { breakBefore: 'page', pageBreakBefore: 'always' } : undefined}>
+          {ri > 0 && <p className="kode" style={{ marginTop: 0 }}>{`Tahun ajaran ${ta}`}</p>}
+          <p className="catatan-kaki" style={{ marginTop: 0 }}>Tanpa disertakan upacara dan istirahat. Jam ke- mengikuti jam pelajaran pada jam bel sekolah.</p>
+          <table className="jadwal-tabel">
+            <colgroup><col style={{ width: '3%' }} /><col style={{ width: '6%' }} /><col style={{ width: '8%' }} /><col style={{ width: '4%' }} />{[1, 2, 3, 4, 5].map((h) => <col key={h} style={{ width: '14%' }} />)}<col style={{ width: '4.5%' }} /><col style={{ width: '4.5%' }} /></colgroup>
+            <thead>
+              <tr><th rowSpan={2}>No</th><th rowSpan={2}>Rombel / Kelas</th><th rowSpan={2}>Ruang / Prasarana</th><th rowSpan={2}>Jam Ke-</th><th colSpan={7}>Hari</th></tr>
+              <tr>{['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'].map((h) => <th key={h}>{h}</th>)}</tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: maksJam }, (_, i) => i + 1).map((j) => (
+                <tr key={j}>
+                  {j === 1 && <td rowSpan={maksJam}>{ri + 1}</td>}
+                  {j === 1 && <td rowSpan={maksJam}><strong>{r.nama}</strong></td>}
+                  {j === 1 && <td rowSpan={maksJam}>{ruang[r.id] ?? ''}</td>}
+                  <td>{j}</td>
+                  {[1, 2, 3, 4, 5, 6, 7].map((h) => {
+                    const sl = petaSlot.get(kunci(r.id, h, j))
+                    return <td key={h} style={h <= 5 && j > jamHari(h).length ? { background: '#eee' } : undefined}>{sl ? <>{sl.mapel}<br /><small>{sl.guru ?? ''}</small></> : ''}</td>
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p style={{ margin: '4px 0 0' }}>Mengetahui :</p>
+          <TandaTangan jabatan="Wali Kelas" jabatanKiri="Kepala Sekolah" />
+        </div>
+      ))}
+    </CetakFormulir>
+  )
+}
+
 function Isi({ p }: { p: Pengaturan }) {
   const [ta, setTa] = useState(tahunAjaranSekarang())
   const [bel, setBel] = useState<JamBel[] | null>(null)
@@ -102,32 +141,7 @@ function Isi({ p }: { p: Pengaturan }) {
         <button className={tab === 'guru' ? 'tombol tombol-isi' : 'tombol'} onClick={() => setTab('guru')}>Per guru</button>
         <button className="tombol" disabled={slot.length === 0} onClick={() => setCetak(true)}>Cetak Jadwal Pembelajaran</button>
       </div>
-      {cetak && (
-        <CetakFormulir judul="Jadwal Pembelajaran SMK" kode={`Tahun ajaran ${ta}`} tutup={() => setCetak(false)}>
-          <p className="catatan-kaki">Tanpa disertakan upacara dan istirahat. Jam ke- mengikuti jam pelajaran pada jam bel sekolah.</p>
-          <table className="jadwal-tabel">
-            <thead>
-              <tr><th rowSpan={2}>No</th><th rowSpan={2}>Rombel / Kelas</th><th rowSpan={2}>Ruang / Prasarana</th><th rowSpan={2}>Pembelajaran Jam Ke-</th><th colSpan={7}>Hari</th></tr>
-              <tr>{['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'].map((h) => <th key={h}>{h}</th>)}</tr>
-            </thead>
-            <tbody>
-              {daftarRombel.flatMap((r, ri) => Array.from({ length: maksJam }, (_, i) => i + 1).map((j) => (
-                <tr key={`${r.id}-${j}`} style={{ breakInside: 'avoid' }}>
-                  {j === 1 && <td rowSpan={maksJam}>{ri + 1}</td>}
-                  {j === 1 && <td rowSpan={maksJam}><strong>{r.nama}</strong></td>}
-                  {j === 1 && <td rowSpan={maksJam}>{ruang[r.id] ?? ''}</td>}
-                  <td>{j}</td>
-                  {[1, 2, 3, 4, 5, 6, 7].map((h) => {
-                    const sl = petaSlot.get(kunci(r.id, h, j))
-                    return <td key={h} style={h <= 5 && j > jamHari(h).length ? { background: '#eee' } : undefined}>{sl ? <>{sl.mapel}<br /><small>{sl.guru ?? ''}</small></> : ''}</td>
-                  })}
-                </tr>
-              )))}
-            </tbody>
-          </table>
-          <TandaTangan jabatan="Kepala Sekolah" />
-        </CetakFormulir>
-      )}
+      {cetak && <CetakJadwal ta={ta} rombel={daftarRombel} maksJam={maksJam} petaSlot={petaSlot} jamHari={jamHari} ruang={ruang} tutup={() => setCetak(false)} />}
 
       {memuat || !bel ? <p className="catatan jarak">Memuat data...</p> : daftarRombel.length === 0 ? (
         <p className="kartu jarak">Belum ada kebutuhan mengajar untuk {ta}. Isi <Link to="/portal/kurikulum/struktur">Struktur kurikulum</Link> dan bagi guru di <Link to="/portal/kurikulum/beban">Beban mengajar</Link> lebih dulu.</p>

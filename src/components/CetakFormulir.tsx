@@ -15,14 +15,14 @@ export function TandaTangan({ jabatan, kolom, jabatanKiri }: { jabatan: string; 
     </div>
   )
   return (
-    <>
+    <div style={{ breakInside: 'avoid' }}>
       {jabatanKiri && <p style={{ margin: '18px 0 0', textAlign: 'right' }}>{GARIS_TTD}</p>}
       <div className="ttd" style={jabatanKiri ? { justifyContent: 'space-between' } : undefined}>
         {jabatanKiri && blok(jabatanKiri)}
         {blok(jabatan)}
       </div>
       <p className="catatan-kaki">Yang bertanda tangan {jabatanKiri ? `${jabatanKiri.toLowerCase()} dan ${jabatan.toLowerCase()}` : jabatan.toLowerCase()} bertanggung jawab secara hukum terhadap kebenaran data yang tercantum.</p>
-    </>
+    </div>
   )
 }
 
