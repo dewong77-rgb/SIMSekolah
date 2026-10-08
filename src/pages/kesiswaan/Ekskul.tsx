@@ -47,6 +47,39 @@ function FormEkskul({ e, ptk, simpan, batal }: { e: Ekskul | null; ptk: { id: st
   )
 }
 
+export function CetakEkskul({ d, fm, statusDaftar, aktif, tutup }: {
+  d: { nama: string; pembina: string | null }; fm: Fm | null; statusDaftar: Record<string, string>
+  aktif: { id: string; nama: string; rombel: string | null }[]; tutup: () => void
+}) {
+  const mid = Math.max(15, Math.ceil(aktif.length / 2))
+  const kelas = (a?: { rombel: string | null }) => (a ? `${tingkatDari(a.rombel)} ${a.rombel ?? ''}`.trim() : '')
+  return (
+    <CetakFormulir judul="Formulir Rombongan Belajar (Ekskul)" kode="F-EKSKUL" tutup={tutup}>
+      <h2>ROMBEL</h2>
+      <table>
+        <thead><tr><th>Jenis Rombel</th><th>Nama Ekskul</th><th>Pembina</th><th>Prasarana</th><th>Moving Class</th><th>Melayani Keb. Khusus</th></tr></thead>
+        <tbody><tr><td>Ekstrakurikuler</td><td>{d.nama}</td><td>{d.pembina ?? ''}</td><td>{fm?.prasarana ?? ''}</td><td>{fm?.moving_class ?? ''}</td><td>{fm?.melayani_kebutuhan_khusus ?? ''}</td></tr></tbody>
+      </table>
+      <h2>ANGGOTA EKSKUL</h2>
+      <table>
+        <thead><tr><th style={{ width: 36 }}>No</th><th>Nama Anggota Ekskul</th><th>Status Pendaftaran</th><th style={{ width: 80 }}>Tingkat/ Kelas</th><th style={{ width: 36 }}>No</th><th>Nama Anggota Ekskul</th><th>Status Pendaftaran</th><th style={{ width: 80 }}>Tingkat/ Kelas</th></tr></thead>
+        <tbody>
+          {Array.from({ length: mid }, (_, i) => {
+            const kiri = aktif[i], kanan = aktif[i + mid]
+            return (
+              <tr key={i}>
+                <td>{i + 1}</td><td>{kiri?.nama ?? ''}</td><td>{kiri ? statusDaftar[kiri.id] ?? '' : ''}</td><td>{kelas(kiri)}</td>
+                <td>{i + 1 + mid}</td><td>{kanan?.nama ?? ''}</td><td>{kanan ? statusDaftar[kanan.id] ?? '' : ''}</td><td>{kelas(kanan)}</td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+      <TandaTangan jabatan="Kepala Sekolah" />
+    </CetakFormulir>
+  )
+}
+
 function Rincian({ id, kembali, ubahDaftar }: { id: string; kembali: () => void; ubahDaftar: () => void }) {
   const [d, setD] = useState<Detail | null>(null)
   const [galat, setGalat] = useState('')
@@ -96,32 +129,7 @@ function Rincian({ id, kembali, ubahDaftar }: { id: string; kembali: () => void;
   return (
     <div>
       <div className="aksi" style={{ marginTop: 0, alignItems: 'center' }}><button className="tombol" onClick={kembali}>Kembali ke daftar</button><h2 style={{ margin: 0 }}>{d.nama}</h2><small className="catatan">Tahun ajaran {d.tahun_ajaran} · Pembina: {d.pembina ?? 'belum ditunjuk'}</small><button className="tombol" onClick={() => setCetak(true)}>Cetak F-EKSKUL</button></div>
-      {cetak && (
-        <CetakFormulir judul="Formulir Rombongan Belajar (Ekskul)" kode="F-EKSKUL" tutup={() => setCetak(false)}>
-          <h2>ROMBEL</h2>
-          <table>
-            <thead><tr><th>Jenis Rombel</th><th>Nama Ekskul</th><th>Pembina</th><th>Prasarana</th><th>Moving Class</th><th>Melayani Keb. Khusus</th></tr></thead>
-            <tbody><tr><td>Ekstrakurikuler</td><td>{d.nama}</td><td>{d.pembina ?? ''}</td><td>{fm?.prasarana ?? ''}</td><td>{fm?.moving_class ?? ''}</td><td>{fm?.melayani_kebutuhan_khusus ?? ''}</td></tr></tbody>
-          </table>
-          <h2>ANGGOTA EKSKUL</h2>
-          <table>
-            <thead><tr><th style={{ width: 36 }}>No</th><th>Nama Anggota Ekskul</th><th>Status Pendaftaran</th><th style={{ width: 80 }}>Tingkat/ Kelas</th><th style={{ width: 36 }}>No</th><th>Nama Anggota Ekskul</th><th>Status Pendaftaran</th><th style={{ width: 80 }}>Tingkat/ Kelas</th></tr></thead>
-            <tbody>
-              {Array.from({ length: Math.max(15, Math.ceil(aktif.length / 2)) }, (_, i) => {
-                const mid = Math.max(15, Math.ceil(aktif.length / 2))
-                const kiri = aktif[i], kanan = aktif[i + mid]
-                return (
-                  <tr key={i}>
-                    <td>{i + 1}</td><td>{kiri?.nama ?? ''}</td><td>{kiri ? statusDaftar[kiri.id] ?? '' : ''}</td><td>{kiri ? `${tingkatDari(kiri.rombel)} ${kiri.rombel ?? ''}`.trim() : ''}</td>
-                    <td>{i + 1 + mid}</td><td>{kanan?.nama ?? ''}</td><td>{kanan ? statusDaftar[kanan.id] ?? '' : ''}</td><td>{kanan ? `${tingkatDari(kanan.rombel)} ${kanan.rombel ?? ''}`.trim() : ''}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-          <TandaTangan jabatan="Kepala Sekolah" />
-        </CetakFormulir>
-      )}
+      {cetak && <CetakEkskul d={d} fm={fm} statusDaftar={statusDaftar} aktif={aktif} tutup={() => setCetak(false)} />}
       {galat && <p className="kartu galat" role="alert">{galat}</p>}
       {info && <p className="kartu" role="status">{info}</p>}
       <div className="jarak"><StrukturOrganisasi ekskulId={id} struktur={d.struktur} anggota={d.anggota} ubahBoleh={ubahBoleh} muatUlang={muat} /></div>

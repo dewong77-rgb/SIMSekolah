@@ -1245,11 +1245,17 @@ a.bt-tag:hover, button.bt-tag:hover, .bt-tag.aktif { background: var(--warna-uta
 .cetak-kertas .ttd > div { min-width: 260px; }
 .cetak-kertas .ttd .ruang { height: 64px; }
 .cetak-kertas .catatan-kaki { font-size: 9pt; margin-top: 10px; }
-.cetak-kertas .jadwal-tabel td, .cetak-kertas .jadwal-tabel th { font-size: 8.5pt; padding: 2px 4px; text-align: center; }
+.cetak-kertas .jadwal-tabel { table-layout: fixed; }
+.cetak-kertas .jadwal-tabel td, .cetak-kertas .jadwal-tabel th { font-size: 7.5pt; line-height: 1.15; padding: 1.5px 3px; text-align: center; vertical-align: middle; overflow-wrap: anywhere; }
+.cetak-kertas .jadwal-halaman .ttd .ruang { height: 30px; }
+.cetak-kertas .jadwal-halaman .catatan-kaki { margin: 4px 0; }
+.cetak-kertas .jadwal-tabel small { font-size: 6.5pt; color: #333; }
 @media print {
   body.sedang-cetak > #root { display: none !important; }
   .cetak-lapisan { position: static; background: #fff; overflow: visible; }
   .cetak-kertas { margin: 0; padding: 0; max-width: none; }
-  .cetak-kertas h2, .cetak-kertas table { break-inside: avoid; }
-  @page { size: A4 landscape; margin: 12mm; }
+  .cetak-kertas h2 { break-after: avoid; }
+  .cetak-kertas tr { break-inside: avoid; }
+  .cetak-kertas thead { display: table-header-group; }
+  @page { size: A4 landscape; margin: 10mm; }
 }
