@@ -1,6 +1,7 @@
 // Ekstrakurikuler dan organisasi siswa (OSIS, MPK): daftar, anggota, pertemuan dan kehadiran.
 import TombolIkon from '../../components/TombolIkon'
 import { useCallback, useEffect, useState } from 'react'
+import CetakFormulir, { TandaTangan } from '../../components/CetakFormulir'
 import { Link } from 'react-router-dom'
 import Halaman from '../../components/Halaman'
 import CariSiswa from '../../components/CariSiswa'
@@ -13,9 +14,21 @@ import { StrukturOrganisasi, TambahPerRombel, type Simpul } from './EkskulStrukt
 type Ekskul = { id: string; nama: string; jenis: string; deskripsi: string | null; jadwal: string | null; aktif: boolean; pembina_ptk_id: string | null; pembina: string | null; bisa_ubah: boolean; anggota: number; pertemuan: number }
 type Anggota = { id: string; pd: string; nama: string; nisn: string | null; rombel: string | null; peran: string; predikat: string | null; catatan_nilai: string | null; aktif: boolean; hadir: number; pertemuan: number }
 type Pertemuan = { id: string; tanggal: string; topik: string | null; hadir: number; total: number }
+type Fm = { prasarana: string | null; moving_class: string | null; melayani_kebutuhan_khusus: string | null }
+const STATUS_DAFTAR = ['Siswa baru', 'Pindahan', 'Kembali bersekolah', 'Lainnya']
+/** Tingkat dari nama rombel, misalnya "X BP 1" menjadi 10. */
+const tingkatDari = (rombel: string | null) => ({ X: '10', XI: '11', XII: '12', XIII: '13' } as Record<string, string>)[(rombel ?? '').split(' ')[0]] ?? ''
 type Detail = { bisa_ubah: boolean; id: string; nama: string; jenis: string; deskripsi: string | null; jadwal: string | null; tahun_ajaran: string; pembina: string | null; anggota: Anggota[]; struktur: Simpul[]; pertemuan: Pertemuan[] }
 
 function FormEkskul({ e, ptk, simpan, batal }: { e: Ekskul | null; ptk: { id: string; nama: string }[]; simpan: (e: Ekskul | null, f: FormData) => Promise<void>; batal: () => void }) {
+  const [fm, setFm] = useState<Fm | null>(e ? null : { prasarana: null, moving_class: null, melayani_kebutuhan_khusus: null })
+  useEffect(() => {
+    if (!e) return
+    let batal = false
+    panggil<Fm | null>('ekskul_formulir_baca', { p_id: e.id }).then((x) => { if (!batal) setFm(x ?? { prasarana: null, moving_class: null, melayani_kebutuhan_khusus: null }) }).catch(() => { if (!batal) setFm({ prasarana: null, moving_class: null, melayani_kebutuhan_khusus: null }) })
+    return () => { batal = true }
+  }, [e])
+  if (!fm) return <p className="catatan">Memuat formulir...</p>
   return (
     <form className="kartu form" style={{ maxWidth: 560 }} onSubmit={(ev) => { ev.preventDefault(); void simpan(e, new FormData(ev.currentTarget)) }}>
       <h3>{e ? `Ubah ${e.nama}` : 'Ekstrakurikuler baru'}</h3>
@@ -24,6 +37,10 @@ function FormEkskul({ e, ptk, simpan, batal }: { e: Ekskul | null; ptk: { id: st
       <label>Pembina<select name="pembina" defaultValue={e?.pembina_ptk_id ?? ''}><option value="">Belum ditunjuk</option>{ptk.map((p) => <option key={p.id} value={p.id}>{p.nama}</option>)}</select></label>
       <label>Jadwal<input name="jadwal" defaultValue={e?.jadwal ?? ''} maxLength={150} placeholder="Misalnya Jumat 14.00 sampai 16.00, lapangan" /></label>
       <label>Deskripsi<textarea name="deskripsi" rows={2} maxLength={500} defaultValue={e?.deskripsi ?? ''} /></label>
+      <p className="catatan" style={{ margin: 0 }}>Kolom F-EKSKUL berikut berlaku langsung dan masuk antrean operator Dapodik.</p>
+      <label>Prasarana (ruang atau tempat kegiatan)<input name="prasarana" defaultValue={fm.prasarana ?? ''} maxLength={100} placeholder="Contoh: Lapangan upacara" /></label>
+      <label>Moving class<select name="moving" defaultValue={fm.moving_class ?? ''}><option value="">(kosong)</option><option>Ya</option><option>Tidak</option></select></label>
+      <label>Melayani kebutuhan khusus<input name="kk" defaultValue={fm.melayani_kebutuhan_khusus ?? ''} maxLength={200} placeholder="Contoh: Tidak ada" /></label>
       <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input name="aktif" type="checkbox" defaultChecked={e?.aktif ?? true} style={{ width: 'auto' }} />Aktif</label>
       <div className="aksi" style={{ marginTop: 0 }}><button className="tombol tombol-isi">Simpan</button><button type="button" className="tombol" onClick={batal}>Batal</button></div>
     </form>
@@ -41,9 +58,12 @@ function Rincian({ id, kembali, ubahDaftar }: { id: string; kembali: () => void;
   const [hadir, setHadir] = useState<Record<string, boolean>>({})
   const [sunting, setSunting] = useState<string | null>(null)
   const [sibuk, setSibuk] = useState(false)
+  const [statusDaftar, setStatusDaftar] = useState<Record<string, string>>({})
+  const [fm, setFm] = useState<Fm | null>(null)
+  const [cetak, setCetak] = useState(false)
 
   const muat = useCallback(async () => {
-    try { const x = await panggil<Detail>('ekskul_detail', { p_id: id }); setD(x); setGalat(''); setHadir((h) => (Object.keys(h).length ? h : Object.fromEntries(x.anggota.filter((a) => a.aktif).map((a) => [a.id, true])))) }
+    try { void panggil<Record<string, string> | null>('ekskul_anggota_status_daftar', { p_ekskul: id }).then((x) => setStatusDaftar(x ?? {})).catch(() => undefined); void panggil<Fm | null>('ekskul_formulir_baca', { p_id: id }).then(setFm).catch(() => undefined); const x = await panggil<Detail>('ekskul_detail', { p_id: id }); setD(x); setGalat(''); setHadir((h) => (Object.keys(h).length ? h : Object.fromEntries(x.anggota.filter((a) => a.aktif).map((a) => [a.id, true])))) }
     catch (e) { setGalat((e as Error).message) }
   }, [id])
   useEffect(() => { void muat() }, [muat])
@@ -64,6 +84,7 @@ function Rincian({ id, kembali, ubahDaftar }: { id: string; kembali: () => void;
   function ubahAnggota(a: Anggota, f: FormData) {
     void jalan(async () => {
       await panggil('ekskul_anggota_ubah', { p_id: a.id, p_peran: String(f.get('peran')), p_predikat: String(f.get('predikat')) || null, p_catatan_nilai: String(f.get('catatan')) || null, p_aktif: f.get('aktif') === 'on' })
+      await panggil('ekskul_anggota_status', { p_id: a.id, p_status: String(f.get('status_daftar') ?? '') || null })
       setSunting(null)
     }, 'Data anggota tersimpan.')
   }
@@ -74,7 +95,33 @@ function Rincian({ id, kembali, ubahDaftar }: { id: string; kembali: () => void;
   const perRombel = Object.entries(aktif.reduce<Record<string, number>>((m, a) => { const k = a.rombel ?? 'Tanpa rombel'; m[k] = (m[k] ?? 0) + 1; return m }, {})).sort(([x], [y]) => x.localeCompare(y))
   return (
     <div>
-      <div className="aksi" style={{ marginTop: 0, alignItems: 'center' }}><button className="tombol" onClick={kembali}>Kembali ke daftar</button><h2 style={{ margin: 0 }}>{d.nama}</h2><small className="catatan">Tahun ajaran {d.tahun_ajaran} · Pembina: {d.pembina ?? 'belum ditunjuk'}</small></div>
+      <div className="aksi" style={{ marginTop: 0, alignItems: 'center' }}><button className="tombol" onClick={kembali}>Kembali ke daftar</button><h2 style={{ margin: 0 }}>{d.nama}</h2><small className="catatan">Tahun ajaran {d.tahun_ajaran} · Pembina: {d.pembina ?? 'belum ditunjuk'}</small><button className="tombol" onClick={() => setCetak(true)}>Cetak F-EKSKUL</button></div>
+      {cetak && (
+        <CetakFormulir judul="Formulir Rombongan Belajar (Ekskul)" kode="F-EKSKUL" tutup={() => setCetak(false)}>
+          <h2>ROMBEL</h2>
+          <table>
+            <thead><tr><th>Jenis Rombel</th><th>Nama Ekskul</th><th>Pembina</th><th>Prasarana</th><th>Moving Class</th><th>Melayani Keb. Khusus</th></tr></thead>
+            <tbody><tr><td>Ekstrakurikuler</td><td>{d.nama}</td><td>{d.pembina ?? ''}</td><td>{fm?.prasarana ?? ''}</td><td>{fm?.moving_class ?? ''}</td><td>{fm?.melayani_kebutuhan_khusus ?? ''}</td></tr></tbody>
+          </table>
+          <h2>ANGGOTA EKSKUL</h2>
+          <table>
+            <thead><tr><th style={{ width: 36 }}>No</th><th>Nama Anggota Ekskul</th><th>Status Pendaftaran</th><th style={{ width: 80 }}>Tingkat/ Kelas</th><th style={{ width: 36 }}>No</th><th>Nama Anggota Ekskul</th><th>Status Pendaftaran</th><th style={{ width: 80 }}>Tingkat/ Kelas</th></tr></thead>
+            <tbody>
+              {Array.from({ length: Math.max(15, Math.ceil(aktif.length / 2)) }, (_, i) => {
+                const mid = Math.max(15, Math.ceil(aktif.length / 2))
+                const kiri = aktif[i], kanan = aktif[i + mid]
+                return (
+                  <tr key={i}>
+                    <td>{i + 1}</td><td>{kiri?.nama ?? ''}</td><td>{kiri ? statusDaftar[kiri.id] ?? '' : ''}</td><td>{kiri ? `${tingkatDari(kiri.rombel)} ${kiri.rombel ?? ''}`.trim() : ''}</td>
+                    <td>{i + 1 + mid}</td><td>{kanan?.nama ?? ''}</td><td>{kanan ? statusDaftar[kanan.id] ?? '' : ''}</td><td>{kanan ? `${tingkatDari(kanan.rombel)} ${kanan.rombel ?? ''}`.trim() : ''}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+          <TandaTangan jabatan="Kepala Sekolah" />
+        </CetakFormulir>
+      )}
       {galat && <p className="kartu galat" role="alert">{galat}</p>}
       {info && <p className="kartu" role="status">{info}</p>}
       <div className="jarak"><StrukturOrganisasi ekskulId={id} struktur={d.struktur} anggota={d.anggota} ubahBoleh={ubahBoleh} muatUlang={muat} /></div>
@@ -113,6 +160,7 @@ function Rincian({ id, kembali, ubahDaftar }: { id: string; kembali: () => void;
                     <form className="form" onSubmit={(e) => { e.preventDefault(); ubahAnggota(a, new FormData(e.currentTarget)) }}>
                       <strong>{a.nama}</strong>
                       <label>Peran<select name="peran" defaultValue={a.peran}>{PERAN_EKSKUL.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></label>
+                      <label>Status pendaftaran<select name="status_daftar" defaultValue={statusDaftar[a.id] ?? ''}><option value="">(kosong)</option>{STATUS_DAFTAR.map((x) => <option key={x}>{x}</option>)}</select></label>
                       <label>Predikat akhir<select name="predikat" defaultValue={a.predikat ?? ''}><option value="">Belum dinilai</option>{PREDIKAT.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></label>
                       <label>Catatan penilaian<input name="catatan" defaultValue={a.catatan_nilai ?? ''} maxLength={500} /></label>
                       <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input name="aktif" type="checkbox" defaultChecked={a.aktif} style={{ width: 'auto' }} />Masih aktif</label>
@@ -152,7 +200,8 @@ function Isi() {
   async function simpan(e: Ekskul | null, f: FormData) {
     setGalat('')
     try {
-      await panggil('ekskul_simpan', { p_id: e?.id ?? null, p_nama: String(f.get('nama')), p_jenis: String(f.get('jenis')), p_deskripsi: String(f.get('deskripsi')) || null, p_pembina_ptk: String(f.get('pembina')) || null, p_jadwal: String(f.get('jadwal')) || null, p_aktif: f.get('aktif') === 'on' })
+      const id = await panggil<string>('ekskul_simpan', { p_id: e?.id ?? null, p_nama: String(f.get('nama')), p_jenis: String(f.get('jenis')), p_deskripsi: String(f.get('deskripsi')) || null, p_pembina_ptk: String(f.get('pembina')) || null, p_jadwal: String(f.get('jadwal')) || null, p_aktif: f.get('aktif') === 'on' })
+      await panggil('ekskul_formulir_simpan', { p_id: id, p_prasarana: String(f.get('prasarana') ?? ''), p_moving: String(f.get('moving') ?? ''), p_kk: String(f.get('kk') ?? '') })
       setUbah(null); muat()
     } catch (x) { setGalat((x as Error).message) }
   }

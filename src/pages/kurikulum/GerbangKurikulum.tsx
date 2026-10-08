@@ -8,6 +8,7 @@ const TAUTAN = [
   { to: '/portal/kurikulum/beban', nama: 'Beban mengajar' },
   { to: '/portal/kurikulum/jadwal', nama: 'Jadwal pelajaran' },
   { to: '/portal/kurikulum/wali-kelas', nama: 'Wali kelas' },
+  { to: '/portal/kurikulum/formulir', nama: 'Formulir rombel' },
   { to: '/portal/jam-pelajaran', nama: 'Jam pelajaran' },
   { to: '/portal/kalender', nama: 'Kalender sekolah' },
 ]

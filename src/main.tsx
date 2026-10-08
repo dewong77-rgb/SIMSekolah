@@ -54,6 +54,7 @@ const KurikulumStruktur = lazy(() => import('./pages/kurikulum/KurikulumStruktur
 const KurikulumBeban = lazy(() => import('./pages/kurikulum/KurikulumBeban'))
 const KurikulumWali = lazy(() => import('./pages/kurikulum/KurikulumWali'))
 const KurikulumJadwal = lazy(() => import('./pages/kurikulum/KurikulumJadwal'))
+const KurikulumFormulir = lazy(() => import('./pages/kurikulum/KurikulumFormulir'))
 const DrafSurat = lazy(() => import('./pages/DrafSurat'))
 const RegisterSurat = lazy(() => import('./pages/Persuratan').then((m) => ({ default: m.RegisterSurat })))
 const DetailSurat = lazy(() => import('./pages/Persuratan').then((m) => ({ default: m.DetailSurat })))
@@ -505,6 +506,14 @@ createRoot(document.getElementById('root')!).render(
             element={
               <RequireRole peran={['admin_tu', 'guru', 'staf']}>
                 <Suspense fallback={<Memuat />}><KurikulumWali /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/kurikulum/formulir"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf']}>
+                <Suspense fallback={<Memuat />}><KurikulumFormulir /></Suspense>
               </RequireRole>
             }
           />
