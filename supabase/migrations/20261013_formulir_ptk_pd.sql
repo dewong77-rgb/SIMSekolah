@@ -174,10 +174,10 @@ select 'siswa', h.hub || '.' || f.kolom, 'orang_tua_wali', f.kolom, h.hub, f.lab
        false, false, h.urut + f.urut, (h.awal + f.urut - 1)::text, f.bantuan, 'langsung', true
 from (values ('ayah','Data ayah kandung',200,28), ('ibu','Data ibu kandung',220,35), ('wali','Data wali',240,42)) as h(hub, judul, urut, awal)
 cross join (values
-  ('nama','Nama','teks','text',null,null,1,'Sesuai dokumen resmi, tanpa gelar. Isi nama ayah/ibu/wali dengan huruf apa adanya.'),
+  ('nama','Nama','teks','text',null::text,null::text,1,'Sesuai dokumen resmi, tanpa gelar.'::text),
   ('tahun_lahir','Tahun lahir','angka','integer',null,'^(19|20)[0-9]{2}$',3,null),
   ('jenjang_pendidikan','Pendidikan','pilihan','text','["Tidak sekolah","Putus SD","SD / sederajat","SMP / sederajat","SMA / sederajat","D1","D2","D3","D4","S1","S2","S3"]',null,4,'Pendidikan terakhir.'),
-  ('pekerjaan','Pekerjaan','pilihan','text','["Tidak bekerja","Nelayan","Petani","Peternak","PNS/TNI/Polri","Karyawan Swasta","Pedagang Kecil","Pedagang Besar","Wiraswasta","Wirausaha","Buruh","Pensiunan","Sudah Meninggal","Tenaga Kerja Indonesia","Tidak dapat diterapkan","Lainnya"]',null,5,'Pilih "Sudah Meninggal" bila telah wafat.')
+  ('pekerjaan','Pekerjaan','pilihan','text','["Tidak bekerja","Nelayan","Petani","Peternak","PNS/TNI/Polri","Karyawan Swasta","Pedagang Kecil","Pedagang Besar","Wiraswasta","Wirausaha","Buruh","Pensiunan","Sudah Meninggal","Tenaga Kerja Indonesia","Tidak dapat diterapkan","Lainnya"]',null,5,'Pilih Sudah Meninggal bila telah wafat.')
 ) as f(kolom, label, tipe, tipe_sql, pilihan, pola, urut, bantuan)
 on conflict (jenis, kunci) do update set
   label = excluded.label, kelompok = excluded.kelompok, tipe = excluded.tipe, tipe_sql = excluded.tipe_sql,
