@@ -46,7 +46,7 @@ export function CetakRombel({ r, tutup }: { r: Rombel; tutup: () => void }) {
         const baris = r.pembelajaran.filter((p) => p.kelompok === kunci)
         return (
           <Fragment key={kunci}>
-            <p style={{ margin: '6px 0 0', fontWeight: 700 }}>{judul}</p>
+            <p style={{ margin: '6px 0 0', fontWeight: 700, breakAfter: 'avoid' }}>{judul}</p>
             <table>
               <thead><tr><th style={{ width: '32%' }}>Mata Pelajaran</th><th style={{ width: '24%' }}>PTK</th><th>SK Mengajar</th><th style={{ width: '14%' }}>Tanggal SK</th><th style={{ width: '6%' }}>Jam</th></tr></thead>
               <tbody>

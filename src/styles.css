@@ -1237,7 +1237,9 @@ a.bt-tag:hover, button.bt-tag:hover, .bt-tag.aktif { background: var(--warna-uta
 .cetak-kertas h2 { margin: 14px 0 4px; font-size: 11pt; background: #e8edf5; padding: 3px 6px; }
 .cetak-kertas table { width: 100%; border-collapse: collapse; margin: 4px 0 8px; }
 .cetak-kertas th, .cetak-kertas td { border: 1px solid #333; padding: 3px 6px; vertical-align: top; text-align: left; font-size: 10pt; }
-.cetak-kertas th { background: #f2f4f8; }
+.cetak-kertas th { background: #f2f4f8; color: #111; }
+.cetak-kertas tr:last-child td { border-bottom: 1px solid #333; }
+.cetak-kertas tbody tr:hover td { background: transparent; }
 .cetak-kertas .kosong-isi { height: 1.4em; }
 .cetak-kertas .ttd { display: flex; justify-content: flex-end; margin-top: 24px; text-align: center; }
 .cetak-kertas .ttd > div { min-width: 260px; }
