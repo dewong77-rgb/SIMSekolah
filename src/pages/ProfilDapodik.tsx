@@ -1,6 +1,6 @@
 // Profil lengkap bergaya formulir Dapodik (F-PTK dan F-PD), hanya baca.
 // Semua data datang dari satu fungsi basis data, public.profil_dapodik, yang memeriksa siapa penanyanya.
-import { Fragment, useEffect, useState, type ReactNode } from 'react'
+import { Fragment, createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import Halaman from '../components/Halaman'
 import FotoSaya from '../components/FotoSaya'
@@ -28,23 +28,51 @@ const rtrw = (d: J) => (kosong(d.rt) && kosong(d.rw) ? null : `RT ${tampil(d.rt)
 
 type Baris = [string, ReactNode]
 
+type Hitung = { daftar: Record<string, [number, number]>; catat: (judul: string, terisi: number, total: number) => void }
+const KelengkapanKonteks = createContext<Hitung | null>(null)
+
+/** Mengumpulkan jumlah butir terisi dari semua kartu agar kepala profil dapat menampilkan kelengkapan data. */
+function Kelengkapan({ children }: { children: ReactNode }) {
+  const [daftar, setDaftar] = useState<Record<string, [number, number]>>({})
+  const nilai = useMemo<Hitung>(() => ({
+    daftar,
+    catat: (judul, terisi, total) => setDaftar((d) => (d[judul]?.[0] === terisi && d[judul]?.[1] === total ? d : { ...d, [judul]: [terisi, total] })),
+  }), [daftar])
+  return <KelengkapanKonteks.Provider value={nilai}>{children}</KelengkapanKonteks.Provider>
+}
+
 function Bagian({ judul, baris }: { judul: string; baris: Baris[] }) {
+  const terisi = baris.filter(([, x]) => !kosong(x))
+  const belum = baris.filter(([, x]) => kosong(x)).map(([k]) => k)
+  const hitung = useContext(KelengkapanKonteks)
+  const catat = hitung?.catat
+  useEffect(() => { catat?.(judul, terisi.length, baris.length) }, [catat, judul, terisi.length, baris.length])
   return (
-    <section className="kartu bagian-profil" aria-label={judul}>
+    <section className={`kartu bagian-profil${terisi.length === 0 ? ' bagian-kosong' : ''}`} aria-label={judul}>
       <h3>{judul}</h3>
-      <dl className="daftar">
-        {baris.map(([k, x]) => (
-          <Fragment key={k}>
-            <dt>{k}</dt>
-            <dd>{kosong(x) ? <span className="kosong">Belum diisi</span> : x}</dd>
-          </Fragment>
-        ))}
-      </dl>
+      {terisi.length > 0 && (
+        <dl className="daftar">
+          {terisi.map(([k, x]) => (
+            <Fragment key={k}>
+              <dt>{k}</dt>
+              <dd>{x}</dd>
+            </Fragment>
+          ))}
+        </dl>
+      )}
+      {belum.length > 0 && (
+        <p className="belum-isi">
+          {terisi.length === 0 ? 'Data belum diisi.' : <><strong>Belum diisi:</strong> {belum.join(', ')}.</>}
+        </p>
+      )}
     </section>
   )
 }
 
 function Kepala({ nama, anak, catatan }: { nama: string; anak?: string[]; catatan?: string | null }) {
+  const hitung = useContext(KelengkapanKonteks)
+  const jumlah = Object.values(hitung?.daftar ?? {}).reduce<[number, number]>((a, [t, n]) => [a[0] + t, a[1] + n], [0, 0])
+  const persen = jumlah[1] ? Math.round((jumlah[0] / jumlah[1]) * 100) : 0
   return (
     <div className="kartu kepala-profil">
       <div className="inisial" aria-hidden="true">{nama.trim().charAt(0).toUpperCase()}</div>
@@ -53,6 +81,13 @@ function Kepala({ nama, anak, catatan }: { nama: string; anak?: string[]; catata
         <div className="lencana-baris">{(anak ?? []).filter(Boolean).map((x) => <span key={x} className="lencana">{x}</span>)}</div>
         {catatan && <p className="catatan">{catatan}</p>}
       </div>
+      {jumlah[1] > 0 && (
+        <div className="kelengkapan" role="group" aria-label="Kelengkapan data">
+          <div className="kelengkapan-judul"><strong>{persen}%</strong> data terisi</div>
+          <div className="batang" role="progressbar" aria-valuenow={persen} aria-valuemin={0} aria-valuemax={100}><span style={{ width: `${persen}%` }} /></div>
+          <small>{jumlah[0]} dari {jumlah[1]} butir. Yang kosong bisa dilengkapi lewat tombol ajukan perbaikan.</small>
+        </div>
+      )}
     </div>
   )
 }
@@ -75,14 +110,14 @@ function AksiAjuan({ jenis, id }: { jenis: string; id: unknown }) {
   )
 }
 
-function ProfilPtk({ h }: { h: Extract<Hasil, { jenis: 'ptk' }> }) {
+export function ProfilPtk({ h }: { h: Extract<Hasil, { jenis: 'ptk' }> }) {
   const d = h.data, s = h.sensitif
   const nama = [d.gelar_depan, d.nama].filter((x) => !kosong(x)).join(' ') + (kosong(d.gelar_belakang) ? '' : `, ${d.gelar_belakang}`)
   return (
-    <>
+    <Kelengkapan>
       <Kepala nama={nama} anak={[String(d.jenis_ptk ?? ''), String(d.status_kepegawaian ?? ''), kosong(d.jabatan_ptk) ? '' : String(d.jabatan_ptk)]}
         catatan={h.wali_kelas_dari.length ? `Wali kelas ${h.wali_kelas_dari.join(', ')}` : null} />
-      <div className="grid grid-2 jarak">
+      <div className="profil-kolom jarak">
         <Bagian judul="Identitas" baris={[
           ['Nama lengkap', tampil(d.nama)], ['NIK', tampil(s.nik)], ['Jenis kelamin', jenisKelamin(d.jk)],
           ['Tempat, tanggal lahir', gabung(d.tempat_lahir, tanggal(d.tanggal_lahir))], ['Nama ibu kandung', tampil(s.nama_ibu_kandung)],
@@ -119,7 +154,7 @@ function ProfilPtk({ h }: { h: Extract<Hasil, { jenis: 'ptk' }> }) {
         ]} />
       </div>
       <Sinkron d={d} />
-    </>
+    </Kelengkapan>
   )
 }
 
@@ -128,7 +163,7 @@ function Sinkron({ d }: { d: J }) {
   return t ? <p className="catatan jarak">Data terakhir disinkronkan dari Dapodik pada {t}.</p> : null
 }
 
-function ProfilSiswa({ h }: { h: Extract<Hasil, { jenis: 'siswa' }> }) {
+export function ProfilSiswa({ h }: { h: Extract<Hasil, { jenis: 'siswa' }> }) {
   const d = h.data, s = h.sensitif, r = h.rombel
   const wali = (hub: string) => h.orang_tua.find((o) => o.hubungan === hub)
   const orangTua = (hub: string): Baris[] => {
@@ -140,12 +175,12 @@ function ProfilSiswa({ h }: { h: Extract<Hasil, { jenis: 'siswa' }> }) {
   }
   const status = String(d.status_peserta_didik ?? '')
   return (
-    <>
+    <Kelengkapan>
       <Kepala nama={String(d.nama)} anak={[
         status === 'aktif' ? 'Peserta didik aktif' : status === 'lulus' ? 'Lulus' : status === 'mutasi' ? 'Mutasi' : status,
         r ? String(r.nama) : '',
       ]} catatan={r && !kosong(r.wali_kelas) ? `Wali kelas ${r.wali_kelas}` : null} />
-      <div className="grid grid-2 jarak">
+      <div className="profil-kolom jarak">
         <Bagian judul="Identitas peserta didik" baris={[
           ['Nama lengkap', tampil(d.nama)], ['Jenis kelamin', jenisKelamin(d.jk)], ['NISN', tampil(d.nisn)], ['NIPD', tampil(d.nipd)],
           ['NIK', tampil(s.nik)], ['No. KK', tampil(s.no_kk)], ['Tempat, tanggal lahir', gabung(d.tempat_lahir, tanggal(d.tanggal_lahir))],
@@ -187,7 +222,7 @@ function ProfilSiswa({ h }: { h: Extract<Hasil, { jenis: 'siswa' }> }) {
         )}
       </div>
       <Sinkron d={d} />
-    </>
+    </Kelengkapan>
   )
 }
 
