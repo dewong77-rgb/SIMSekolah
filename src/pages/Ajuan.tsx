@@ -153,7 +153,7 @@ export function FormAjuan() {
       {!memuat && kolom.length > 0 && (
         <form onSubmit={kirim}>
           <p className="catatan">
-            Kolom bertanda "berlaku langsung" langsung berubah di SIMS saat Anda mengirim, lalu masuk antrean operator Dapodik untuk disalin ke Dapodik. Kolom yang memerlukan dokumen diperiksa TU bagian terkait lebih dulu, baru berlaku. Nama, tanggal lahir, NIK dan NUPTK guru, serta NISN hanya berubah lewat unggahan Dapodik, jadi ajuannya diteruskan ke operator. Siapkan KK, akta, atau ijazah untuk ditunjukkan ke admin.
+            Perubahan langsung berlaku di SIMS saat Anda mengirim, tanpa menunggu persetujuan. Setiap perubahan tercatat sebagai ajuan di TU Kepegawaian atau TU Kesiswaan dan masuk antrean operator Dapodik untuk disalin ke Dapodik. Nama, tanggal lahir, NIK dan NUPTK guru, serta NISN tidak bisa diubah langsung karena menjadi kunci pencocokan data Dapodik. Perubahan kolom itu diajukan ke operator. Siapkan KK, akta, atau ijazah bila diminta.
           </p>
           <div className="grid grid-2 jarak">
             {grup.map(([judul, daftar]) => (
@@ -194,7 +194,7 @@ export function FormAjuan() {
               <span>Alasan perubahan{adaTinjau ? ' *' : ' (opsional)'}</span>
               <textarea rows={3} maxLength={500} value={alasan} onChange={(e) => setAlasan(e.target.value)} placeholder="Contoh: pindah alamat, salah ketik nama saat pendataan." />
             </label>
-            {adaLangsung && <p className="catatan" role="note">Kolom "berlaku langsung" langsung tersimpan di SIMS dan masuk antrean operator Dapodik.</p>}
+            {adaLangsung && <p className="catatan" role="note">Perubahan ini langsung tersimpan di SIMS dan masuk antrean operator Dapodik.</p>}
             {butuhDok && <p className="catatan" role="note">Ajuan ini memuat perubahan yang perlu dokumen. Admin dapat meminta dokumen pendukung sebelum menyetujui.</p>}
             <div aria-live="polite">{galat && <p className="catatan galat" role="alert">{galat}</p>}</div>
             <div className="aksi">
@@ -237,7 +237,7 @@ export function AjuanSaya() {
 
   return (
     <Halaman judul="Ajuan saya" lead="Perbaikan data yang pernah diajukan dan keputusannya.">
-      {baru && <p className="catatan sukses" role="status">Tersimpan. Kolom yang berlaku langsung sudah berubah di SIMS dan masuk antrean operator Dapodik. Kolom yang perlu dokumen menunggu TU bagian terkait.</p>}
+      {baru && <p className="catatan sukses" role="status">Tersimpan. Perubahan sudah berlaku di SIMS dan tercatat untuk operator Dapodik. Kolom kunci identitas menunggu keputusan TU bagian terkait.</p>}
       {galat && <p className="catatan galat" role="alert">{galat}</p>}
       {!rows && !galat && <p className="catatan">Memuat...</p>}
       {rows?.length === 0 && <p className="catatan">Belum ada ajuan. Buka profil Anda lalu pilih "Ajukan perbaikan data".</p>}
