@@ -4,24 +4,28 @@ import Halaman from '../../components/Halaman'
 import { useAuth } from '../../auth/AuthContext'
 import { panggil, tgl } from '../../lib/rpc'
 import {
-  KATEGORI_UMUM, SUMBER, TINGKAT, alamatBaca, hapusDariPenyimpanan, ukuranTeks, unggahBuku, useIzinPerpus, useSampul,
+  DDC, JENIS_BUKU, KATEGORI_UMUM, SUMBER, TINGKAT, alamatBaca, labelJenis, nomorPanggil, hapusDariPenyimpanan, ukuranTeks, unggahBuku, useIzinPerpus, useSampul,
   type BukuPerpus, type Pengelola, type StatusBuku,
 } from '../../lib/perpustakaan'
 import { Sampul } from './Perpustakaan'
+import LaporanPerpustakaan from './LaporanPerpustakaan'
 
 // Pengelolaan koleksi dan pengelola perpustakaan. Untuk super admin, penanggung jawab, dan petugas perpustakaan.
 
 const labelStatus: Record<StatusBuku, string> = { draf: 'Draf', terbit: 'Terbit', arsip: 'Arsip' }
 const kelasStatus: Record<StatusBuku, string> = { draf: 'status-menunggu', terbit: 'status-selesai', arsip: 'status-dibatalkan' }
 const kosong = {
-  judul: '', penulis: '', penerbit: '', tahun_terbit: '', isbn: '', kategori: 'Buku teks pelajaran', mapel: '', tingkat: 'Semua', deskripsi: '',
+  judul: '', penulis: '', penerbit: '', tahun_terbit: '', isbn: '', kategori: 'Buku teks pelajaran',
+  jenis_buku: 'buku_teks', nomor_induk: '', klasifikasi: '', nomor_panggil: '', edisi: '', kota_terbit: '', bahasa: 'Indonesia', subjek: '', harga: '', jumlah_lisensi: '', mapel: '', tingkat: 'Semua', deskripsi: '',
   sumber_perolehan: 'beli', nomor_lisensi: '', tanggal_perolehan: '', lisensi_berakhir: '', terbit: true,
 }
 
 function FormBuku({ awal, npsn, selesai, batal }: { awal: BukuPerpus | null; npsn: string; selesai: () => Promise<void>; batal: () => void }) {
   const [v, setV] = useState(awal ? {
     judul: awal.judul, penulis: awal.penulis ?? '', penerbit: awal.penerbit ?? '', tahun_terbit: awal.tahun_terbit?.toString() ?? '', isbn: awal.isbn ?? '',
-    kategori: awal.kategori, mapel: awal.mapel ?? '', tingkat: awal.tingkat ?? 'Semua', deskripsi: awal.deskripsi ?? '',
+    kategori: awal.kategori, jenis_buku: awal.jenis_buku, nomor_induk: awal.nomor_induk ?? '', klasifikasi: awal.klasifikasi ?? '', nomor_panggil: awal.nomor_panggil ?? '',
+    edisi: awal.edisi ?? '', kota_terbit: awal.kota_terbit ?? '', bahasa: awal.bahasa, subjek: awal.subjek ?? '', harga: awal.harga?.toString() ?? '', jumlah_lisensi: awal.jumlah_lisensi?.toString() ?? '',
+    mapel: awal.mapel ?? '', tingkat: awal.tingkat ?? 'Semua', deskripsi: awal.deskripsi ?? '',
     sumber_perolehan: awal.sumber_perolehan, nomor_lisensi: awal.nomor_lisensi ?? '', tanggal_perolehan: awal.tanggal_perolehan ?? '',
     lisensi_berakhir: awal.lisensi_berakhir ?? '', terbit: awal.status === 'terbit',
   } : kosong)
@@ -71,16 +75,37 @@ function FormBuku({ awal, npsn, selesai, batal }: { awal: BukuPerpus | null; nps
         <label>Penerbit<input maxLength={200} value={v.penerbit} onChange={(e) => ubah('penerbit', e.target.value)} /></label>
         <label>Tahun terbit<input inputMode="numeric" pattern="[0-9]{4}" maxLength={4} value={v.tahun_terbit} onChange={(e) => ubah('tahun_terbit', e.target.value)} /></label>
         <label>ISBN<input maxLength={30} value={v.isbn} onChange={(e) => ubah('isbn', e.target.value)} /></label>
-        <label>Kategori<input list="kategori-perpus" required maxLength={60} value={v.kategori} onChange={(e) => ubah('kategori', e.target.value)} />
+        <label>Jenis buku<select value={v.jenis_buku} onChange={(e) => ubah('jenis_buku', e.target.value)}>{JENIS_BUKU.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></label>
+        <label>Nomor induk
+          <input maxLength={40} value={v.nomor_induk} onChange={(e) => ubah('nomor_induk', e.target.value)} placeholder={awal ? '' : 'Kosongkan untuk otomatis (DIG/tahun/0001)'} />
+          <span className="petunjuk">Nomor registrasi unik per buku di sekolah.</span></label>
+        <label>Kelas utama DDC
+          <select value={v.klasifikasi.slice(0, 1) ? v.klasifikasi.slice(0, 1) + '00' : ''} onChange={(e) => ubah('klasifikasi', e.target.value)}>
+            <option value="">Pilih kelas</option>{DDC.map(([k, n]) => <option key={k} value={k}>{k} {n}</option>)}
+          </select></label>
+        <label>Nomor klasifikasi (DDC)
+          <input inputMode="decimal" pattern="[0-9]{3}(\.[0-9]{1,8})?" maxLength={12} value={v.klasifikasi} onChange={(e) => ubah('klasifikasi', e.target.value)} placeholder="004 atau 005.133" />
+          <span className="petunjuk">Tiga angka, boleh diikuti titik dan perincian. Informatika umumnya 004 sampai 006.</span></label>
+        <label>Nomor panggil
+          <input maxLength={60} value={v.nomor_panggil} onChange={(e) => ubah('nomor_panggil', e.target.value)} placeholder="004 TIM i" />
+          <button type="button" className="tombol" style={{ justifySelf: 'start' }} onClick={() => ubah('nomor_panggil', nomorPanggil(v.klasifikasi, v.penulis, v.judul))}>Susun otomatis</button></label>
+        <label>Edisi atau cetakan<input maxLength={60} value={v.edisi} onChange={(e) => ubah('edisi', e.target.value)} placeholder="Edisi revisi 2022" /></label>
+        <label>Kota terbit<input maxLength={80} value={v.kota_terbit} onChange={(e) => ubah('kota_terbit', e.target.value)} /></label>
+        <label>Bahasa<input maxLength={40} value={v.bahasa} onChange={(e) => ubah('bahasa', e.target.value)} /></label>
+        <label>Kategori atau subjek<input list="kategori-perpus" required maxLength={60} value={v.kategori} onChange={(e) => ubah('kategori', e.target.value)} />
           <datalist id="kategori-perpus">{KATEGORI_UMUM.map((k) => <option key={k} value={k} />)}</datalist></label>
         <label>Mata pelajaran (opsional)<input maxLength={80} value={v.mapel} onChange={(e) => ubah('mapel', e.target.value)} placeholder="Informatika" /></label>
         <label>Tingkat<select value={v.tingkat} onChange={(e) => ubah('tingkat', e.target.value)}>{TINGKAT.map((t) => <option key={t} value={t}>{t === 'Semua' ? 'Semua tingkat' : `Kelas ${t}`}</option>)}</select></label>
         <label>Sumber perolehan<select value={v.sumber_perolehan} onChange={(e) => ubah('sumber_perolehan', e.target.value)}>{SUMBER.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></label>
         <label>Nomor lisensi atau faktur<input maxLength={100} value={v.nomor_lisensi} onChange={(e) => ubah('nomor_lisensi', e.target.value)} /></label>
         <label>Tanggal perolehan<input type="date" value={v.tanggal_perolehan} onChange={(e) => ubah('tanggal_perolehan', e.target.value)} /></label>
+        <label>Harga (Rp)<input inputMode="decimal" value={v.harga} onChange={(e) => ubah('harga', e.target.value.replace(/[^0-9.]/g, ''))} /></label>
+        <label>Jumlah lisensi pengguna<input inputMode="numeric" value={v.jumlah_lisensi} onChange={(e) => ubah('jumlah_lisensi', e.target.value.replace(/\D/g, ''))} />
+          <span className="petunjuk">Catatan administrasi dari kontrak pembelian. Belum membatasi jumlah pembaca.</span></label>
         <label>Lisensi berakhir (opsional)<input type="date" value={v.lisensi_berakhir} onChange={(e) => ubah('lisensi_berakhir', e.target.value)} />
           <span className="petunjuk">Setelah tanggal ini buku otomatis disembunyikan dari pembaca.</span></label>
       </div>
+      <label>Kata kunci atau subjek tambahan<input maxLength={300} value={v.subjek} onChange={(e) => ubah('subjek', e.target.value)} placeholder="jaringan, algoritma, pemrograman" /></label>
       <label>Deskripsi singkat<textarea rows={3} maxLength={2000} value={v.deskripsi} onChange={(e) => ubah('deskripsi', e.target.value)} /></label>
       <label className="baris-centang"><input type="checkbox" checked={v.terbit} onChange={(e) => ubah('terbit', e.target.checked)} /> Terbitkan sekarang (tampil di perpustakaan untuk siswa dan guru)</label>
       {galat && <p className="catatan galat" role="alert">{galat}</p>}
@@ -168,7 +193,7 @@ export default function KelolaPerpustakaan() {
   const [buku, setBuku] = useState<BukuPerpus[] | null>(null)
   const [galat, setGalat] = useState('')
   const [form, setForm] = useState<BukuPerpus | 'baru' | null>(null)
-  const [tab, setTab] = useState<'koleksi' | 'pengelola'>('koleksi')
+  const [tab, setTab] = useState<'koleksi' | 'laporan' | 'pengelola'>('koleksi')
   const muat = useCallback(async () => {
     try { setBuku(await panggil<BukuPerpus[]>('perpus_buku_daftar', { p_q: null, p_kategori: null, p_semua: true })); setGalat('') } catch (e) { setGalat((e as Error).message) }
   }, [])
@@ -205,10 +230,12 @@ export default function KelolaPerpustakaan() {
       <div className="aksi" style={{ marginTop: 0 }}>
         <Link to="/portal/perpustakaan" className="tombol">Lihat sebagai pembaca</Link>
         <button type="button" className={tab === 'koleksi' ? 'tombol tombol-isi' : 'tombol'} onClick={() => setTab('koleksi')}>Koleksi</button>
+        <button type="button" className={tab === 'laporan' ? 'tombol tombol-isi' : 'tombol'} onClick={() => setTab('laporan')}>Laporan baca</button>
         <button type="button" className={tab === 'pengelola' ? 'tombol tombol-isi' : 'tombol'} onClick={() => setTab('pengelola')}>Pengelola</button>
       </div>
       {galat && <p className="kartu galat" role="alert">{galat}</p>}
 
+      {tab === 'laporan' && <LaporanPerpustakaan />}
       {tab === 'pengelola' && <PanelPengelola bolehAtur={izin.atur_pengelola} />}
 
       {tab === 'koleksi' && (
@@ -226,7 +253,7 @@ export default function KelolaPerpustakaan() {
           {buku?.length === 0 && !form && <div className="kartu"><p className="catatan" style={{ margin: 0 }}>Belum ada buku. Tekan Tambah buku, pilih berkas PDF, lalu isi data.</p></div>}
           <div className="tabel-bungkus jarak">
             <table>
-              <thead><tr><th>Buku</th><th>Status</th><th>Halaman</th><th>Pembaca</th><th>Lisensi</th><th>Aksi</th></tr></thead>
+              <thead><tr><th>Buku</th><th>Nomor</th><th>Status</th><th>Halaman</th><th>Pembaca</th><th>Lisensi</th><th>Aksi</th></tr></thead>
               <tbody>
                 {(buku ?? []).map((b) => (
                   <tr key={b.id}>
@@ -236,6 +263,7 @@ export default function KelolaPerpustakaan() {
                         <div><strong>{b.judul}</strong><br /><small>{[b.penulis, b.tahun_terbit, b.kategori].filter(Boolean).join(' · ')}</small></div>
                       </div>
                     </td>
+                    <td><small>Induk: {b.nomor_induk ?? '-'}<br />DDC: {b.klasifikasi ?? '-'}<br />Panggil: {b.nomor_panggil ?? '-'}<br />{labelJenis(b.jenis_buku)}</small></td>
                     <td><span className={`status ${kelasStatus[b.status]}`}>{labelStatus[b.status]}</span></td>
                     <td>{b.jumlah_halaman ?? '-'}<br /><small>{ukuranTeks(b.ukuran_byte)}</small></td>
                     <td>{b.pembaca ?? 0}</td>

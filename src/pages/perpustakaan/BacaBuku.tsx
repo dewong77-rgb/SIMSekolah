@@ -3,7 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import Halaman from '../../components/Halaman'
 import { bukaPdf, gambarHalaman, tutupPdf } from '../../lib/pdf'
-import { alamatBaca, formatSitasi, tautanBerkas, type BukuBuka } from '../../lib/perpustakaan'
+import { alamatBaca, catatKutipan, formatSitasi, tautanBerkas, useDenyutBaca, type AsalBaca, type BukuBuka } from '../../lib/perpustakaan'
 import { panggil } from '../../lib/rpc'
 
 // Pembaca buku di dalam aplikasi. Halaman digambar satu per satu; tidak ada tombol unduh.
@@ -24,6 +24,8 @@ export default function BacaBuku() {
   const [lebar, setLebar] = useState(0)
   const awal = useRef(Number(param.get('hal')) || 0)
   const halRef = useRef(1)
+  const dari = param.get('dari'); const ref = param.get('ref')
+  const asal: AsalBaca | undefined = (dari === 'tugas' || dari === 'pertemuan') && ref ? { jenis: dari, id: ref } : undefined
   const total = doc?.numPages ?? buku?.jumlah_halaman ?? 0
 
   useEffect(() => {
@@ -74,11 +76,13 @@ export default function BacaBuku() {
   }, [doc, halaman, id])
   useEffect(() => () => { if (halRef.current > 1) void panggil('perpus_progres_simpan', { p_buku: id, p_halaman: halRef.current }).catch(() => undefined) }, [id])
 
+  useDenyutBaca(id, halaman, !!doc, asal)
+
   const ke = useCallback((n: number) => {
     if (!doc) return
     const h = Math.min(Math.max(Math.round(n) || 1, 1), doc.numPages)
     setHalaman(h); setLompat(String(h)); setPesan('')
-    setParam({ hal: String(h) }, { replace: true })
+    setParam((p) => { const n = new URLSearchParams(p); n.set('hal', String(h)); return n }, { replace: true })
     area.current?.scrollTo({ top: 0 })
   }, [doc, setParam])
 
@@ -118,14 +122,14 @@ export default function BacaBuku() {
             <button type="button" className="tombol" onClick={() => setZoom((z) => Math.min(3, +(z + 0.2).toFixed(1)))} aria-label="Perbesar">+</button>
           </div>
           <div className="baca-bar">
-            <button type="button" className="tombol" onClick={() => void salin(formatSitasi(buku, halaman), 'Rujukan')}>Salin rujukan halaman ini</button>
-            <button type="button" className="tombol" onClick={() => void salin(window.location.origin + alamatBaca(id, halaman), 'Tautan halaman')}>Salin tautan halaman ini</button>
+            <button type="button" className="tombol" onClick={() => { catatKutipan(id, 'salin_rujukan', null, halaman); void salin(formatSitasi(buku, halaman), 'Rujukan') }}>Salin rujukan halaman ini</button>
+            <button type="button" className="tombol" onClick={() => { catatKutipan(id, 'salin_tautan', null, halaman); void salin(window.location.origin + alamatBaca(id, halaman), 'Tautan halaman') }}>Salin tautan halaman ini</button>
             {pesan && <span className="catatan" role="status">{pesan}</span>}
           </div>
           <div className="baca-area" ref={area} onContextMenu={(e) => e.preventDefault()} aria-busy={menggambar}>
             <canvas ref={kanvas} aria-label={`Halaman ${halaman} dari ${total}`} />
           </div>
-          <p className="catatan">Bahan bacaan milik sekolah. Gunakan untuk belajar dan kutip dengan menyebut sumbernya.</p>
+          <p className="catatan">Bahan bacaan milik sekolah. Gunakan untuk belajar dan kutip dengan menyebut sumbernya. Pengelola perpustakaan dapat melihat buku yang dibaca dan lama membaca.</p>
         </>
       )}
     </Halaman>

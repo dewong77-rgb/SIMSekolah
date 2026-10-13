@@ -40,6 +40,16 @@ create table if not exists public.perpus_buku (
   tahun_terbit int check (tahun_terbit is null or tahun_terbit between 1900 and 2100),
   isbn text check (char_length(isbn) <= 30),
   kategori text not null default 'Umum' check (char_length(btrim(kategori)) between 2 and 60),
+  jenis_buku text not null default 'buku_teks' check (jenis_buku in ('buku_teks', 'pengayaan', 'referensi', 'fiksi', 'panduan_guru', 'periodikal', 'lainnya')),
+  nomor_induk text check (char_length(nomor_induk) <= 40),
+  klasifikasi text check (klasifikasi is null or klasifikasi ~ '^[0-9]{3}(\.[0-9]{1,8})?$'),
+  nomor_panggil text check (char_length(nomor_panggil) <= 60),
+  edisi text check (char_length(edisi) <= 60),
+  kota_terbit text check (char_length(kota_terbit) <= 80),
+  bahasa text not null default 'Indonesia' check (char_length(bahasa) <= 40),
+  subjek text check (char_length(subjek) <= 300),
+  harga numeric(14, 2) check (harga is null or harga >= 0),
+  jumlah_lisensi int check (jumlah_lisensi is null or jumlah_lisensi >= 1),
   mapel text check (char_length(mapel) <= 80),
   tingkat text check (tingkat is null or tingkat in ('X', 'XI', 'XII', 'Semua')),
   deskripsi text check (char_length(deskripsi) <= 2000),
@@ -57,6 +67,7 @@ create table if not exists public.perpus_buku (
   diubah_pada timestamptz not null default now()
 );
 create index if not exists perpus_buku_npsn_status_idx on public.perpus_buku (npsn, status);
+create unique index if not exists perpus_buku_nomor_induk_uq on public.perpus_buku (npsn, nomor_induk) where nomor_induk is not null;
 
 create table if not exists public.perpus_progres (
   buku_id uuid not null references public.perpus_buku (id) on delete cascade,
@@ -66,6 +77,37 @@ create table if not exists public.perpus_progres (
   terakhir_dibuka timestamptz not null default now(),
   primary key (buku_id, user_id)
 );
+
+-- Satu baris per kunjungan baca. detik_aktif hanya menghitung waktu layar terbuka dan pengguna beraktivitas.
+create table if not exists public.perpus_sesi (
+  id uuid primary key default gen_random_uuid(),
+  buku_id uuid not null references public.perpus_buku (id) on delete cascade,
+  user_id uuid not null,
+  mulai timestamptz not null default now(),
+  terakhir_aktif timestamptz not null default now(),
+  detik_aktif int not null default 0 check (detik_aktif >= 0),
+  halaman_awal int not null default 1,
+  halaman_akhir int not null default 1,
+  halaman_dilihat int[] not null default '{}',
+  asal text not null default 'katalog' check (asal in ('katalog', 'pertemuan', 'tugas')),
+  asal_id uuid
+);
+create index if not exists perpus_sesi_buku_idx on public.perpus_sesi (buku_id, mulai desc);
+create index if not exists perpus_sesi_user_idx on public.perpus_sesi (user_id, mulai desc);
+create index if not exists perpus_sesi_mulai_idx on public.perpus_sesi (mulai desc);
+
+-- Jejak pengambilan rujukan: menyisipkan kutipan ke jawaban tugas atau menyalin rujukan dan tautan dari pembaca.
+create table if not exists public.perpus_kutipan (
+  id uuid primary key default gen_random_uuid(),
+  buku_id uuid not null references public.perpus_buku (id) on delete cascade,
+  user_id uuid not null,
+  cara text not null check (cara in ('sisip_tugas', 'salin_rujukan', 'salin_tautan')),
+  tugas_id uuid references public.tugas (id) on delete set null,
+  halaman text check (char_length(halaman) <= 20),
+  waktu timestamptz not null default now()
+);
+create index if not exists perpus_kutipan_buku_idx on public.perpus_kutipan (buku_id, waktu desc);
+create index if not exists perpus_kutipan_waktu_idx on public.perpus_kutipan (waktu desc);
 
 create table if not exists public.perpus_rujukan (
   id uuid primary key default gen_random_uuid(),
@@ -88,8 +130,10 @@ alter table public.perpus_pengelola enable row level security;
 alter table public.perpus_penunjukan_otomatis enable row level security;
 alter table public.perpus_buku enable row level security;
 alter table public.perpus_progres enable row level security;
+alter table public.perpus_sesi enable row level security;
+alter table public.perpus_kutipan enable row level security;
 alter table public.perpus_rujukan enable row level security;
-revoke all on table public.perpus_pengelola, public.perpus_penunjukan_otomatis, public.perpus_buku, public.perpus_progres, public.perpus_rujukan from anon, authenticated;
+revoke all on table public.perpus_pengelola, public.perpus_penunjukan_otomatis, public.perpus_buku, public.perpus_progres, public.perpus_sesi, public.perpus_kutipan, public.perpus_rujukan from anon, authenticated;
 
 -- ---------------------------------------------------------------- pembantu hak akses
 create or replace function private.perpus_peran_saya() returns text
@@ -105,7 +149,7 @@ $$;
 
 create or replace function private.boleh_atur_pengelola_perpus() returns boolean
 language sql stable security definer set search_path = '' as $$
-  select auth.uid() is not null and private.perpus_peran_saya() in ('super', 'penanggung_jawab')
+  select auth.uid() is not null and coalesce(private.perpus_peran_saya() in ('super', 'penanggung_jawab'), false)
 $$;
 
 create or replace function private.boleh_baca_perpus() returns boolean
@@ -200,21 +244,29 @@ language sql stable security definer set search_path = '' as $$
     'peran', private.perpus_peran_saya())
 $$;
 
+create or replace function private.perpus_buku_json(b public.perpus_buku, v_kelola boolean) returns jsonb
+language sql stable set search_path = '' as $$
+  select jsonb_build_object(
+    'id', b.id, 'judul', b.judul, 'penulis', b.penulis, 'penerbit', b.penerbit, 'tahun_terbit', b.tahun_terbit,
+    'kategori', b.kategori, 'jenis_buku', b.jenis_buku, 'klasifikasi', b.klasifikasi, 'nomor_panggil', b.nomor_panggil,
+    'edisi', b.edisi, 'kota_terbit', b.kota_terbit, 'bahasa', b.bahasa, 'subjek', b.subjek,
+    'mapel', b.mapel, 'tingkat', b.tingkat, 'deskripsi', b.deskripsi, 'isbn', b.isbn,
+    'jumlah_halaman', b.jumlah_halaman, 'sampul_path', b.sampul_path, 'status', b.status, 'lisensi_berakhir', b.lisensi_berakhir,
+    'ukuran_byte', b.ukuran_byte, 'sumber_perolehan', b.sumber_perolehan, 'nomor_lisensi', b.nomor_lisensi,
+    'tanggal_perolehan', b.tanggal_perolehan,
+    'nomor_induk', case when v_kelola then b.nomor_induk end, 'harga', case when v_kelola then b.harga end,
+    'jumlah_lisensi', case when v_kelola then b.jumlah_lisensi end, 'berkas_path', case when v_kelola then b.berkas_path end)
+$$;
+
 create or replace function public.perpus_buku_daftar(p_q text default null, p_kategori text default null, p_semua boolean default false) returns jsonb
 language plpgsql stable security definer set search_path = '' as $$
 declare v_kelola boolean := private.boleh_kelola_perpus(); v_q text := nullif(btrim(coalesce(p_q, '')), '');
 begin
   if not private.boleh_baca_perpus() then raise exception 'Tidak berwenang.' using errcode = '42501'; end if;
   return coalesce((
-    select jsonb_agg(jsonb_build_object(
-      'id', b.id, 'judul', b.judul, 'penulis', b.penulis, 'penerbit', b.penerbit, 'tahun_terbit', b.tahun_terbit,
-      'kategori', b.kategori, 'mapel', b.mapel, 'tingkat', b.tingkat, 'deskripsi', b.deskripsi,
-      'jumlah_halaman', b.jumlah_halaman, 'sampul_path', b.sampul_path, 'status', b.status,
-      'lisensi_berakhir', b.lisensi_berakhir, 'ukuran_byte', b.ukuran_byte, 'isbn', b.isbn,
-      'sumber_perolehan', b.sumber_perolehan, 'nomor_lisensi', b.nomor_lisensi, 'tanggal_perolehan', b.tanggal_perolehan,
-      'berkas_path', case when v_kelola then b.berkas_path end,
+    select jsonb_agg(private.perpus_buku_json(b, v_kelola) || jsonb_build_object(
       'halaman_terakhir', pr.halaman, 'halaman_terjauh', pr.halaman_terjauh,
-      'pembaca', case when v_kelola then (select count(*) from public.perpus_progres x where x.buku_id = b.id) end,
+      'pembaca', case when v_kelola then (select count(distinct x.user_id) from public.perpus_sesi x where x.buku_id = b.id) end,
       'dirujuk', case when v_kelola then (select count(*) from public.perpus_rujukan x where x.buku_id = b.id) end
     ) order by b.judul)
     from public.perpus_buku b
@@ -223,7 +275,9 @@ begin
       and ((v_kelola and p_semua) or private.perpus_buku_terbuka(b))
       and (p_kategori is null or p_kategori = '' or b.kategori = p_kategori)
       and (v_q is null or b.judul ilike '%' || v_q || '%' or b.penulis ilike '%' || v_q || '%'
-           or b.penerbit ilike '%' || v_q || '%' or b.mapel ilike '%' || v_q || '%' or b.isbn ilike '%' || v_q || '%')
+           or b.penerbit ilike '%' || v_q || '%' or b.mapel ilike '%' || v_q || '%' or b.isbn ilike '%' || v_q || '%'
+           or b.subjek ilike '%' || v_q || '%' or b.nomor_panggil ilike '%' || v_q || '%' or b.klasifikasi like v_q || '%'
+           or (v_kelola and b.nomor_induk ilike '%' || v_q || '%'))
   ), '[]'::jsonb);
 end $$;
 
@@ -243,10 +297,20 @@ begin
     'halaman_terakhir', coalesce(pr.halaman, 1));
 end $$;
 
+-- Nomor induk otomatis: DIG/{tahun}/{urut 4 digit}, dilanjutkan dari nomor tertinggi tahun itu.
+create or replace function private.perpus_nomor_induk_baru(p_npsn text) returns text
+language sql stable set search_path = '' as $$
+  select 'DIG/' || extract(year from (now() at time zone 'Asia/Jakarta'))::int || '/' ||
+         lpad((coalesce(max(substring(nomor_induk from '^DIG/[0-9]{4}/([0-9]+)$')::int), 0) + 1)::text, 4, '0')
+    from public.perpus_buku
+   where npsn = p_npsn and nomor_induk like 'DIG/' || extract(year from (now() at time zone 'Asia/Jakarta'))::int || '/%'
+$$;
+
 create or replace function public.perpus_buku_simpan(p_id uuid, p_data jsonb) returns uuid
 language plpgsql security definer set search_path = '' as $$
 declare v_id uuid := p_id; v_npsn text := private.npsn_saya(); v_status text := coalesce(nullif(p_data ->> 'status', ''), 'draf');
         v_berkas text := btrim(coalesce(p_data ->> 'berkas_path', '')); v_sampul text := nullif(btrim(coalesce(p_data ->> 'sampul_path', '')), '');
+        v_induk text := nullif(btrim(coalesce(p_data ->> 'nomor_induk', '')), '');
 begin
   if not private.boleh_kelola_perpus() then raise exception 'Hanya pengelola perpustakaan yang dapat mengubah koleksi.' using errcode = '42501'; end if;
   if v_status not in ('draf', 'terbit', 'arsip') then raise exception 'Status buku tidak dikenal.' using errcode = '22023'; end if;
@@ -256,26 +320,36 @@ begin
     raise exception 'Buku tidak ditemukan.' using errcode = 'P0002';
   end if;
   if p_id is null then v_id := gen_random_uuid(); end if;
+  if v_induk is null then
+    v_induk := coalesce((select nomor_induk from public.perpus_buku where id = p_id), private.perpus_nomor_induk_baru(v_npsn));
+  end if;
   begin
-    insert into public.perpus_buku (id, npsn, judul, penulis, penerbit, tahun_terbit, isbn, kategori, mapel, tingkat, deskripsi, jumlah_halaman,
+    insert into public.perpus_buku (id, npsn, judul, penulis, penerbit, tahun_terbit, isbn, kategori, jenis_buku, nomor_induk, klasifikasi, nomor_panggil,
+      edisi, kota_terbit, bahasa, subjek, harga, jumlah_lisensi, mapel, tingkat, deskripsi, jumlah_halaman,
       berkas_path, ukuran_byte, sampul_path, sumber_perolehan, nomor_lisensi, tanggal_perolehan, lisensi_berakhir, status, dibuat_oleh)
     values (v_id, v_npsn, btrim(coalesce(p_data ->> 'judul', '')), nullif(btrim(p_data ->> 'penulis'), ''), nullif(btrim(p_data ->> 'penerbit'), ''),
       nullif(p_data ->> 'tahun_terbit', '')::int, nullif(btrim(p_data ->> 'isbn'), ''), coalesce(nullif(btrim(p_data ->> 'kategori'), ''), 'Umum'),
+      coalesce(nullif(p_data ->> 'jenis_buku', ''), 'buku_teks'), v_induk, nullif(btrim(p_data ->> 'klasifikasi'), ''), nullif(btrim(p_data ->> 'nomor_panggil'), ''),
+      nullif(btrim(p_data ->> 'edisi'), ''), nullif(btrim(p_data ->> 'kota_terbit'), ''), coalesce(nullif(btrim(p_data ->> 'bahasa'), ''), 'Indonesia'),
+      nullif(btrim(p_data ->> 'subjek'), ''), nullif(p_data ->> 'harga', '')::numeric, nullif(p_data ->> 'jumlah_lisensi', '')::int,
       nullif(btrim(p_data ->> 'mapel'), ''), nullif(p_data ->> 'tingkat', ''), nullif(btrim(p_data ->> 'deskripsi'), ''),
       nullif(p_data ->> 'jumlah_halaman', '')::int, v_berkas, nullif(p_data ->> 'ukuran_byte', '')::bigint, v_sampul,
       coalesce(nullif(p_data ->> 'sumber_perolehan', ''), 'beli'), nullif(btrim(p_data ->> 'nomor_lisensi'), ''),
       nullif(p_data ->> 'tanggal_perolehan', '')::date, nullif(p_data ->> 'lisensi_berakhir', '')::date, v_status, auth.uid())
     on conflict (id) do update set
       judul = excluded.judul, penulis = excluded.penulis, penerbit = excluded.penerbit, tahun_terbit = excluded.tahun_terbit, isbn = excluded.isbn,
-      kategori = excluded.kategori, mapel = excluded.mapel, tingkat = excluded.tingkat, deskripsi = excluded.deskripsi,
+      kategori = excluded.kategori, jenis_buku = excluded.jenis_buku, nomor_induk = excluded.nomor_induk, klasifikasi = excluded.klasifikasi,
+      nomor_panggil = excluded.nomor_panggil, edisi = excluded.edisi, kota_terbit = excluded.kota_terbit, bahasa = excluded.bahasa,
+      subjek = excluded.subjek, harga = excluded.harga, jumlah_lisensi = excluded.jumlah_lisensi,
+      mapel = excluded.mapel, tingkat = excluded.tingkat, deskripsi = excluded.deskripsi,
       jumlah_halaman = excluded.jumlah_halaman, berkas_path = excluded.berkas_path, ukuran_byte = excluded.ukuran_byte,
       sampul_path = excluded.sampul_path, sumber_perolehan = excluded.sumber_perolehan, nomor_lisensi = excluded.nomor_lisensi,
       tanggal_perolehan = excluded.tanggal_perolehan, lisensi_berakhir = excluded.lisensi_berakhir, status = excluded.status, diubah_pada = now();
   exception
-    when check_violation or not_null_violation or invalid_text_representation or datetime_field_overflow or invalid_datetime_format then
-      raise exception 'Isian belum valid. Judul 3 sampai 200 huruf, tahun terbit 1900 sampai 2100, tanggal berformat benar.' using errcode = '22023';
+    when check_violation or not_null_violation or invalid_text_representation or datetime_field_overflow or invalid_datetime_format or numeric_value_out_of_range then
+      raise exception 'Isian belum valid. Judul 3 sampai 200 huruf, klasifikasi berbentuk 005 atau 005.133, tahun 1900 sampai 2100, tanggal berformat benar.' using errcode = '22023';
     when unique_violation then
-      raise exception 'Berkas ini sudah terdaftar sebagai buku lain.' using errcode = '23505';
+      raise exception 'Nomor induk atau berkas ini sudah dipakai buku lain.' using errcode = '23505';
   end;
   return v_id;
 end $$;
@@ -409,13 +483,118 @@ begin
   return private.perpus_tetapkan_otomatis(private.npsn_saya());
 end $$;
 
+
+-- ---------------------------------------------------------------- pelacakan baca
+create or replace function private.perpus_nama_user(p_uid uuid) returns text
+language sql stable security definer set search_path = '' as $$
+  select coalesce(
+    (select t.nama from public.profil_pengguna pp join public.ptk t on t.id = pp.ptk_id where pp.user_id = p_uid),
+    (select d.nama from public.profil_pengguna pp join public.peserta_didik d on d.id = pp.peserta_didik_id where pp.user_id = p_uid),
+    case when exists (select 1 from public.super_admin where user_id = p_uid) then 'Super admin' end,
+    'Pengguna')
+$$;
+
+create or replace function private.perpus_kelas_user(p_uid uuid) returns text
+language sql stable security definer set search_path = '' as $$
+  select private.kes_rombel_nama(pp.peserta_didik_id) from public.profil_pengguna pp where pp.user_id = p_uid and pp.peserta_didik_id is not null
+$$;
+
+-- Denyut baca dari pembaca. Detik yang ditambahkan dibatasi: paling banyak 65 per denyut dan tidak melebihi waktu nyata sejak denyut terakhir,
+-- sehingga durasi tidak bisa digelembungkan dari browser. Sesi yang diam lebih dari 30 menit ditutup dan sesi baru dibuka.
+create or replace function public.perpus_sesi_denyut(p_sesi uuid, p_buku uuid, p_halaman int, p_detik int, p_asal text default 'katalog', p_asal_id uuid default null) returns uuid
+language plpgsql security definer set search_path = '' as $$
+declare b public.perpus_buku%rowtype; s public.perpus_sesi%rowtype; v_h int := greatest(coalesce(p_halaman, 1), 1);
+        v_tambah int; v_asal text := case when p_asal in ('pertemuan', 'tugas') then p_asal else 'katalog' end;
+begin
+  if not private.boleh_baca_perpus() then raise exception 'Tidak berwenang.' using errcode = '42501'; end if;
+  select * into b from public.perpus_buku where id = p_buku and npsn = private.npsn_saya();
+  if not found or not (private.boleh_kelola_perpus() or private.perpus_buku_terbuka(b)) then return null; end if;
+  if b.jumlah_halaman is not null then v_h := least(v_h, b.jumlah_halaman); end if;
+  if p_sesi is not null then
+    select * into s from public.perpus_sesi where id = p_sesi and user_id = auth.uid() and buku_id = p_buku;
+  end if;
+  if s.id is null or s.terakhir_aktif < now() - interval '30 minutes' then
+    insert into public.perpus_sesi (buku_id, user_id, halaman_awal, halaman_akhir, halaman_dilihat, asal, asal_id)
+    values (p_buku, auth.uid(), v_h, v_h, array[v_h], v_asal, case when v_asal <> 'katalog' then p_asal_id end)
+    returning * into s;
+    return s.id;
+  end if;
+  v_tambah := least(greatest(coalesce(p_detik, 0), 0), 65, ceil(extract(epoch from (now() - s.terakhir_aktif)))::int + 5);
+  update public.perpus_sesi set
+    detik_aktif = detik_aktif + v_tambah, terakhir_aktif = now(), halaman_akhir = v_h,
+    halaman_dilihat = case when v_h = any (halaman_dilihat) then halaman_dilihat else halaman_dilihat || v_h end
+  where id = s.id;
+  return s.id;
+end $$;
+
+create or replace function public.perpus_kutipan_catat(p_buku uuid, p_cara text, p_tugas uuid default null, p_halaman text default null) returns void
+language plpgsql security definer set search_path = '' as $$
+declare b public.perpus_buku%rowtype;
+begin
+  if not private.boleh_baca_perpus() then raise exception 'Tidak berwenang.' using errcode = '42501'; end if;
+  if p_cara not in ('sisip_tugas', 'salin_rujukan', 'salin_tautan') then raise exception 'Cara tidak valid.' using errcode = '22023'; end if;
+  select * into b from public.perpus_buku where id = p_buku and npsn = private.npsn_saya();
+  if not found or not (private.boleh_kelola_perpus() or private.perpus_buku_terbuka(b)) then return; end if;
+  insert into public.perpus_kutipan (buku_id, user_id, cara, tugas_id, halaman)
+  values (p_buku, auth.uid(), p_cara, (select id from public.tugas where id = p_tugas), left(nullif(btrim(coalesce(p_halaman, '')), ''), 20));
+end $$;
+
+-- Laporan untuk pengelola: siapa membaca apa, berapa lama, dan siapa mengambil rujukan. p_hari = 0 berarti seluruh waktu.
+create or replace function public.perpus_laporan(p_hari int default 30) returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare v_dari timestamptz := case when coalesce(p_hari, 30) <= 0 then '-infinity'::timestamptz else now() - (p_hari || ' days')::interval end;
+        v_npsn text := private.npsn_saya(); r jsonb;
+begin
+  if not private.boleh_kelola_perpus() then raise exception 'Hanya pengelola perpustakaan yang dapat melihat laporan.' using errcode = '42501'; end if;
+  select jsonb_build_object(
+    'ringkasan', (select jsonb_build_object(
+        'judul_terbit', (select count(*) from public.perpus_buku where npsn = v_npsn and status = 'terbit'),
+        'pembaca', count(distinct s.user_id), 'sesi', count(*), 'detik', coalesce(sum(s.detik_aktif), 0),
+        'kutipan', (select count(*) from public.perpus_kutipan k join public.perpus_buku bk on bk.id = k.buku_id where bk.npsn = v_npsn and k.waktu >= v_dari))
+      from public.perpus_sesi s join public.perpus_buku b on b.id = s.buku_id where b.npsn = v_npsn and s.mulai >= v_dari),
+    'per_buku', coalesce((select jsonb_agg(x order by x.detik desc, x.judul) from (
+        select b.id, b.judul, b.nomor_induk, b.status,
+          count(distinct s.user_id) as pembaca, count(s.id) as sesi, coalesce(sum(s.detik_aktif), 0) as detik, max(s.mulai) as terakhir,
+          (select count(*) from public.perpus_kutipan k where k.buku_id = b.id and k.waktu >= v_dari) as kutipan,
+          (select count(*) from public.perpus_rujukan rj where rj.buku_id = b.id) as dirujuk
+        from public.perpus_buku b left join public.perpus_sesi s on s.buku_id = b.id and s.mulai >= v_dari
+        where b.npsn = v_npsn group by b.id) x), '[]'::jsonb),
+    'per_pembaca', coalesce((select jsonb_agg(x order by x.detik desc) from (
+        select s.user_id, private.perpus_nama_user(s.user_id) as nama, private.perpus_kelas_user(s.user_id) as kelas,
+          (select pp.peran from public.profil_pengguna pp where pp.user_id = s.user_id) as peran,
+          count(*) as sesi, sum(s.detik_aktif) as detik, count(distinct s.buku_id) as buku, max(s.mulai) as terakhir
+        from public.perpus_sesi s join public.perpus_buku b on b.id = s.buku_id
+        where b.npsn = v_npsn and s.mulai >= v_dari group by s.user_id order by sum(s.detik_aktif) desc limit 300) x), '[]'::jsonb),
+    'sesi_terbaru', coalesce((select jsonb_agg(x order by x.mulai desc) from (
+        select private.perpus_nama_user(s.user_id) as nama, private.perpus_kelas_user(s.user_id) as kelas, b.judul, s.mulai, s.detik_aktif as detik,
+          s.halaman_awal, s.halaman_akhir, cardinality(s.halaman_dilihat) as halaman_dilihat, s.asal,
+          case s.asal when 'tugas' then (select t.judul from public.tugas t where t.id = s.asal_id)
+                      when 'pertemuan' then (select p.judul from public.pertemuan p where p.id = s.asal_id) end as asal_judul
+        from public.perpus_sesi s join public.perpus_buku b on b.id = s.buku_id
+        where b.npsn = v_npsn and s.mulai >= v_dari order by s.mulai desc limit 200) x), '[]'::jsonb),
+    'kutipan_terbaru', coalesce((select jsonb_agg(x order by x.waktu desc) from (
+        select private.perpus_nama_user(k.user_id) as nama, private.perpus_kelas_user(k.user_id) as kelas, b.judul, k.halaman, k.cara, k.waktu,
+          (select t.judul from public.tugas t where t.id = k.tugas_id) as tugas_judul
+        from public.perpus_kutipan k join public.perpus_buku b on b.id = k.buku_id
+        where b.npsn = v_npsn and k.waktu >= v_dari order by k.waktu desc limit 200) x), '[]'::jsonb),
+    'lampiran_guru', coalesce((select jsonb_agg(x order by x.waktu desc) from (
+        select private.perpus_nama_user(rj.dibuat_oleh) as guru, b.judul, rj.hal_mulai, rj.hal_akhir, rj.dibuat_pada as waktu,
+          case when rj.tugas_id is not null then 'Tugas' else 'Pertemuan' end as jenis,
+          coalesce((select t.judul from public.tugas t where t.id = rj.tugas_id), (select p.judul from public.pertemuan p where p.id = rj.pertemuan_id)) as target
+        from public.perpus_rujukan rj join public.perpus_buku b on b.id = rj.buku_id
+        where b.npsn = v_npsn order by rj.dibuat_pada desc limit 200) x), '[]'::jsonb)
+  ) into r;
+  return r;
+end $$;
+
 do $$
 declare f text;
 begin
   for f in select unnest(array[
     'public.perpus_izin()', 'public.perpus_buku_daftar(text,text,boolean)', 'public.perpus_buku_buka(uuid)',
     'public.perpus_buku_simpan(uuid,jsonb)', 'public.perpus_buku_status(uuid,text)', 'public.perpus_buku_hapus(uuid)',
-    'public.perpus_progres_simpan(uuid,int)', 'public.perpus_rujukan_daftar(text,uuid)',
+    'public.perpus_progres_simpan(uuid,int)', 'public.perpus_sesi_denyut(uuid,uuid,int,int,text,uuid)',
+    'public.perpus_kutipan_catat(uuid,text,uuid,text)', 'public.perpus_laporan(int)', 'public.perpus_rujukan_daftar(text,uuid)',
     'public.perpus_rujukan_simpan(text,uuid,uuid,int,int,text)', 'public.perpus_rujukan_hapus(uuid)',
     'public.perpus_pengelola_daftar()', 'public.perpus_ptk_cari(text)', 'public.perpus_pengelola_atur(uuid,text,boolean)',
     'public.perpus_pengelola_otomatis()']) loop
@@ -424,4 +603,5 @@ begin
   end loop;
   revoke all on function private.perpus_tetapkan_otomatis(text) from public, anon, authenticated;
   revoke all on function private.perpus_pemicu_ptk() from public, anon, authenticated;
+  revoke all on function private.perpus_nama_user(uuid), private.perpus_kelas_user(uuid), private.perpus_nomor_induk_baru(text) from public, anon, authenticated;
 end $$;

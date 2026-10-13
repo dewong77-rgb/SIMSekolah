@@ -28,7 +28,7 @@ export default function Perpustakaan() {
   const tampil = useMemo(() => {
     const kata = q.trim().toLowerCase()
     return (buku ?? []).filter((b) => (!kategori || b.kategori === kategori)
-      && (!kata || [b.judul, b.penulis, b.penerbit, b.mapel, b.isbn].some((x) => x?.toLowerCase().includes(kata))))
+      && (!kata || [b.judul, b.penulis, b.penerbit, b.mapel, b.isbn, b.subjek, b.nomor_panggil, b.klasifikasi].some((x) => x?.toLowerCase().includes(kata))))
   }, [buku, q, kategori])
   const lanjut = (buku ?? []).filter((b) => (b.halaman_terakhir ?? 0) > 1).sort((a, b) => a.judul.localeCompare(b.judul)).slice(0, 4)
 
@@ -73,6 +73,7 @@ export default function Perpustakaan() {
             <Sampul url={b.sampul_path ? sampul[b.sampul_path] : undefined} judul={b.judul} />
             <strong>{b.judul}</strong>
             <small>{[b.penulis, b.tahun_terbit].filter(Boolean).join(', ') || 'Penulis tidak dicatat'}</small>
+            {b.nomor_panggil && <small>No. panggil {b.nomor_panggil}</small>}
             <span className="lencana-baris">
               <span className="lencana">{b.kategori}</span>
               {b.mapel && <span className="lencana">{b.mapel}</span>}

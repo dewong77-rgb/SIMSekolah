@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { panggil } from '../lib/rpc'
-import { alamatBaca, formatSitasi, rentangHalaman, type BukuPerpus, type Rujukan } from '../lib/perpustakaan'
+import { alamatBaca, catatKutipan, formatSitasi, rentangHalaman, type BukuPerpus, type Rujukan } from '../lib/perpustakaan'
 
 /**
  * Bacaan dari perpustakaan digital pada satu pertemuan atau tugas.
@@ -48,7 +48,7 @@ export default function RujukanBuku({ jenis, id, kelola = false, sisip }: {
   function kutipLain(e: FormEvent) {
     e.preventDefault()
     const b = (buku ?? []).find((x) => x.id === kutip.buku)
-    if (b && sisip) { sisip(formatSitasi(b, kutip.hal || null)); setKutip({ buku: '', hal: '' }) }
+    if (b && sisip) { catatKutipan(b.id, 'sisip_tugas', jenis === 'tugas' ? id : null, kutip.hal || null); sisip(formatSitasi(b, kutip.hal || null)); setKutip({ buku: '', hal: '' }) }
   }
 
   if (!kelola && !sisip && (!daftar || daftar.length === 0)) return galat ? <p className="catatan galat" role="alert">{galat}</p> : null
@@ -62,13 +62,13 @@ export default function RujukanBuku({ jenis, id, kelola = false, sisip }: {
         {(daftar ?? []).map((r) => (
           <li key={r.id}>
             <div>
-              <Link to={alamatBaca(r.buku_id, r.hal_mulai)}><strong>{r.judul}</strong></Link>
+              <Link to={alamatBaca(r.buku_id, r.hal_mulai, { jenis, id })}><strong>{r.judul}</strong></Link>
               <small> {[r.penulis, rentangHalaman(r)].filter(Boolean).join(' · ')}</small>
               {r.catatan && <div className="catatan">{r.catatan}</div>}
             </div>
             <div className="aksi" style={{ marginTop: 0 }}>
-              <Link to={alamatBaca(r.buku_id, r.hal_mulai)} className="tombol">Baca</Link>
-              {sisip && <button type="button" className="tombol" onClick={() => sisip(formatSitasi(r, r.hal_mulai ? rentangHalaman(r).replace('hlm. ', '') : null))}>Kutip ke jawaban</button>}
+              <Link to={alamatBaca(r.buku_id, r.hal_mulai, { jenis, id })} className="tombol">Baca</Link>
+              {sisip && <button type="button" className="tombol" onClick={() => { const h = r.hal_mulai ? rentangHalaman(r).replace('hlm. ', '') : null; catatKutipan(r.buku_id, 'sisip_tugas', jenis === 'tugas' ? id : null, h); sisip(formatSitasi(r, h)) }}>Kutip ke jawaban</button>}
               {kelola && <button type="button" className="tombol" style={{ color: '#8a1f1f', borderColor: '#8a1f1f' }} onClick={() => void lepas(r)}>Lepas</button>}
             </div>
           </li>
