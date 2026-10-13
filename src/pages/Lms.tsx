@@ -1,4 +1,5 @@
 import TombolIkon from '../components/TombolIkon'
+import RujukanBuku from '../components/RujukanBuku'
 import Ikon from '../components/Ikon'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -849,6 +850,7 @@ export function RuangPertemuan() {
       {materi && (!kelola || tab === 'materi') && (
         <>
           <div className="judul-bagian jarak" id="materi"><h2>Materi</h2></div>
+          <RujukanBuku jenis="pertemuan" id={id} kelola={kelola} />
           {kelola && <div className="aksi"><label className="baris-centang"><input type="checkbox" checked={pratinjau} onChange={(e) => setPratinjau(e.target.checked)} /> Lihat sebagai siswa (pratinjau, tidak ada yang tersimpan)</label></div>}
           {materi.length === 0 && <div className="kartu"><p className="catatan">Belum ada materi pada pertemuan ini.</p></div>}
           {pratinjau && <p className="catatan">Pratinjau tampilan siswa. Materi Guru saja disembunyikan, lembar kerja bisa dicoba tetapi tidak tersimpan.</p>}

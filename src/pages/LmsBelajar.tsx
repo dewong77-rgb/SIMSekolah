@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import RujukanBuku from '../components/RujukanBuku'
 import { Link } from 'react-router-dom'
 import Halaman from '../components/Halaman'
 import Ikon from '../components/Ikon'
@@ -237,6 +238,7 @@ export function PertemuanSiswa({ kelasId, id }: { kelasId: string; id: string })
       {!butuhAbsen && nomorSaatIni === 'materi' && (
         <>
           {bacaan.length === 0 && <div className="kartu"><p className="catatan">Belum ada bacaan.</p></div>}
+          <RujukanBuku jenis="pertemuan" id={id} />
           {bacaan.map((m) => <IsiMateri key={m.id} m={m} siswa selesai={selesai} />)}
           {bacaan.length > 0 && <div className="aksi"><button type="button" className="tombol" style={{ color: 'var(--warna-utama)' }} onClick={() => setAktif(langkah[langkah.findIndex((x) => x.k === 'materi') + 1]?.k ?? 'materi')}>Lanjut ke lembar kerja</button></div>}
         </>

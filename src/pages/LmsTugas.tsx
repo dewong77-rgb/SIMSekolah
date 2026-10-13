@@ -5,6 +5,7 @@ import { panggil, tglJam } from '../lib/rpc'
 import { biru, dariInputLokal, keInputLokal, merah, nilaiTeks, unduhCsv } from './lmsUtil'
 import type { PertemuanRingkas } from './LmsKuis'
 import { LembarJawabanGuru } from './LmsLembar'
+import RujukanBuku from '../components/RujukanBuku'
 
 // Tugas dan pengumpulan. Pengumpulan berupa teks dan atau tautan https (Drive, GitHub, dan sebagainya).
 
@@ -201,6 +202,7 @@ function TugasGuru({ kelasId, t, pertemuan, muat }: { kelasId: string; t: Tugas;
         </div>
       </div>
       {atur && <FormTugas kelasId={kelasId} pertemuan={pertemuan} awal={t} selesai={async () => { await muat(); setAtur(false) }} />}
+      <RujukanBuku jenis="tugas" id={t.id} kelola />
       <div className="kartu jarak">
         <h3>Siapa yang sudah mengumpulkan</h3>
         <div className="aksi">
@@ -257,6 +259,7 @@ function TugasSiswa({ t, muat, kelasId }: { t: Tugas; muat: () => Promise<void>;
         </div>
       )}
       {pesan && <div className="kartu hasil jarak"><strong>{pesan}</strong></div>}
+      <RujukanBuku jenis="tugas" id={t.id} sisip={t.lembar || dinilai || tutup ? undefined : (x) => setTeks((p) => (p.trim() ? p.replace(/\s+$/, '') + '\n' : '') + 'Sumber: ' + x)} />
       {t.lembar && !dinilai && <div className="kartu jarak"><p style={{ margin: 0 }}>Tugas ini berupa lembar kerja. Isi dan kumpulkan langsung di halaman pertemuan{t.pertemuan_nomor ? ` ${t.pertemuan_nomor}` : ''}.</p>{t.pertemuan_id && <p><Link to={`/portal/lms/${kelasId}/pertemuan/${t.pertemuan_id}`}>Buka lembar kerja</Link></p>}</div>}
       {!t.lembar && !dinilai && (tutup
         ? <p className="catatan">Tenggat sudah lewat dan pengumpulan ditutup.</p>

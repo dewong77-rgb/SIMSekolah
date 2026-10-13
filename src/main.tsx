@@ -43,6 +43,9 @@ const KesBeasiswa = lazy(() => import('./pages/kesiswaan/Beasiswa'))
 const KesBK = lazy(() => import('./pages/kesiswaan/BK'))
 const KesBKKasus = lazy(() => import('./pages/kesiswaan/BKKasus'))
 const CatatanSaya = lazy(() => import('./pages/kesiswaan/CatatanSaya'))
+const PerpustakaanDigital = lazy(() => import('./pages/perpustakaan/Perpustakaan'))
+const BacaBuku = lazy(() => import('./pages/perpustakaan/BacaBuku'))
+const KelolaPerpustakaan = lazy(() => import('./pages/perpustakaan/KelolaPerpustakaan'))
 const SarprasInventaris = lazy(() => import('./pages/sarpras/SarprasInventaris'))
 const SarprasUsulan = lazy(() => import('./pages/sarpras/SarprasUsulan'))
 const SarprasBuku = lazy(() => import('./pages/sarpras/SarprasBuku'))
@@ -582,6 +585,9 @@ createRoot(document.getElementById('root')!).render(
               </RequireRole>
             }
           />
+          <Route path="portal/perpustakaan" element={<RequireRole peran={['admin_tu', 'guru', 'staf', 'siswa', 'admin_ujian']}><Suspense fallback={<Memuat />}><PerpustakaanDigital /></Suspense></RequireRole>} />
+          <Route path="portal/perpustakaan/baca/:id" element={<RequireRole peran={['admin_tu', 'guru', 'staf', 'siswa', 'admin_ujian']}><Suspense fallback={<Memuat />}><BacaBuku /></Suspense></RequireRole>} />
+          <Route path="portal/perpustakaan/kelola" element={<RequireRole peran={['admin_tu', 'guru', 'staf']}><Suspense fallback={<Memuat />}><KelolaPerpustakaan /></Suspense></RequireRole>} />
           <Route path="portal/buku-tamu" element={<RequireRole peran={['admin_tu', 'guru', 'staf']}><Suspense fallback={<Memuat />}><BukuTamuPortal /></Suspense></RequireRole>} />
           <Route path="portal/surat" element={<RequireRole peran={['admin_tu', 'guru', 'staf']}><Suspense fallback={<Memuat />}><RegisterSurat /></Suspense></RequireRole>} />
           <Route path="portal/surat/draf" element={<RequireRole peran={['admin_tu', 'guru', 'staf']}><Suspense fallback={<Memuat />}><DrafSurat /></Suspense></RequireRole>} />
