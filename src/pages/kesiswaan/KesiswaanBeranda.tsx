@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Halaman from '../../components/Halaman'
 import { panggil } from '../../lib/rpc'
-import { KATEGORI } from '../../lib/kesiswaan'
+import { KATEGORI, useAksesKes } from '../../lib/kesiswaan'
 import Gerbang from './Gerbang'
 
 type Ringkasan = {
@@ -22,6 +22,7 @@ function Isi({ izin }: { izin: string[] }) {
   const [galat, setGalat] = useState('')
   useEffect(() => { panggil<Ringkasan>('kesiswaan_ringkasan').then(setR).catch((e: Error) => setGalat(e.message)) }, [])
   const punya = (...k: string[]) => izin.some((i) => k.includes(i))
+  const tambahan = useAksesKes()
   const sekolah = r?.seluruh_sekolah ?? false
 
   const menu = [
@@ -33,12 +34,14 @@ function Isi({ izin }: { izin: string[] }) {
     punya('kesiswaan.pantau') && { to: '/portal/kesiswaan/risiko', nama: 'Risiko siswa', ket: 'Siswa yang perlu dilihat lebih dulu dan tindak lanjutnya', n: 0 },
     punya('bk.kelola', 'bk.baca') && { to: '/portal/kesiswaan/bk', nama: 'Bimbingan konseling', ket: 'Catatan konseling dan pencegahan siswa putus sekolah (ATS)', n: 0 },
     punya('ekskul.kelola', 'ekskul.lihat') && { to: '/portal/kesiswaan/ekskul', nama: 'Ekskul dan OSIS', ket: 'Anggota, pertemuan, dan predikat', n: 0 },
+    tambahan.punya('biodata') && { to: '/portal/kesiswaan/biodata', nama: 'Biodata siswa', ket: 'Identitas, alamat, dan orang tua siswa dari data Dapodik', n: 0 },
+    tambahan.punya('keluar') && { to: '/portal/kesiswaan/keluar', nama: 'Pengeluaran siswa', ket: tambahan.punya('keluar.tanggapi') ? 'Tanggapi usul keluar dengan bukti PDF dari Dapodik' : 'Usulkan siswa keluar dan pantau tanggapan operator', n: 0 },
     punya('kesiswaan.beasiswa') && { to: '/portal/kesiswaan/beasiswa', nama: 'Beasiswa dan PIP', ket: 'Program, calon, berkas, dan pencairan', n: 0 },
   ].filter(Boolean) as { to: string; nama: string; ket: string; n?: number }[]
 
   const kat = r?.pelanggaran_30_hari ?? {}
   return (
-    <Halaman judul="Kesiswaan" lead="Pembinaan siswa dalam satu tempat: pelanggaran dan prestasi, izin dan kehadiran, siswa berisiko, ekstrakurikuler, dan beasiswa.">
+    <Halaman judul="Kesiswaan" lead="Pembinaan siswa dalam satu tempat: pelanggaran dan prestasi, izin dan kehadiran, biodata, pengeluaran siswa, siswa berisiko, ekstrakurikuler, dan beasiswa.">
       {galat && <p className="kartu galat" role="alert">{galat}</p>}
       <div className="grid grid-3">
         {menu.map((m) => (
