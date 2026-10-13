@@ -24,6 +24,7 @@ export const namaPeran: Record<Peran, string> = {
 
 const ajuanSaya: ItemPortal = { to: '/portal/ajuan', label: 'Ajuan saya', ikon: 'kotak', ket: 'Perbaikan data yang diajukan dan keputusannya', lencana: 'ajuan_saya' }
 const chat: ItemPortal = { to: '/portal/chat', label: 'Chat', ikon: 'chat', ket: 'Percakapan kelas, tanya guru, dan ruang guru', lencana: 'chat' }
+const perpustakaan: ItemPortal = { to: '/portal/perpustakaan', label: 'Perpustakaan digital', ikon: 'buku', ket: 'Baca buku koleksi sekolah langsung di aplikasi' }
 const disposisi: ItemPortal = { to: '/portal/disposisi', label: 'Disposisi saya', ikon: 'surat', ket: 'Instruksi dari pimpinan untuk Anda', lencana: 'disposisi' }
 
 const menuPeran: Record<Peran, KelompokPortal[]> = {
@@ -35,6 +36,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
         { to: '/portal/penilaian/kuis', cocok: '/portal/penilaian', label: 'Kuis dan ulangan', ikon: 'centang', ket: 'Kuis, ulangan harian, UTS, dan UAS dari semua kelas' },
         { to: '/portal/progres-lms', label: 'Nilai dan progres', ikon: 'grafik', ket: 'Kehadiran, materi, nilai kuis, dan tugas semua mapel' },
         { to: '/asesmen', label: 'Ujian digital (CBT)', ikon: 'pena', ket: 'Jadwal dan ruang ujian sekolah. Masuk dengan token dari pengawas' },
+        perpustakaan,
         chat,
         { to: '/portal/panduan-lms', label: 'Panduan belajar', ikon: 'info', ket: 'Cara mengikuti pertemuan langkah demi langkah' },
       ],
@@ -55,6 +57,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
         { to: '/portal/penilaian/kuis', cocok: '/portal/penilaian', label: 'Kuis dan ulangan', ikon: 'centang', ket: 'Kuis, ulangan harian, UTS, dan UAS semua kelas' },
         { to: '/portal/absensi', label: 'Rekap kehadiran', ikon: 'centang', ket: 'Jumlah siswa yang diajar dan rekap kehadiran per kelas' },
         { to: '/asesmen', label: 'Asesmen digital (CBT)', ikon: 'pena', ket: 'Bank soal dan pengawasan ujian sekolah (UTS, UAS)' },
+        perpustakaan,
         chat,
         { to: '/portal/panduan-lms', label: 'Panduan mengajar', ikon: 'info', ket: 'Urutan menyiapkan dan menjalankan satu pertemuan' },
       ],
@@ -85,6 +88,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
   ],
   staf: [
     { judul: 'Komunikasi', item: [chat] },
+    { judul: 'Belajar dan membaca', item: [perpustakaan] },
     { judul: 'Ujian', item: [{ to: '/asesmen', label: 'Asesmen digital (CBT)', ikon: 'pena', ket: 'Bank soal dan pengawasan ujian sekolah' }] },
     {
       judul: 'Data diri',
@@ -130,6 +134,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
         { to: '/portal/lms', label: 'Kelas ajar', ikon: 'buku', ket: 'Kelas, materi, absensi per pertemuan' },
         { to: '/portal/absensi', label: 'Absensi', ikon: 'centang', ket: 'Jumlah siswa yang diajar dan rekap kehadiran per kelas' },
         { to: '/portal/lms/administrasi', label: 'Administrasi guru', ikon: 'dokumen', ket: 'Perangkat ajar dan supervisi' },
+        perpustakaan,
         chat,
         { to: '/asesmen', label: 'Asesmen digital (CBT)', ikon: 'pena', ket: 'Kelola ujian, ruang, bank soal, dan pengawas' },
       ],
@@ -169,6 +174,7 @@ const pengaturanSuper: ItemPortal[] = [
   { to: '/portal/kurikulum/wali-kelas', label: 'Wali kelas', ikon: 'sekolah', ket: 'Usulan wali kelas, persetujuan Kepala Sekolah, dan lampiran SK' },
   { to: '/portal/kurikulum/formulir', label: 'Formulir rombel', ikon: 'dokumen', ket: 'F-ROMBEL: jurusan, moving class, SK mengajar, dan cetak format Dapodik' },
   { to: '/portal/sarpras/buku', label: 'Sarana dan prasarana', ikon: 'tas', ket: 'Inventaris, kerusakan, permintaan, usulan bertingkat, kartu inventaris, dan pembukuan' },
+  { to: '/portal/perpustakaan/kelola', label: 'Kelola perpustakaan', ikon: 'buku', ket: 'Tambah dan terbitkan buku digital, tunjuk penanggung jawab perpustakaan' },
   { to: '/portal/spmi', label: 'Penjaminan mutu (SPMI)', ikon: 'centang', ket: 'Standar mutu, indikator, dan dokumen satuan penjamin mutu internal' },
 ]
 
@@ -230,7 +236,7 @@ const menuIzin: { izin: string; nama: string; bidang: string; ikon: string; to?:
   { izin: 'sarpras.kelola', nama: 'Pembukuan sarpras', bidang: 'Sarana dan prasarana', ikon: 'grafik', to: '/portal/sarpras/buku' },
   { izin: 'sarpras.operasional', nama: 'Pembukuan sarpras', bidang: 'Sarana dan prasarana', ikon: 'grafik', to: '/portal/sarpras/buku' },
   { izin: 'sarpras.lihat', nama: 'Pembukuan sarpras', bidang: 'Sarana dan prasarana', ikon: 'grafik', to: '/portal/sarpras/buku' },
-  { izin: 'perpus.kelola', nama: 'Perpustakaan', bidang: 'Perpustakaan', ikon: 'buku' },
+  { izin: 'perpus.kelola', nama: 'Kelola perpustakaan', bidang: 'Perpustakaan', ikon: 'buku', to: '/portal/perpustakaan/kelola' },
   { izin: 'spmi.kelola', nama: 'Penjaminan mutu (SPMI)', bidang: 'Penjaminan mutu', ikon: 'centang', to: '/portal/spmi' },
   { izin: 'spmi.catat', nama: 'Penjaminan mutu (SPMI)', bidang: 'Penjaminan mutu', ikon: 'centang', to: '/portal/spmi' },
   { izin: 'spmi.lihat', nama: 'Penjaminan mutu (SPMI)', bidang: 'Penjaminan mutu', ikon: 'centang', to: '/portal/spmi' },
