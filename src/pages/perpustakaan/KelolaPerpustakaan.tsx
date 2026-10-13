@@ -243,7 +243,7 @@ export default function KelolaPerpustakaan() {
           <div className="lencana-baris jarak">
             <span className="lencana">{buku?.length ?? 0} judul</span>
             <span className="lencana">{terbit} terbit</span>
-            <span className="lencana">{totalBaca} pembaca terdaftar</span>
+            <span className="lencana">{totalBaca} pembaca (dijumlah per buku)</span>
           </div>
           {form
             ? <FormBuku key={form === 'baru' ? 'baru' : form.id} awal={form === 'baru' ? null : form} npsn={profil?.npsn ?? ''} selesai={async () => { setForm(null); await muat() }} batal={() => setForm(null)} />
@@ -253,7 +253,7 @@ export default function KelolaPerpustakaan() {
           {buku?.length === 0 && !form && <div className="kartu"><p className="catatan" style={{ margin: 0 }}>Belum ada buku. Tekan Tambah buku, pilih berkas PDF, lalu isi data.</p></div>}
           <div className="tabel-bungkus jarak">
             <table>
-              <thead><tr><th>Buku</th><th>Nomor</th><th>Status</th><th>Halaman</th><th>Pembaca</th><th>Lisensi</th><th>Aksi</th></tr></thead>
+              <thead><tr><th>Buku</th><th>Nomor</th><th>Status</th><th>Halaman</th><th>Dibuka · dibaca · pembaca</th><th>Lisensi</th><th>Aksi</th></tr></thead>
               <tbody>
                 {(buku ?? []).map((b) => (
                   <tr key={b.id}>
@@ -266,7 +266,7 @@ export default function KelolaPerpustakaan() {
                     <td><small>Induk: {b.nomor_induk ?? '-'}<br />DDC: {b.klasifikasi ?? '-'}<br />Panggil: {b.nomor_panggil ?? '-'}<br />{labelJenis(b.jenis_buku)}</small></td>
                     <td><span className={`status ${kelasStatus[b.status]}`}>{labelStatus[b.status]}</span></td>
                     <td>{b.jumlah_halaman ?? '-'}<br /><small>{ukuranTeks(b.ukuran_byte)}</small></td>
-                    <td>{b.pembaca ?? 0}</td>
+                    <td>{b.dibuka ?? 0} · {b.dibaca ?? 0} · {b.pembaca ?? 0}</td>
                     <td>{b.lisensi_berakhir ? <>s.d. {tgl(b.lisensi_berakhir)}</> : <small>tanpa batas</small>}</td>
                     <td>
                       <div className="aksi" style={{ marginTop: 0 }}>

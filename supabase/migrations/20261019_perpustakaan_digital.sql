@@ -266,11 +266,15 @@ begin
   return coalesce((
     select jsonb_agg(private.perpus_buku_json(b, v_kelola) || jsonb_build_object(
       'halaman_terakhir', pr.halaman, 'halaman_terjauh', pr.halaman_terjauh,
-      'pembaca', case when v_kelola then (select count(distinct x.user_id) from public.perpus_sesi x where x.buku_id = b.id) end,
+      'dibuka', st.dibuka, 'dibaca', st.dibaca, 'pembaca', st.pembaca,
       'dirujuk', case when v_kelola then (select count(*) from public.perpus_rujukan x where x.buku_id = b.id) end
     ) order by b.judul)
     from public.perpus_buku b
     left join public.perpus_progres pr on pr.buku_id = b.id and pr.user_id = auth.uid()
+    cross join lateral (
+      select count(*) as dibuka, count(*) filter (where s.detik_aktif >= 30) as dibaca,
+             count(distinct s.user_id) filter (where s.detik_aktif >= 30) as pembaca
+        from public.perpus_sesi s where s.buku_id = b.id) st
     where b.npsn = private.npsn_saya()
       and ((v_kelola and p_semua) or private.perpus_buku_terbuka(b))
       and (p_kategori is null or p_kategori = '' or b.kategori = p_kategori)

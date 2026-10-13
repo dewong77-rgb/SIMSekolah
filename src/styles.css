@@ -1379,7 +1379,9 @@ a.bt-tag:hover, button.bt-tag:hover, .bt-tag.aktif { background: var(--warna-uta
 .buku-sampul-kosong { display: grid; place-items: center; font-size: 2rem; font-weight: 700; color: var(--warna-utama); }
 .buku-baris { display: flex; gap: 10px; align-items: center; min-width: 220px; }
 .buku-baris .buku-sampul { width: 44px; flex: none; }
-.buku-cari { grid-template-columns: 2fr 1fr; align-items: end; }
+.buku-cari { grid-template-columns: 2fr 1fr 1fr; align-items: end; }
+.buku-statistik { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; margin-top: 6px; padding-top: 8px; border-top: 1px solid var(--garis); font-size: .8rem; color: var(--teks-lembut); }
+.buku-populer { margin: 0; background: #e3f4e8; color: #17603a; }
 .baca-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
 .baca-lompat { display: flex; gap: 6px; align-items: center; }
 .baca-lompat input { width: 64px; text-align: center; font: inherit; padding: 8px; border: 1px solid #b9c1cd; border-radius: 8px; }
