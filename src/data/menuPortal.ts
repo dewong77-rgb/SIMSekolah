@@ -24,7 +24,7 @@ export const namaPeran: Record<Peran, string> = {
 
 const ajuanSaya: ItemPortal = { to: '/portal/ajuan', label: 'Ajuan saya', ikon: 'kotak', ket: 'Perbaikan data yang diajukan dan keputusannya', lencana: 'ajuan_saya' }
 const chat: ItemPortal = { to: '/portal/chat', label: 'Chat', ikon: 'chat', ket: 'Percakapan kelas, tanya guru, dan ruang guru', lencana: 'chat' }
-const perpustakaan: ItemPortal = { to: '/portal/perpustakaan', label: 'Perpustakaan digital', ikon: 'buku', ket: 'Baca buku koleksi sekolah langsung di aplikasi' }
+const perpustakaan: ItemPortal = { to: '/portal/perpustakaan', label: 'Perpustakaan', ikon: 'buku', ket: 'Baca buku digital di aplikasi dan cek ketersediaan buku fisik', cocok: '/portal/perpustakaan' }
 const disposisi: ItemPortal = { to: '/portal/disposisi', label: 'Disposisi saya', ikon: 'surat', ket: 'Instruksi dari pimpinan untuk Anda', lencana: 'disposisi' }
 
 const menuPeran: Record<Peran, KelompokPortal[]> = {
@@ -174,7 +174,7 @@ const pengaturanSuper: ItemPortal[] = [
   { to: '/portal/kurikulum/wali-kelas', label: 'Wali kelas', ikon: 'sekolah', ket: 'Usulan wali kelas, persetujuan Kepala Sekolah, dan lampiran SK' },
   { to: '/portal/kurikulum/formulir', label: 'Formulir rombel', ikon: 'dokumen', ket: 'F-ROMBEL: jurusan, moving class, SK mengajar, dan cetak format Dapodik' },
   { to: '/portal/sarpras/buku', label: 'Sarana dan prasarana', ikon: 'tas', ket: 'Inventaris, kerusakan, permintaan, usulan bertingkat, kartu inventaris, dan pembukuan' },
-  { to: '/portal/perpustakaan/kelola', label: 'Kelola perpustakaan', ikon: 'buku', ket: 'Tambah dan terbitkan buku digital, tunjuk penanggung jawab perpustakaan' },
+  { to: '/portal/perpustakaan/kelola', label: 'Kelola perpustakaan', ikon: 'buku', ket: 'Koleksi digital dan fisik, peminjaman, laporan baca, dan penanggung jawab perpustakaan' },
   { to: '/portal/spmi', label: 'Penjaminan mutu (SPMI)', ikon: 'centang', ket: 'Standar mutu, indikator, dan dokumen satuan penjamin mutu internal' },
 ]
 

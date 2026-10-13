@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Halaman from '../../components/Halaman'
+import NavPerpus from '../../components/NavPerpus'
 import { panggil } from '../../lib/rpc'
 import { alamatBaca, useIzinPerpus, useSampul, type BukuPerpus } from '../../lib/perpustakaan'
 
@@ -48,6 +49,7 @@ export default function Perpustakaan() {
 
   return (
     <Halaman judul="Perpustakaan digital" lead="Buku koleksi sekolah yang bisa dibaca langsung di aplikasi. Posisi bacaan tersimpan otomatis.">
+      <NavPerpus aktif="digital" />
       {galat && <p className="kartu galat" role="alert">{galat}</p>}
       {izin?.kelola && <div className="aksi" style={{ marginTop: 0 }}><Link to="/portal/perpustakaan/kelola" className="tombol tombol-isi">Kelola koleksi</Link></div>}
 

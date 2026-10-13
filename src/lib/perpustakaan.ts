@@ -217,3 +217,26 @@ export function durasiTeks(detik: number | null | undefined) {
   if (m < 60) return `${m} mnt`
   return `${Math.floor(m / 60)} j ${m % 60} mnt`
 }
+
+// ---------------------------------------------------------------- perpustakaan fisik
+export type Fisik = {
+  id: string; judul: string; penulis: string | null; penerbit: string | null; tahun_terbit: number | null; isbn: string | null
+  kategori: string; jenis_buku: string; klasifikasi: string | null; nomor_panggil: string | null; edisi: string | null; kota_terbit: string | null
+  bahasa: string; subjek: string | null; mapel: string | null; tingkat: string | null; deskripsi: string | null; rak: string | null; aktif: boolean
+  jumlah: number; tersedia: number; dipinjam: number; rusak: number; hilang: number; saya_pinjam: boolean
+}
+export type Eksemplar = {
+  id: string; nomor_induk: string; kondisi: 'baik' | 'rusak_ringan' | 'rusak_berat'; status: 'tersedia' | 'dipinjam' | 'rusak' | 'hilang' | 'dihapusbukukan'
+  sumber_perolehan: string; tanggal_perolehan: string | null; harga: number | null; catatan: string | null
+  pinjam_id: string | null; peminjam: string | null; jatuh_tempo: string | null; terlambat: boolean
+}
+export type PinjamBaris = {
+  id: string; judul: string; nomor_induk: string; peminjam: string; tipe: 'siswa' | 'ptk'; kelas: string | null
+  pinjam_pada: string; jatuh_tempo: string; kembali_pada: string | null; kondisi_kembali: string | null; terlambat: boolean; hari_terlambat: number | null
+}
+export type PinjamSaya = { id: string; judul: string; penulis: string | null; nomor_induk: string; rak: string | null; pinjam_pada: string; jatuh_tempo: string; kembali_pada: string | null; terlambat: boolean }
+export type Peminjam = { tipe: 'siswa' | 'ptk'; id: string; nama: string; ket: string; dipinjam: number }
+
+export const KONDISI = [['baik', 'Baik'], ['rusak_ringan', 'Rusak ringan'], ['rusak_berat', 'Rusak berat']] as const
+export const STATUS_EKSEMPLAR = [['tersedia', 'Tersedia'], ['dipinjam', 'Dipinjam'], ['rusak', 'Rusak (tidak dipinjamkan)'], ['hilang', 'Hilang'], ['dihapusbukukan', 'Dihapusbukukan']] as const
+export const labelDari = (daftar: readonly (readonly [string, string])[], k: string) => daftar.find((x) => x[0] === k)?.[1] ?? k

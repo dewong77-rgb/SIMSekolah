@@ -9,6 +9,8 @@ import {
 } from '../../lib/perpustakaan'
 import { Sampul } from './Perpustakaan'
 import LaporanPerpustakaan from './LaporanPerpustakaan'
+import KelolaFisik from './KelolaFisik'
+import PeminjamanPerpus from './PeminjamanPerpus'
 
 // Pengelolaan koleksi dan pengelola perpustakaan. Untuk super admin, penanggung jawab, dan petugas perpustakaan.
 
@@ -193,7 +195,7 @@ export default function KelolaPerpustakaan() {
   const [buku, setBuku] = useState<BukuPerpus[] | null>(null)
   const [galat, setGalat] = useState('')
   const [form, setForm] = useState<BukuPerpus | 'baru' | null>(null)
-  const [tab, setTab] = useState<'koleksi' | 'laporan' | 'pengelola'>('koleksi')
+  const [tab, setTab] = useState<'koleksi' | 'fisik' | 'pinjam' | 'laporan' | 'pengelola'>('koleksi')
   const muat = useCallback(async () => {
     try { setBuku(await panggil<BukuPerpus[]>('perpus_buku_daftar', { p_q: null, p_kategori: null, p_semua: true })); setGalat('') } catch (e) { setGalat((e as Error).message) }
   }, [])
@@ -226,15 +228,19 @@ export default function KelolaPerpustakaan() {
   const totalBaca = (buku ?? []).reduce((a, b) => a + Number(b.pembaca ?? 0), 0)
 
   return (
-    <Halaman judul="Kelola perpustakaan" lead="Tambah buku digital, atur status terbit, dan tunjuk pengelola.">
+    <Halaman judul="Kelola perpustakaan" lead="Kelola koleksi digital dan fisik, catat peminjaman, lihat laporan baca, dan tunjuk pengelola.">
       <div className="aksi" style={{ marginTop: 0 }}>
         <Link to="/portal/perpustakaan" className="tombol">Lihat sebagai pembaca</Link>
-        <button type="button" className={tab === 'koleksi' ? 'tombol tombol-isi' : 'tombol'} onClick={() => setTab('koleksi')}>Koleksi</button>
+        <button type="button" className={tab === 'koleksi' ? 'tombol tombol-isi' : 'tombol'} onClick={() => setTab('koleksi')}>Koleksi digital</button>
+        <button type="button" className={tab === 'fisik' ? 'tombol tombol-isi' : 'tombol'} onClick={() => setTab('fisik')}>Buku fisik</button>
+        <button type="button" className={tab === 'pinjam' ? 'tombol tombol-isi' : 'tombol'} onClick={() => setTab('pinjam')}>Peminjaman</button>
         <button type="button" className={tab === 'laporan' ? 'tombol tombol-isi' : 'tombol'} onClick={() => setTab('laporan')}>Laporan baca</button>
         <button type="button" className={tab === 'pengelola' ? 'tombol tombol-isi' : 'tombol'} onClick={() => setTab('pengelola')}>Pengelola</button>
       </div>
       {galat && <p className="kartu galat" role="alert">{galat}</p>}
 
+      {tab === 'fisik' && <KelolaFisik />}
+      {tab === 'pinjam' && <PeminjamanPerpus />}
       {tab === 'laporan' && <LaporanPerpustakaan />}
       {tab === 'pengelola' && <PanelPengelola bolehAtur={izin.atur_pengelola} />}
 
