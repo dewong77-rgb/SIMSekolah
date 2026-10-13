@@ -4,6 +4,7 @@ import {
   DDC, JENIS_BUKU, KATEGORI_UMUM, KONDISI, STATUS_EKSEMPLAR, SUMBER, TINGKAT, labelDari, labelJenis, nomorPanggil, type Eksemplar, type Fisik,
 } from '../../lib/perpustakaan'
 import { panggil, tgl } from '../../lib/rpc'
+import ImporFisik from './ImporFisik'
 
 // Pendataan koleksi fisik: judul, eksemplar (jumlah, kondisi, status), dan ringkasan ketersediaan.
 
@@ -157,6 +158,7 @@ export default function KelolaFisik() {
   const [form, setForm] = useState<Fisik | 'baru' | null>(null)
   const [buka, setBuka] = useState<string | null>(null)
   const [q, setQ] = useState('')
+  const [impor, setImpor] = useState(false)
   const muat = useCallback(async () => {
     try { setDaftar(await panggil<Fisik[]>('perpus_fisik_daftar', { p_q: null, p_semua: true })); setGalat('') } catch (e) { setGalat((e as Error).message) }
   }, [])
@@ -192,7 +194,8 @@ export default function KelolaFisik() {
       {galat && <p className="kartu galat" role="alert">{galat}</p>}
       {form
         ? <FormFisik key={form === 'baru' ? 'baru' : form.id} awal={form === 'baru' ? null : form} selesai={async () => { setForm(null); await muat() }} batal={() => setForm(null)} />
-        : <div className="aksi"><button type="button" className="tombol tombol-isi" onClick={() => setForm('baru')}>Tambah judul</button><button type="button" className="tombol" onClick={unduh} disabled={!daftar}>Unduh CSV</button></div>}
+        : <div className="aksi"><button type="button" className="tombol tombol-isi" onClick={() => setForm('baru')}>Tambah judul</button><button type="button" className={impor ? 'tombol tombol-isi' : 'tombol'} onClick={() => setImpor(!impor)}>Impor dari Excel</button><button type="button" className="tombol" onClick={unduh} disabled={!daftar}>Unduh CSV</button></div>}
+      {impor && !form && <ImporFisik daftar={daftar ?? []} selesai={muat} tutup={() => setImpor(false)} />}
       <label className="form" style={{ display: 'grid', gap: 6, fontWeight: 600 }}>Cari judul<input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Judul, penulis, rak, ISBN" style={{ font: 'inherit', padding: '10px 12px', border: '1px solid #b9c1cd', borderRadius: 8 }} /></label>
 
       {!daftar && !galat && <p className="catatan">Memuat...</p>}
