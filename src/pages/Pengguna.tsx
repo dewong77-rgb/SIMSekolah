@@ -41,12 +41,14 @@ export default function PenggunaHalaman() {
   const [hal, setHal] = useState(1)
   const [ukuran, setUkuran] = useState(10)
   const [progres, setProgres] = useState('')
+  const [bolehHapus, setBolehHapus] = useState(true)
 
   const muat = useCallback(async () => {
     try {
       const d = await panggil({ aksi: 'daftar' })
       setDaftar(d.pengguna)
       setRing(d.ringkasan)
+      setBolehHapus(d.boleh_hapus !== false)
       setGalat('')
     } catch (e) {
       setGalat((e as Error).message)
@@ -313,10 +315,12 @@ export default function PenggunaHalaman() {
                           </button>
                         </>
                       )}
-                      <button className="tombol bahaya" disabled={sibuk}
-                        onClick={() => aksi({ aksi: 'hapus', user_id: p.user_id }, `Hapus akun ${p.nama ?? p.email}${p.kelas ? ` (${p.kelas})` : ''}? Tidak dapat dibatalkan.`)}>
-                        Hapus
-                      </button>
+                      {bolehHapus && (
+                        <button className="tombol bahaya" disabled={sibuk}
+                          onClick={() => aksi({ aksi: 'hapus', user_id: p.user_id }, `Hapus akun ${p.nama ?? p.email}${p.kelas ? ` (${p.kelas})` : ''}? Tidak dapat dibatalkan.`)}>
+                          Hapus
+                        </button>
+                      )}
                     </>
                   )}
                 </td>

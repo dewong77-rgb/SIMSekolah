@@ -24,8 +24,9 @@ Deno.serve(async (req) => {
   const { data: u } = await asUser.auth.getUser()
   if (!u.user) return json({ galat: 'belum masuk' }, 401)
   const db = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } })
-  const { data: sa } = await db.from('super_admin').select('user_id').eq('user_id', u.user.id).maybeSingle()
+  const { data: sa } = await db.from('super_admin').select('user_id,boleh_hapus').eq('user_id', u.user.id).maybeSingle()
   if (!sa) return json({ galat: 'tidak berwenang' }, 403)
+  const bolehHapus = sa.boleh_hapus !== false
   const { data: me } = await db.from('profil_pengguna').select('npsn').eq('user_id', u.user.id).maybeSingle()
   if (!me) return json({ galat: 'profil tidak ditemukan' }, 403)
 
@@ -34,6 +35,11 @@ Deno.serve(async (req) => {
   const aksi = String(b.aksi ?? '')
   const target = String(b.user_id ?? '')
   const diri = target === u.user.id
+  // Super admin tanpa hak hapus tidak boleh mengubah akun super admin lain.
+  if (!bolehHapus && aksi !== 'daftar' && target) {
+    const { data: tsa } = await db.from('super_admin').select('user_id').eq('user_id', target).maybeSingle()
+    if (tsa && !diri) return json({ galat: 'akun super admin tidak dapat diubah dari akun ini' }, 403)
+  }
 
   async function semuaPengguna() {
     const peta = new Map<string, { email: string | null; terakhir_masuk: string | null; nonaktif: boolean; wajib_ganti: boolean }>()
@@ -103,7 +109,7 @@ Deno.serve(async (req) => {
     }
     const { count: guru } = await db.from('ptk').select('*', { count: 'exact', head: true }).eq('npsn', me.npsn).in('jenis_ptk', ['Guru', 'Kepala Sekolah'])
     const { count: staf } = await db.from('ptk').select('*', { count: 'exact', head: true }).eq('npsn', me.npsn).eq('jenis_ptk', 'Tenaga Kependidikan')
-    return json({ pengguna, ringkasan: { siswa_aktif: await hitung('aktif'), alumni: await hitung('lulus'), guru_total: guru ?? 0, staf_total: staf ?? 0 } })
+    return json({ boleh_hapus: bolehHapus, pengguna, ringkasan: { siswa_aktif: await hitung('aktif'), alumni: await hitung('lulus'), guru_total: guru ?? 0, staf_total: staf ?? 0 } })
   }
 
   if (aksi === 'buat_massal') {
@@ -261,6 +267,7 @@ Deno.serve(async (req) => {
   }
 
   if (aksi === 'hapus') {
+    if (!bolehHapus) return json({ galat: 'akun ini tidak memiliki hak menghapus akun' }, 403)
     if (diri) return json({ galat: 'tidak dapat menghapus akun sendiri' }, 400)
     const { data: ada } = await db.from('profil_pengguna').select('user_id').eq('user_id', target).eq('npsn', me.npsn).maybeSingle()
     if (!ada) return json({ galat: 'akun tidak ditemukan' }, 404)
