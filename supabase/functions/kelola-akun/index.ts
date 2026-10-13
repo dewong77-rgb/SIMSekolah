@@ -35,10 +35,11 @@ Deno.serve(async (req) => {
   const aksi = String(b.aksi ?? '')
   const target = String(b.user_id ?? '')
   const diri = target === u.user.id
-  // Super admin tanpa hak hapus tidak boleh mengubah akun super admin lain.
-  if (!bolehHapus && aksi !== 'daftar' && target) {
-    const { data: tsa } = await db.from('super_admin').select('user_id').eq('user_id', target).maybeSingle()
-    if (tsa && !diri) return json({ galat: 'akun super admin tidak dapat diubah dari akun ini' }, 403)
+  // Akun super admin hanya dapat dikelola oleh super admin penuh, dan hanya bila akun itu tanpa hak hapus.
+  // Super admin penuh lain dan akun sendiri tidak dapat disentuh lewat sini.
+  if (aksi !== 'daftar' && target && !diri) {
+    const { data: tsa } = await db.from('super_admin').select('boleh_hapus').eq('user_id', target).maybeSingle()
+    if (tsa && (!bolehHapus || tsa.boleh_hapus !== false)) return json({ galat: 'akun super admin tidak dapat diubah dari akun ini' }, 403)
   }
 
   async function semuaPengguna() {
@@ -85,8 +86,9 @@ Deno.serve(async (req) => {
     let rows: Baris[]
     try { rows = await semuaProfil() } catch (e) { return json({ galat: (e as Error).message }, 500) }
     const au = await semuaPengguna()
-    const { data: sas } = await db.from('super_admin').select('user_id')
+    const { data: sas } = await db.from('super_admin').select('user_id,boleh_hapus')
     const superSet = new Set((sas ?? []).map((x) => x.user_id as string))
+    const terbatasSet = new Set((sas ?? []).filter((x) => x.boleh_hapus === false).map((x) => x.user_id as string))
     const pengguna = rows.map((r) => {
       const a = au.get(r.user_id)
       const pd = r.peserta_didik
@@ -99,7 +101,7 @@ Deno.serve(async (req) => {
         user_id: r.user_id, peran: r.peran, status_pd: pd?.status_peserta_didik ?? null,
         nama: r.ptk?.nama ?? pd?.nama ?? null, nisn: pd?.nisn ?? null,
         email: a?.email ?? null, terakhir_masuk: a?.terakhir_masuk ?? null, nonaktif: a?.nonaktif ?? false,
-        super_admin: superSet.has(r.user_id), dibuat_pada: r.dibuat_pada,
+        super_admin: superSet.has(r.user_id), terbatas: terbatasSet.has(r.user_id), dibuat_pada: r.dibuat_pada,
         sandi: !['siswa', 'guru', 'staf'].includes(r.peran) ? null : !r.sandi_awal_diatur ? 'belum' : a?.wajib_ganti ? 'awal' : 'diganti',
       }
     })
