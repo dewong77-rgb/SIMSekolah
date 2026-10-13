@@ -57,7 +57,7 @@ export default function PengingatLms({ maks = 6 }: { maks?: number }) {
       {tampil.map((b, i) => (
         <Link key={i} to={tujuan(b)} className={`perhatian-item pengingat-${b.tingkat}`}>
           <span className="lencana">{label[b.jenis]}</span>
-          <span><strong>{b.judul}</strong><br /><small>{b.mapel} {b.rombel}{ket(b) ? `, ${ket(b)}` : ''}</small></span>
+          <span className="pengingat-isi"><strong>{b.judul}</strong><small>{b.mapel} {b.rombel}{ket(b) ? `, ${ket(b)}` : ''}</small></span>
         </Link>
       ))}
       {h.jumlah > maks && <button type="button" className="tombol" onClick={() => setSemua(!semua)}>{semua ? 'Ringkas' : `Tampilkan semua (${h.jumlah})`}</button>}

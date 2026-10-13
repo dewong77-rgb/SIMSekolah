@@ -1332,3 +1332,42 @@ a.bt-tag:hover, button.bt-tag:hover, .bt-tag.aktif { background: var(--warna-uta
 .forum-gambar-kosong { padding: 24px 32px; color: var(--teks-lembut); font-size: .85rem; }
 .forum-pratinjau { display: flex; align-items: flex-end; gap: 10px; margin-top: 8px; }
 .forum-pratinjau img { max-width: 160px; max-height: 120px; border-radius: 10px; border: 1px solid var(--garis); object-fit: cover; }
+
+/* Kelola pengguna: tampilan padat */
+.ringkas { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: 12px; font-size: .9rem; }
+.ringkas span { background: #fff; border: 1px solid var(--garis); border-radius: 999px; padding: 3px 12px; }
+.ringkas b { color: var(--warna-utama); }
+.lipat { padding: 10px 16px; }
+.lipat > summary { cursor: pointer; font-weight: 600; color: var(--warna-utama); }
+.aksi.rapat { gap: 8px; margin-top: 10px; align-items: center; }
+.tab-bar { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--garis); }
+.tab-pengguna { font: inherit; font-size: .9rem; padding: 6px 12px; background: none; border: 0; border-bottom: 2px solid transparent; cursor: pointer; color: inherit; }
+.tab-pengguna.aktif { border-bottom-color: var(--warna-utama); color: var(--warna-utama); font-weight: 600; }
+.tabel-padat table { font-size: .85rem; }
+.tabel-padat th, .tabel-padat td { padding: 5px 8px; line-height: 1.25; }
+.tabel-padat .aksi-baris { white-space: nowrap; }
+.tabel-padat .aksi-baris .tombol { padding: 2px 8px; font-size: .8rem; margin-right: 4px; color: var(--warna-utama); }
+.tabel-padat .aksi-baris .tombol.bahaya { color: #a11; margin-right: 0; }
+.tabel-padat tr.nonaktif td { opacity: .6; }
+.tabel-padat .lencana { color: #a11; }
+
+/* Halaman Kelas saya: tampilan padat */
+.pengingat { gap: 4px; margin-bottom: 8px; }
+.pengingat .perhatian-item { padding: 6px 12px; gap: 10px; }
+.pengingat .lencana { margin-bottom: 0; flex: none; padding: 1px 8px; font-size: .7rem; }
+.pengingat-isi { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 10px; min-width: 0; }
+.pengingat-isi strong { font-size: .92rem; font-weight: 600; }
+.pengingat-isi small { color: var(--teks-lembut); }
+.pengingat > .tombol { justify-self: start; padding: 4px 12px; font-size: .85rem; }
+.lms-mulai { margin: 8px 0; }
+.lms-mulai .alat-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.lms-mulai .alat-kartu { padding: 6px 12px; gap: 8px; box-shadow: none; }
+.lms-mulai .alat-kartu:hover { transform: none; }
+.lms-mulai .alat-kartu small { display: none; }
+.lms-mulai .alat-ikon { width: 30px; height: 30px; border-radius: 8px; }
+.daftar-kelas { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.daftar-kelas .kartu-kelas { padding: 10px 12px; gap: 10px; align-items: center; border-top-width: 3px; }
+.daftar-kelas .kelas-inisial { width: 36px; height: 36px; border-radius: 10px; font-size: .85rem; }
+.daftar-kelas .kelas-isi h3 { font-size: 1rem; margin: 0; }
+.daftar-kelas .kelas-isi small { line-height: 1.3; }
+.daftar-kelas .kelas-meta { margin-top: 2px; font-size: .78rem; }

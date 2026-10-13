@@ -56,14 +56,17 @@ Deno.serve(async (req) => {
   type Baris = {
     user_id: string; peran: string; dibuat_pada: string; sandi_awal_diatur: boolean
     ptk: { nama: string } | null
-    peserta_didik: { nama: string; nisn: string | null; status_peserta_didik: string } | null
+    peserta_didik: {
+      nama: string; nisn: string | null; status_peserta_didik: string
+      keanggotaan_rombel: { rombel: { nama: string; jenis_rombel: string; semester_id: string } | null }[]
+    } | null
   }
   // PostgREST membatasi 1000 baris per permintaan, jadi dibaca berhalaman.
   async function semuaProfil(): Promise<Baris[]> {
     const out: Baris[] = []
     for (let dari = 0; dari < 20000; dari += 1000) {
       const { data, error } = await db.from('profil_pengguna')
-        .select('user_id,peran,dibuat_pada,sandi_awal_diatur,ptk(nama),peserta_didik(nama,nisn,status_peserta_didik)')
+        .select('user_id,peran,dibuat_pada,sandi_awal_diatur,ptk(nama),peserta_didik(nama,nisn,status_peserta_didik,keanggotaan_rombel(rombel(nama,jenis_rombel,semester_id)))')
         .eq('npsn', me.npsn).order('user_id').range(dari, dari + 999)
       if (error) throw new Error(error.message)
       out.push(...((data ?? []) as unknown as Baris[]))
@@ -81,7 +84,12 @@ Deno.serve(async (req) => {
     const pengguna = rows.map((r) => {
       const a = au.get(r.user_id)
       const pd = r.peserta_didik
+      // kelas = rombel Kelas Utama pada semester terbaru
+      const kelas = (pd?.keanggotaan_rombel ?? []).map((k) => k.rombel)
+        .filter((x): x is NonNullable<typeof x> => !!x && x.jenis_rombel === 'Kelas Utama')
+        .sort((a, c) => c.semester_id.localeCompare(a.semester_id))[0]?.nama ?? null
       return {
+        kelas,
         user_id: r.user_id, peran: r.peran, status_pd: pd?.status_peserta_didik ?? null,
         nama: r.ptk?.nama ?? pd?.nama ?? null, nisn: pd?.nisn ?? null,
         email: a?.email ?? null, terakhir_masuk: a?.terakhir_masuk ?? null, nonaktif: a?.nonaktif ?? false,
