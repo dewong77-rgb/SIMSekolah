@@ -1320,3 +1320,41 @@ a.bt-tag:hover, button.bt-tag:hover, .bt-tag.aktif { background: var(--warna-uta
 .daftar-kelas .kelas-isi h3 { font-size: 1rem; margin: 0; }
 .daftar-kelas .kelas-isi small { line-height: 1.3; }
 .daftar-kelas .kelas-meta { margin-top: 2px; font-size: .78rem; }
+
+/* Portal: kepadatan menyeluruh. Situs publik tidak berubah. */
+.portal { --lebar-samping: 232px; --tinggi-atas: 52px; }
+.portal-isi { padding: 16px 20px 8px; font-size: .92rem; line-height: 1.45; }
+.portal-isi p { margin-bottom: .5rem; }
+.portal-isi h2 { font-size: 1.2rem; margin-bottom: .35rem; }
+.portal-isi h3 { font-size: 1rem; margin-bottom: .3rem; }
+.portal-isi .kepala-halaman { padding-bottom: 10px; }
+.portal-isi .kepala-halaman .lead { font-size: .9rem; }
+.portal-isi .kepala-halaman h1 { font-size: clamp(1.25rem, 2.2vw, 1.5rem); }
+.portal-isi .grid { gap: 10px; }
+.portal-isi .kartu { padding: 12px 14px; }
+.portal-isi .jarak { margin-top: 10px; }
+.portal-isi .menu-bagian { margin-top: 14px; }
+.portal-isi .menu-bagian-judul { margin-bottom: 6px; font-size: .75rem; }
+.portal-isi .kartu-menu-ikon { width: 34px; height: 34px; border-radius: 9px; }
+.portal-isi .kartu.tautan.kartu-menu { gap: 10px; }
+.portal-isi .kartu-menu-isi small { line-height: 1.3; }
+.portal-isi .aksi { gap: 8px; margin-top: 10px; }
+.portal-isi .tombol { padding: 6px 14px; font-size: .9rem; border-width: 1px; }
+.portal-isi .form { gap: 10px; }
+.portal-isi .form label { gap: 3px; font-size: .88rem; }
+.portal-isi .form input, .portal-isi .form select, .portal-isi .form textarea { padding: 6px 10px; }
+.portal-isi input[type="search"] { padding: 6px 10px; }
+.portal-isi th, .portal-isi td { padding: 6px 10px; }
+.portal-isi th { font-size: .82rem; }
+.portal-isi table { font-size: .9rem; }
+.portal-isi .lencana { padding: 1px 9px; margin-bottom: 4px; }
+.portal-isi ul { margin-bottom: .5rem; }
+.portal-kaki { padding: 8px 20px 12px; font-size: .85rem; }
+.portal-atas { padding: 0 20px; }
+.samping-nav { padding: 8px 8px; }
+.samping-kelompok { margin-top: 8px; }
+.samping-judul { margin-bottom: 2px; font-size: .68rem; }
+.samping-item { padding: 6px 10px; gap: 9px; font-size: .9rem; }
+.samping-item.aktif::before { top: 6px; bottom: 6px; left: -8px; }
+.samping-kaki { padding: 4px 8px 8px; }
+@media (max-width: 960px) { .portal-isi { padding: 12px 12px 6px; } }
