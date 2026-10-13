@@ -93,26 +93,25 @@ export function DaftarKelas() {
   return (
     <Halaman judul="Kelas saya" lead={siswa ? 'Pilih kelas, lalu ketuk Mulai belajar. Semua langkah dibimbing satu per satu.' : 'Kelas yang Anda ajar semester ini.'}>
       {siswa && <BerandaBelajar />}
-      <PengingatLms maks={4} />
+      <PengingatLms maks={3} />
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
       {bolehBuat && (
         <section aria-label="Mulai dari sini" className="lms-mulai">
-          <h2 className="menu-bagian-judul">Mulai dari sini</h2>
           <div className="alat-grid">
-            <button type="button" className="alat-kartu alat-utama" onClick={() => setForm(!form)} aria-expanded={form}>
-              <span className="alat-ikon"><Ikon nama="tambah" ukuran={22} /></span>
+            <button type="button" className="alat-kartu alat-utama" title="Pilih rombel dan mata pelajaran" onClick={() => setForm(!form)} aria-expanded={form}>
+              <span className="alat-ikon"><Ikon nama="tambah" ukuran={18} /></span>
               <span><strong>{form ? 'Tutup formulir' : 'Buat kelas baru'}</strong><small>Pilih rombel dan mata pelajaran</small></span>
             </button>
-            <Link to="/portal/lms/dashboard" className="alat-kartu">
-              <span className="alat-ikon"><Ikon nama="grafik" ukuran={22} /></span>
+            <Link to="/portal/lms/dashboard" className="alat-kartu" title="Siapa sudah hadir dan mengumpulkan">
+              <span className="alat-ikon"><Ikon nama="grafik" ukuran={18} /></span>
               <span><strong>Pantau semua kelas</strong><small>Siapa sudah hadir dan mengumpulkan</small></span>
             </Link>
-            <Link to="/portal/lms/administrasi" className="alat-kartu">
-              <span className="alat-ikon"><Ikon nama="dokumen" ukuran={22} /></span>
+            <Link to="/portal/lms/administrasi" className="alat-kartu" title="Perangkat ajar dan supervisi">
+              <span className="alat-ikon"><Ikon nama="dokumen" ukuran={18} /></span>
               <span><strong>Administrasi guru</strong><small>Perangkat ajar dan supervisi</small></span>
             </Link>
-            <Link to="/portal/panduan-lms" className="alat-kartu">
-              <span className="alat-ikon"><Ikon nama="info" ukuran={22} /></span>
+            <Link to="/portal/panduan-lms" className="alat-kartu" title="Urutan menjalankan satu pertemuan">
+              <span className="alat-ikon"><Ikon nama="info" ukuran={18} /></span>
               <span><strong>Panduan singkat</strong><small>Urutan menjalankan satu pertemuan</small></span>
             </Link>
           </div>
@@ -136,7 +135,7 @@ export function DaftarKelas() {
         </form>
       )}
       <h2 className="menu-bagian-judul jarak">{siswa ? 'Semua mata pelajaran' : 'Daftar kelas'}</h2>
-      <div className="grid grid-3">
+      <div className="grid daftar-kelas">
         {!kelas && <p className="catatan">Memuat...</p>}
         {kelas && kelas.length === 0 && <div className="kartu"><p>Belum ada kelas.</p><p className="catatan">{bolehBuat ? 'Buat kelas baru dari tombol di atas.' : 'Kelas muncul setelah guru membuat kelas ajar untuk rombel Anda.'}</p></div>}
         {(kelas ?? []).map((k) => (

@@ -1299,3 +1299,24 @@ a.bt-tag:hover, button.bt-tag:hover, .bt-tag.aktif { background: var(--warna-uta
 .tabel-padat .aksi-baris .tombol.bahaya { color: #a11; margin-right: 0; }
 .tabel-padat tr.nonaktif td { opacity: .6; }
 .tabel-padat .lencana { color: #a11; }
+
+/* Halaman Kelas saya: tampilan padat */
+.pengingat { gap: 4px; margin-bottom: 8px; }
+.pengingat .perhatian-item { padding: 6px 12px; gap: 10px; }
+.pengingat .lencana { margin-bottom: 0; flex: none; padding: 1px 8px; font-size: .7rem; }
+.pengingat-isi { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 10px; min-width: 0; }
+.pengingat-isi strong { font-size: .92rem; font-weight: 600; }
+.pengingat-isi small { color: var(--teks-lembut); }
+.pengingat > .tombol { justify-self: start; padding: 4px 12px; font-size: .85rem; }
+.lms-mulai { margin: 8px 0; }
+.lms-mulai .alat-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.lms-mulai .alat-kartu { padding: 6px 12px; gap: 8px; box-shadow: none; }
+.lms-mulai .alat-kartu:hover { transform: none; }
+.lms-mulai .alat-kartu small { display: none; }
+.lms-mulai .alat-ikon { width: 30px; height: 30px; border-radius: 8px; }
+.daftar-kelas { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.daftar-kelas .kartu-kelas { padding: 10px 12px; gap: 10px; align-items: center; border-top-width: 3px; }
+.daftar-kelas .kelas-inisial { width: 36px; height: 36px; border-radius: 10px; font-size: .85rem; }
+.daftar-kelas .kelas-isi h3 { font-size: 1rem; margin: 0; }
+.daftar-kelas .kelas-isi small { line-height: 1.3; }
+.daftar-kelas .kelas-meta { margin-top: 2px; font-size: .78rem; }
