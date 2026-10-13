@@ -1358,3 +1358,21 @@ a.bt-tag:hover, button.bt-tag:hover, .bt-tag.aktif { background: var(--warna-uta
 .samping-item.aktif::before { top: 6px; bottom: 6px; left: -8px; }
 .samping-kaki { padding: 4px 8px 8px; }
 @media (max-width: 960px) { .portal-isi { padding: 12px 12px 6px; } }
+
+/* Profil: tiga kolom, baris data rapat */
+.portal-isi .profil-kolom { columns: 3 290px; column-gap: 10px; }
+.portal-isi .profil-kolom > .bagian-profil { margin-bottom: 10px; }
+.portal-isi .bagian-profil { padding: 10px 14px; }
+.portal-isi .bagian-profil h3 { font-size: .74rem; margin-bottom: 6px; padding-bottom: 4px; }
+.portal-isi .bagian-profil .daftar { grid-template-columns: 8.5rem 1fr; gap: 1px 10px; font-size: .86rem; line-height: 1.35; }
+.portal-isi .bagian-profil .daftar dt { font-size: .82rem; }
+.portal-isi .bagian-profil .belum-isi { margin-top: 6px; padding: 5px 9px; font-size: .8rem; line-height: 1.35; }
+.portal-isi .bagian-profil.bagian-kosong { padding: 6px 14px; }
+.portal-isi .kepala-profil { gap: 12px; }
+.portal-isi .kepala-profil h2 { font-size: 1.15rem; margin-bottom: 3px; }
+.portal-isi .kepala-profil .inisial { width: 44px; height: 44px; font-size: 1.2rem; }
+.portal-isi .kepala-profil .kelengkapan { gap: 4px; }
+.portal-isi .kepala-profil .kelengkapan-judul strong { font-size: 1.05rem; }
+.portal-isi .kepala-profil .batang { height: 6px; }
+.portal-isi .lencana-baris { gap: 4px; }
+@media (max-width: 640px) { .portal-isi .bagian-profil .daftar { grid-template-columns: 1fr; } .portal-isi .bagian-profil .daftar dt { margin-top: 4px; } }
