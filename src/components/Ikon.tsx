@@ -38,6 +38,8 @@ const jalur: Record<string, string> = {
   setuju: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM8 12l3 3 5-6',
   kembali: 'M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3',
   kirim: 'M4 12l16-8-6 16-3-7-7-1z',
+  suka: 'M12 20s-7-4.4-9-9a5 5 0 0 1 9-3 5 5 0 0 1 9 3c-2 4.6-9 9-9 9z',
+  gambar: 'M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M9 9.5h.01',
   cetak: 'M7 8V3h10v5M7 17H4v-7h16v7h-3M7 14h10v7H7z',
   muat: 'M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5',
   cari: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-5-5',
