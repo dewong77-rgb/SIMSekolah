@@ -6,7 +6,7 @@ import Pager, { efektif } from '../components/Pager'
 
 type Pengguna = {
   user_id: string; peran: string; status_pd: string | null; sandi: 'belum' | 'awal' | 'diganti' | null; nama: string | null; nisn: string | null; email: string | null; kelas: string | null
-  terakhir_masuk: string | null; nonaktif: boolean; super_admin: boolean; dibuat_pada: string
+  terakhir_masuk: string | null; nonaktif: boolean; super_admin: boolean; terbatas?: boolean; dibuat_pada: string
 }
 type Ringkasan = { siswa_aktif: number; alumni: number; guru_total: number; staf_total: number }
 type Kelompok = 'aktif' | 'alumni'
@@ -41,12 +41,14 @@ export default function PenggunaHalaman() {
   const [hal, setHal] = useState(1)
   const [ukuran, setUkuran] = useState(10)
   const [progres, setProgres] = useState('')
+  const [bolehHapus, setBolehHapus] = useState(true)
 
   const muat = useCallback(async () => {
     try {
       const d = await panggil({ aksi: 'daftar' })
       setDaftar(d.pengguna)
       setRing(d.ringkasan)
+      setBolehHapus(d.boleh_hapus !== false)
       setGalat('')
     } catch (e) {
       setGalat((e as Error).message)
@@ -296,7 +298,7 @@ export default function PenggunaHalaman() {
                 <td>{waktu(p.terakhir_masuk)}</td>
                 <td>{p.sandi === 'belum' ? 'Belum disetel' : p.sandi === 'awal' ? 'Masih awal' : p.sandi === 'diganti' ? 'Sudah diganti' : '-'}</td>
                 <td className="aksi-baris">
-                  {p.super_admin ? '-' : (
+                  {p.super_admin && !(bolehHapus && p.terbatas) ? '-' : (
                     <>
                       <button className="tombol" disabled={sibuk} onClick={() => aksi({ aksi: 'nonaktifkan', user_id: p.user_id, nonaktif: !p.nonaktif })}>
                         {p.nonaktif ? 'Aktifkan' : 'Nonaktifkan'}
@@ -313,10 +315,12 @@ export default function PenggunaHalaman() {
                           </button>
                         </>
                       )}
-                      <button className="tombol bahaya" disabled={sibuk}
-                        onClick={() => aksi({ aksi: 'hapus', user_id: p.user_id }, `Hapus akun ${p.nama ?? p.email}${p.kelas ? ` (${p.kelas})` : ''}? Tidak dapat dibatalkan.`)}>
-                        Hapus
-                      </button>
+                      {bolehHapus && (
+                        <button className="tombol bahaya" disabled={sibuk}
+                          onClick={() => aksi({ aksi: 'hapus', user_id: p.user_id }, `Hapus akun ${p.nama ?? p.email}${p.kelas ? ` (${p.kelas})` : ''}? Tidak dapat dibatalkan.`)}>
+                          Hapus
+                        </button>
+                      )}
                     </>
                   )}
                 </td>
