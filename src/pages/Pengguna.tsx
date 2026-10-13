@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 import Pager, { efektif } from '../components/Pager'
 
 type Pengguna = {
-  user_id: string; peran: string; status_pd: string | null; sandi: 'belum' | 'awal' | 'diganti' | null; nama: string | null; nisn: string | null; email: string | null
+  user_id: string; peran: string; status_pd: string | null; sandi: 'belum' | 'awal' | 'diganti' | null; nama: string | null; nisn: string | null; email: string | null; kelas: string | null
   terakhir_masuk: string | null; nonaktif: boolean; super_admin: boolean; dibuat_pada: string
 }
 type Ringkasan = { siswa_aktif: number; alumni: number; guru_total: number; staf_total: number }
@@ -31,7 +31,8 @@ const waktu = (t: string | null) =>
 export default function PenggunaHalaman() {
   const [daftar, setDaftar] = useState<Pengguna[] | null>(null)
   const [ring, setRing] = useState<Ringkasan | null>(null)
-  const [filter, setFilter] = useState('semua')
+  const [filter, setFilter] = useState('siswa')
+  const [kelas, setKelas] = useState('')
   const [cari, setCari] = useState('')
   const [galat, setGalat] = useState('')
   const [sibuk, setSibuk] = useState(false)
@@ -151,60 +152,70 @@ export default function PenggunaHalaman() {
     if (filter === 'alumni') { if (!(p.peran === 'siswa' && p.status_pd === 'lulus')) return false }
     else if (filter === 'siswa') { if (!(p.peran === 'siswa' && p.status_pd !== 'lulus')) return false }
     else if (filter !== 'semua' && p.peran !== filter) return false
+    if (kelas && p.kelas !== kelas) return false
     const q = cari.trim().toLowerCase()
     if (!q) return true
-    return [p.nama, p.email, p.nisn].some((x) => (x ?? '').toLowerCase().includes(q))
-  })
+    return q.split(/\s+/).every((kata) => [p.nama, p.email, p.nisn, p.kelas].some((x) => (x ?? '').toLowerCase().includes(kata)))
+  }).sort((a, c) => (a.kelas ?? '').localeCompare(c.kelas ?? '', 'id', { numeric: true }) || (a.nama ?? '').localeCompare(c.nama ?? '', 'id'))
+
+  const modeSiswa = filter === 'siswa' || filter === 'alumni'
+  const daftarKelas = useMemo(() => {
+    const k = new Set<string>()
+    for (const p of daftar ?? []) {
+      if (p.peran !== 'siswa' || !p.kelas) continue
+      if (filter === 'alumni' ? p.status_pd === 'lulus' : p.status_pd !== 'lulus') k.add(p.kelas)
+    }
+    return [...k].sort((a, c) => a.localeCompare(c, 'id', { numeric: true }))
+  }, [daftar, filter])
+  const tab = (nilai: string, label: string, n?: number) => (
+    <button key={nilai} className={`tab-pengguna${filter === nilai ? ' aktif' : ''}`} onClick={() => { setFilter(nilai); setKelas(''); setHal(1) }}>
+      {label}{n !== undefined ? ` (${n})` : ''}
+    </button>
+  )
 
   return (
     <Halaman judul="Kelola pengguna" lead="Semua akun yang sudah terdaftar. Hanya super admin yang melihat halaman ini.">
-      <div className="grid grid-4">
-        <div className="kartu"><small>Guru terdaftar</small><h3>{hitung.guru ?? 0} dari {ring?.guru_total ?? '...'}</h3></div>
-        <div className="kartu"><small>Akun siswa aktif</small><h3>{hitung.siswa ?? 0} dari {ring?.siswa_aktif ?? '...'}</h3></div>
-        <div className="kartu"><small>Akun alumni</small><h3>{hitung.alumni ?? 0} dari {ring?.alumni ?? '...'}</h3></div>
-        <div className="kartu"><small>Staf TU (tendik)</small><h3>{hitung.staf ?? 0} dari {ring?.staf_total ?? '...'}</h3></div>
-        <div className="kartu"><small>Admin TU</small><h3>{hitung.admin_tu ?? 0}</h3></div>
-        <div className="kartu"><small>Orang tua</small><h3>{hitung.orang_tua ?? 0}</h3></div>
+      <div className="ringkas">
+        <span><b>{hitung.guru ?? 0}</b>/{ring?.guru_total ?? '...'} guru</span>
+        <span><b>{hitung.siswa ?? 0}</b>/{ring?.siswa_aktif ?? '...'} siswa aktif</span>
+        <span><b>{hitung.alumni ?? 0}</b>/{ring?.alumni ?? '...'} alumni</span>
+        <span><b>{hitung.staf ?? 0}</b>/{ring?.staf_total ?? '...'} staf TU</span>
+        <span><b>{hitung.admin_tu ?? 0}</b> admin TU</span>
+        <span><b>{hitung.orang_tua ?? 0}</b> orang tua</span>
       </div>
-      <p className="catatan jarak">
-        Akun siswa dan alumni dibuat dari data Dapodik yang sudah diunggah. Siswa masuk dengan NISN dan tanggal lahir.
-        Setelah unggahan baru, tekan tombol di bawah untuk membuat akun bagi siswa yang baru muncul.
-        Untuk mendaftarkan guru, pakai <Link to="/portal/akun">Akun guru</Link>.
-      </p>
-      <div className="kartu jarak form">
-        <h3>Buat akun massal</h3>
-        <div className="aksi">
+
+      <details className="kartu jarak lipat">
+        <summary>Buat akun dan setel password massal</summary>
+        <p className="catatan">
+          Akun siswa dan alumni dibuat dari data Dapodik. Siswa masuk dengan NISN dan tanggal lahir. Setelah unggahan baru, buat akun untuk yang baru muncul. Guru didaftarkan lewat <Link to="/portal/akun">Akun guru</Link>.
+        </p>
+        <div className="aksi rapat">
           <button className="tombol tombol-isi" disabled={sibuk || !ring} onClick={() => buatMassal('aktif')}>
-            Buat akun siswa aktif ({Math.max((ring?.siswa_aktif ?? 0) - (hitung.siswa ?? 0), 0)} belum)
+            Akun siswa aktif ({Math.max((ring?.siswa_aktif ?? 0) - (hitung.siswa ?? 0), 0)} belum)
           </button>
           <button className="tombol tombol-isi" disabled={sibuk || !ring} onClick={() => buatMassal('alumni')}>
-            Buat akun alumni ({Math.max((ring?.alumni ?? 0) - (hitung.alumni ?? 0), 0)} belum)
+            Akun alumni ({Math.max((ring?.alumni ?? 0) - (hitung.alumni ?? 0), 0)} belum)
           </button>
-        </div>
-        <div className="aksi jarak">
           <button className="tombol tombol-isi" disabled={sibuk || !ring} onClick={() => putaran('Membuat akun staf', { aksi: 'buat_staf' }, 'dibuat', 'Buat akun untuk tenaga kependidikan yang belum punya akun? Username NIP atau NUPTK, password awal NPSN.')}>
-            Buat akun staf TU ({Math.max((ring?.staf_total ?? 0) - (hitung.staf ?? 0), 0)} belum)
+            Akun staf TU ({Math.max((ring?.staf_total ?? 0) - (hitung.staf ?? 0), 0)} belum)
           </button>
+          <button className="tombol tombol-isi" disabled={sibuk || !ring} onClick={() => void buatOrtu()}>Akun orang tua dari data ibu</button>
         </div>
-        <div className="aksi jarak">
-          <button className="tombol tombol-isi" disabled={sibuk || !ring} onClick={() => void buatOrtu()}>Buat akun orang tua dari data ibu</button>
-        </div>
-        <p className="catatan">Satu akun per NIK ibu, ditautkan ke semua anak aktif dengan NIK ibu yang sama. Username NIK ibu, password awal NPSN, wajib diganti saat masuk pertama.</p>
-        <h3 className="jarak">Password awal</h3>
-        <p className="catatan">Siswa dan alumni: tanggal lahir DDMMYYYY. Guru dan staf: NPSN. Semua wajib mengganti password saat masuk pertama.</p>
-        <div className="aksi">
-          <button className="tombol tombol-isi" disabled={sibuk || !ring || belumSandi.siswa === 0} onClick={() => aturSandi('siswa')}>Siswa aktif ({belumSandi.siswa} belum)</button>
-          <button className="tombol tombol-isi" disabled={sibuk || !ring || belumSandi.alumni === 0} onClick={() => aturSandi('alumni')}>Alumni ({belumSandi.alumni} belum)</button>
-          <button className="tombol tombol-isi" disabled={sibuk || !ring || belumSandi.guru === 0} onClick={() => aturSandi('guru')}>Guru ({belumSandi.guru} belum)</button>
-          <button className="tombol tombol-isi" disabled={sibuk || !ring || belumSandi.staf === 0} onClick={() => aturSandi('staf')}>Staf ({belumSandi.staf} belum)</button>
+        <p className="catatan">Orang tua: satu akun per NIK ibu, ditautkan ke semua anak aktif. Username NIK ibu, password awal NPSN.</p>
+        <p className="catatan">Password awal: siswa dan alumni tanggal lahir DDMMYYYY, guru dan staf NPSN. Semua wajib menggantinya saat masuk pertama.</p>
+        <div className="aksi rapat">
+          <button className="tombol tombol-isi" disabled={sibuk || !ring || belumSandi.siswa === 0} onClick={() => aturSandi('siswa')}>Setel siswa aktif ({belumSandi.siswa})</button>
+          <button className="tombol tombol-isi" disabled={sibuk || !ring || belumSandi.alumni === 0} onClick={() => aturSandi('alumni')}>Setel alumni ({belumSandi.alumni})</button>
+          <button className="tombol tombol-isi" disabled={sibuk || !ring || belumSandi.guru === 0} onClick={() => aturSandi('guru')}>Setel guru ({belumSandi.guru})</button>
+          <button className="tombol tombol-isi" disabled={sibuk || !ring || belumSandi.staf === 0} onClick={() => aturSandi('staf')}>Setel staf ({belumSandi.staf})</button>
         </div>
         {progres && <p className="catatan" role="status">{progres}</p>}
-      </div>
+      </details>
       {galat && <p className="kartu jarak" role="alert">Galat: {galat}</p>}
 
-      <div className="kartu jarak form">
-        <h3>Tambah akun manual</h3>
-        <div className="aksi">
+      <details className="kartu jarak lipat">
+        <summary>Tambah akun manual</summary>
+        <div className="aksi rapat">
           <input
             type="email" placeholder="email@contoh.com" value={emailBaru}
             onChange={(e) => setEmailBaru(e.target.value)} style={{ minWidth: 260 }} aria-label="Email akun baru"
@@ -222,80 +233,88 @@ export default function PenggunaHalaman() {
             Tambah
           </button>
         </div>
-      </div>
+      </details>
 
-      <div className="aksi jarak">
-        <select value={filter} onChange={(e) => { setFilter(e.target.value); setHal(1) }} aria-label="Filter peran">
-          <option value="semua">Semua peran</option>
-          <option value="siswa">Siswa aktif</option>
-          <option value="alumni">Alumni</option>
-          <option value="guru">Guru</option>
-          <option value="staf">Staf TU</option>
-          <option value="admin_tu">Admin TU</option>
-          <option value="orang_tua">Orang tua</option>
-          <option value="admin_ujian">Admin ujian</option>
-        </select>
-        <input type="search" placeholder="Cari nama, email, atau NISN" value={cari} onChange={(e) => { setCari(e.target.value); setHal(1) }} style={{ minWidth: 260 }} aria-label="Cari" />
+      <div className="tab-bar jarak">
+        {tab('siswa', 'Siswa', hitung.siswa ?? 0)}
+        {tab('alumni', 'Alumni', hitung.alumni ?? 0)}
+        {tab('guru', 'Guru', hitung.guru ?? 0)}
+        {tab('staf', 'Staf TU', hitung.staf ?? 0)}
+        {tab('admin_tu', 'Admin TU', hitung.admin_tu ?? 0)}
+        {tab('orang_tua', 'Orang tua', hitung.orang_tua ?? 0)}
+        {tab('admin_ujian', 'Admin ujian', hitung.admin_ujian ?? 0)}
+        {tab('semua', 'Semua')}
+      </div>
+      <div className="aksi rapat">
+        {modeSiswa && (
+          <select value={kelas} onChange={(e) => { setKelas(e.target.value); setHal(1) }} aria-label="Filter kelas">
+            <option value="">Semua kelas</option>
+            {daftarKelas.map((k) => <option key={k} value={k}>{k}</option>)}
+          </select>
+        )}
+        <input type="search" placeholder={modeSiswa ? 'Cari nama, kelas, atau NISN' : 'Cari nama atau email'} value={cari} onChange={(e) => { setCari(e.target.value); setHal(1) }} style={{ minWidth: 240 }} aria-label="Cari" />
         <span className="catatan">{tampil.length.toLocaleString('id-ID')} akun cocok</span>
       </div>
 
-      <div className="tabel-bungkus jarak">
+      <div className="tabel-bungkus tabel-padat jarak">
         <table>
           <thead>
-            <tr><th>Nama</th><th>Peran</th><th>Email atau NISN</th><th>Terakhir masuk</th><th>Password</th><th>Status</th><th>Aksi</th></tr>
+            <tr>
+              <th>Nama</th>
+              {modeSiswa && <th>Kelas</th>}
+              {filter === 'semua' && <th>Peran</th>}
+              <th>{modeSiswa ? 'NISN' : filter === 'semua' ? 'Email atau NISN' : 'Email'}</th>
+              <th>Terakhir masuk</th><th>Password</th><th>Aksi</th>
+            </tr>
           </thead>
           <tbody>
             {!daftar && !galat && <tr><td colSpan={7}>Memuat...</td></tr>}
             {tampil.slice((hal - 1) * efektif(ukuran), hal * efektif(ukuran)).map((p) => (
-              <tr key={p.user_id}>
-                <td>{p.nama ?? '-'}{p.super_admin && <small> (super admin)</small>}</td>
+              <tr key={p.user_id} className={p.nonaktif ? 'nonaktif' : undefined}>
                 <td>
-                  {p.peran === 'siswa' || p.super_admin ? labelPeran(p) : (
-                    <select
-                      value={p.peran} disabled={sibuk} aria-label={`Peran ${p.nama ?? p.email}`}
-                      onChange={(e) => aksi({ aksi: 'ubah_peran', user_id: p.user_id, peran: e.target.value }, `Ubah peran menjadi ${namaPeran[e.target.value]}?`)}
-                    >
-                      <option value="admin_tu">Admin TU</option>
-                      <option value="guru">Guru</option>
-                      <option value="staf">Staf TU</option>
-                      <option value="orang_tua">Orang tua</option>
-                      <option value="admin_ujian">Admin ujian</option>
-                    </select>
-                  )}
+                  {p.nama ?? '-'}{p.super_admin && <small> (super admin)</small>}
+                  {p.nonaktif && <small className="lencana"> nonaktif</small>}
                 </td>
+                {modeSiswa && <td>{p.kelas ?? '-'}</td>}
+                {filter === 'semua' && (
+                  <td>
+                    {p.peran === 'siswa' || p.super_admin ? labelPeran(p) : (
+                      <select
+                        value={p.peran} disabled={sibuk} aria-label={`Peran ${p.nama ?? p.email}`}
+                        onChange={(e) => aksi({ aksi: 'ubah_peran', user_id: p.user_id, peran: e.target.value }, `Ubah peran menjadi ${namaPeran[e.target.value]}?`)}
+                      >
+                        <option value="admin_tu">Admin TU</option>
+                        <option value="guru">Guru</option>
+                        <option value="staf">Staf TU</option>
+                        <option value="orang_tua">Orang tua</option>
+                        <option value="admin_ujian">Admin ujian</option>
+                      </select>
+                    )}
+                  </td>
+                )}
                 <td>{p.peran === 'siswa' ? p.nisn : p.email}</td>
                 <td>{waktu(p.terakhir_masuk)}</td>
                 <td>{p.sandi === 'belum' ? 'Belum disetel' : p.sandi === 'awal' ? 'Masih awal' : p.sandi === 'diganti' ? 'Sudah diganti' : '-'}</td>
-                <td>{p.nonaktif ? 'Nonaktif' : 'Aktif'}</td>
-                <td>
+                <td className="aksi-baris">
                   {p.super_admin ? '-' : (
                     <>
-                      <button
-                        className="tombol" style={{ padding: '4px 10px', color: 'var(--warna-utama)' }} disabled={sibuk}
-                        onClick={() => aksi({ aksi: 'nonaktifkan', user_id: p.user_id, nonaktif: !p.nonaktif })}
-                      >
+                      <button className="tombol" disabled={sibuk} onClick={() => aksi({ aksi: 'nonaktifkan', user_id: p.user_id, nonaktif: !p.nonaktif })}>
                         {p.nonaktif ? 'Aktifkan' : 'Nonaktifkan'}
-                      </button>{' '}
+                      </button>
                       {p.sandi && (
                         <>
-                          <button
-                            className="tombol" style={{ padding: '4px 10px', color: 'var(--warna-utama)' }} disabled={sibuk}
-                            onClick={async () => { if (await aksi({ aksi: 'buka_kunci', user_id: p.user_id })) window.alert(`Kunci masuk ${p.nama ?? 'akun ini'} sudah dibuka. Silakan coba masuk lagi.`) }}
-                          >
+                          <button className="tombol" disabled={sibuk}
+                            onClick={async () => { if (await aksi({ aksi: 'buka_kunci', user_id: p.user_id })) window.alert(`Kunci masuk ${p.nama ?? 'akun ini'} sudah dibuka. Silakan coba masuk lagi.`) }}>
                             Buka kunci
-                          </button>{' '}
-                          <button
-                            className="tombol" style={{ padding: '4px 10px', color: 'var(--warna-utama)' }} disabled={sibuk}
-                            onClick={() => aksi({ aksi: 'reset_sandi', user_id: p.user_id }, `Kembalikan password ${p.nama} ke password awal?`)}
-                          >
-                            Reset password
-                          </button>{' '}
+                          </button>
+                          <button className="tombol" disabled={sibuk}
+                            onClick={() => aksi({ aksi: 'reset_sandi', user_id: p.user_id }, `Kembalikan password ${p.nama}${p.kelas ? ` (${p.kelas})` : ''} ke password awal?`)}>
+                            Reset
+                          </button>
                         </>
                       )}
-                      <button
-                        className="tombol" style={{ padding: '4px 10px', color: '#a11' }} disabled={sibuk}
-                        onClick={() => aksi({ aksi: 'hapus', user_id: p.user_id }, `Hapus akun ${p.nama ?? p.email}? Tidak dapat dibatalkan.`)}
-                      >
+                      <button className="tombol bahaya" disabled={sibuk}
+                        onClick={() => aksi({ aksi: 'hapus', user_id: p.user_id }, `Hapus akun ${p.nama ?? p.email}${p.kelas ? ` (${p.kelas})` : ''}? Tidak dapat dibatalkan.`)}>
                         Hapus
                       </button>
                     </>

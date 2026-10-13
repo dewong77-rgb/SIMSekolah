@@ -1281,3 +1281,21 @@ a.bt-tag:hover, button.bt-tag:hover, .bt-tag.aktif { background: var(--warna-uta
 .bagian-profil.bagian-kosong { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; padding: 10px 18px; }
 .bagian-profil.bagian-kosong h3 { margin: 0; padding-bottom: 4px; }
 .bagian-profil.bagian-kosong .belum-isi { margin: 0; padding: 4px 10px; flex: 1 1 auto; }
+
+/* Kelola pengguna: tampilan padat */
+.ringkas { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: 12px; font-size: .9rem; }
+.ringkas span { background: #fff; border: 1px solid var(--garis); border-radius: 999px; padding: 3px 12px; }
+.ringkas b { color: var(--warna-utama); }
+.lipat { padding: 10px 16px; }
+.lipat > summary { cursor: pointer; font-weight: 600; color: var(--warna-utama); }
+.aksi.rapat { gap: 8px; margin-top: 10px; align-items: center; }
+.tab-bar { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--garis); }
+.tab-pengguna { font: inherit; font-size: .9rem; padding: 6px 12px; background: none; border: 0; border-bottom: 2px solid transparent; cursor: pointer; color: inherit; }
+.tab-pengguna.aktif { border-bottom-color: var(--warna-utama); color: var(--warna-utama); font-weight: 600; }
+.tabel-padat table { font-size: .85rem; }
+.tabel-padat th, .tabel-padat td { padding: 5px 8px; line-height: 1.25; }
+.tabel-padat .aksi-baris { white-space: nowrap; }
+.tabel-padat .aksi-baris .tombol { padding: 2px 8px; font-size: .8rem; margin-right: 4px; color: var(--warna-utama); }
+.tabel-padat .aksi-baris .tombol.bahaya { color: #a11; margin-right: 0; }
+.tabel-padat tr.nonaktif td { opacity: .6; }
+.tabel-padat .lencana { color: #a11; }
