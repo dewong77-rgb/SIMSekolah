@@ -17,7 +17,7 @@ export type BukuPerpus = {
   mapel: string | null; tingkat: string | null; deskripsi: string | null; jumlah_halaman: number | null
   sampul_path: string | null; status: StatusBuku; lisensi_berakhir: string | null; ukuran_byte: number | null
   sumber_perolehan: string; nomor_lisensi: string | null; tanggal_perolehan: string | null
-  berkas_path: string | null; halaman_terakhir: number | null; halaman_terjauh: number | null; pembaca: number | null; dirujuk: number | null
+  berkas_path: string | null; halaman_terakhir: number | null; halaman_terjauh: number | null; dibuka: number | null; dibaca: number | null; pembaca: number | null; dirujuk: number | null
 }
 export type BukuBuka = { id: string; judul: string; penulis: string | null; penerbit: string | null; tahun_terbit: number | null; kategori: string; jumlah_halaman: number | null; berkas_path: string; halaman_terakhir: number }
 export type Rujukan = { id: string; buku_id: string; judul: string; penulis: string | null; tahun_terbit: number | null; sampul_path: string | null; hal_mulai: number | null; hal_akhir: number | null; catatan: string | null }

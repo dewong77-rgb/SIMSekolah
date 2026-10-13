@@ -12,12 +12,22 @@ export function Sampul({ url, judul }: { url?: string; judul: string }) {
     : <div className="buku-sampul buku-sampul-kosong" aria-hidden="true"><span>{judul.slice(0, 2).toUpperCase()}</span></div>
 }
 
+function Statistik({ b, populer }: { b: BukuPerpus; populer?: boolean }) {
+  return (
+    <span className="buku-statistik" title="Dibuka: berapa kali buku dibuka. Dibaca: sesi membaca aktif minimal 30 detik. Pembaca: jumlah orang berbeda yang membaca.">
+      {populer && <span className="lencana buku-populer">Populer</span>}
+      <span>{Number(b.dibuka ?? 0)}× dibuka</span><span>{Number(b.dibaca ?? 0)}× dibaca</span><span>{Number(b.pembaca ?? 0)} pembaca</span>
+    </span>
+  )
+}
+
 export default function Perpustakaan() {
   const izin = useIzinPerpus()
   const [buku, setBuku] = useState<BukuPerpus[] | null>(null)
   const [galat, setGalat] = useState('')
   const [q, setQ] = useState('')
   const [kategori, setKategori] = useState('')
+  const [urut, setUrut] = useState<'judul' | 'populer' | 'terbaca'>('judul')
   const muat = useCallback(async () => {
     try { setBuku(await panggil<BukuPerpus[]>('perpus_buku_daftar', { p_q: null, p_kategori: null, p_semua: false })); setGalat('') } catch (e) { setGalat((e as Error).message) }
   }, [])
@@ -25,11 +35,15 @@ export default function Perpustakaan() {
   const sampul = useSampul((buku ?? []).map((b) => b.sampul_path))
 
   const kategoriAda = useMemo(() => [...new Set((buku ?? []).map((b) => b.kategori))].sort(), [buku])
+  const populer = useMemo(() => new Set([...(buku ?? [])].filter((b) => Number(b.dibaca) > 0).sort((a, b) => Number(b.dibaca) - Number(a.dibaca) || Number(b.pembaca) - Number(a.pembaca)).slice(0, 3).map((b) => b.id)), [buku])
   const tampil = useMemo(() => {
     const kata = q.trim().toLowerCase()
-    return (buku ?? []).filter((b) => (!kategori || b.kategori === kategori)
+    const daftar = (buku ?? []).filter((b) => (!kategori || b.kategori === kategori)
       && (!kata || [b.judul, b.penulis, b.penerbit, b.mapel, b.isbn, b.subjek, b.nomor_panggil, b.klasifikasi].some((x) => x?.toLowerCase().includes(kata))))
-  }, [buku, q, kategori])
+    if (urut === 'populer') daftar.sort((a, b) => Number(b.dibaca) - Number(a.dibaca) || Number(b.dibuka) - Number(a.dibuka) || a.judul.localeCompare(b.judul))
+    if (urut === 'terbaca') daftar.sort((a, b) => Number(b.pembaca) - Number(a.pembaca) || Number(b.dibaca) - Number(a.dibaca) || a.judul.localeCompare(b.judul))
+    return daftar
+  }, [buku, q, kategori, urut])
   const lanjut = (buku ?? []).filter((b) => (b.halaman_terakhir ?? 0) > 1).sort((a, b) => a.judul.localeCompare(b.judul)).slice(0, 4)
 
   return (
@@ -46,6 +60,7 @@ export default function Perpustakaan() {
                 <Sampul url={b.sampul_path ? sampul[b.sampul_path] : undefined} judul={b.judul} />
                 <strong>{b.judul}</strong>
                 <small>Halaman {b.halaman_terakhir}{b.jumlah_halaman ? ` dari ${b.jumlah_halaman}` : ''}</small>
+                <Statistik b={b} populer={populer.has(b.id)} />
               </Link>
             ))}
           </div>
@@ -58,6 +73,11 @@ export default function Perpustakaan() {
           <select value={kategori} onChange={(e) => setKategori(e.target.value)}>
             <option value="">Semua kategori</option>
             {kategoriAda.map((k) => <option key={k} value={k}>{k}</option>)}
+          </select>
+        </label>
+        <label>Urutkan
+          <select value={urut} onChange={(e) => setUrut(e.target.value as typeof urut)}>
+            <option value="judul">Judul A–Z</option><option value="populer">Paling sering dibaca</option><option value="terbaca">Pembaca terbanyak</option>
           </select>
         </label>
       </form>
@@ -79,6 +99,7 @@ export default function Perpustakaan() {
               {b.mapel && <span className="lencana">{b.mapel}</span>}
               {b.jumlah_halaman && <span className="lencana">{b.jumlah_halaman} hlm</span>}
             </span>
+            <Statistik b={b} populer={populer.has(b.id)} />
           </Link>
         ))}
       </div>
