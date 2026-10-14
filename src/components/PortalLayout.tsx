@@ -8,7 +8,7 @@ import { panggil } from '../lib/rpc'
 import Ikon from './Ikon'
 import PembatasGalat from './PembatasGalat'
 
-export type Lencana = Partial<Record<'ajuan_masuk' | 'ajuan_saya' | 'disposisi' | 'surat' | 'sarpras' | 'sarpras_kerusakan' | 'sarpras_permintaan' | 'kesiswaan' | 'chat', number>>
+export type Lencana = Partial<Record<'ajuan_masuk' | 'ajuan_saya' | 'disposisi' | 'surat' | 'sarpras' | 'sarpras_kerusakan' | 'sarpras_permintaan' | 'kesiswaan' | 'keluar' | 'panggilan' | 'chat', number>>
 
 type NilaiPortal = { menu: MenuPortal; lencana: Lencana; nama: string | null }
 const KonteksPortal = createContext<NilaiPortal | null>(null)
@@ -64,11 +64,12 @@ export default function PortalLayout() {
     if (!punyaMenu) return
     let batal = false
     void (async () => {
-      const [aj, sr, sp, ks] = await Promise.allSettled([
+      const [aj, sr, sp, ks, kt] = await Promise.allSettled([
         panggil<{ menunggu: number; antrean: number; saya: number }>('ajuan_ringkasan'),
         panggil<{ disposisi_menunggu: number; belum_disposisi: number }>('surat_ringkasan'),
         panggil<{ perlu_aksi: number; perlu_kerusakan: number; perlu_permintaan: number }>('sarpras_ringkasan'),
         panggil<{ pelanggaran: number; prestasi: number; izin: number }>('kesiswaan_lencana'),
+        panggil<{ keluar: number; panggilan: number }>('kesiswaan_lencana_tambahan'),
       ])
       if (batal) return
       const l: Lencana = {}
@@ -76,6 +77,7 @@ export default function PortalLayout() {
       if (sr.status === 'fulfilled') { l.disposisi = sr.value.disposisi_menunggu; l.surat = sr.value.belum_disposisi }
       if (sp.status === 'fulfilled' && sp.value) { l.sarpras = sp.value.perlu_aksi; l.sarpras_kerusakan = sp.value.perlu_kerusakan; l.sarpras_permintaan = sp.value.perlu_permintaan }
       if (ks.status === 'fulfilled' && ks.value) l.kesiswaan = ks.value.pelanggaran + ks.value.prestasi + ks.value.izin
+      if (kt.status === 'fulfilled' && kt.value) { l.keluar = kt.value.keluar; l.panggilan = kt.value.panggilan; l.kesiswaan = (l.kesiswaan ?? 0) + kt.value.keluar + kt.value.panggilan }
       setLencana((lama) => ({ ...l, chat: lama.chat }))
     })()
     return () => { batal = true }

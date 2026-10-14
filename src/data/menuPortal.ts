@@ -9,7 +9,7 @@ export type ItemPortal = {
   /** Awalan alamat untuk penanda menu aktif bila satu menu mencakup beberapa halaman. Bawaan: `to`. */
   cocok?: string
   /** Kunci lencana (angka di samping menu), lihat PortalLayout. */
-  lencana?: 'ajuan_masuk' | 'ajuan_saya' | 'disposisi' | 'surat' | 'sarpras' | 'sarpras_kerusakan' | 'sarpras_permintaan' | 'kesiswaan' | 'chat'
+  lencana?: 'keluar' | 'panggilan' | 'ajuan_masuk' | 'ajuan_saya' | 'disposisi' | 'surat' | 'sarpras' | 'sarpras_kerusakan' | 'sarpras_permintaan' | 'kesiswaan' | 'chat'
 }
 export type KelompokPortal = { judul: string; item: ItemPortal[] }
 
@@ -253,6 +253,11 @@ const menuIzin: { izin: string; nama: string; bidang: string; ikon: string; to?:
   { izin: 'surat.catat', nama: 'Draf surat dan SK', bidang: 'Persuratan', ikon: 'dokumen', to: '/portal/surat/draf' },
   { izin: 'surat.disposisi', nama: 'Persuratan dan disposisi', bidang: 'Persuratan', ikon: 'surat', to: '/portal/surat' },
   { izin: 'surat.teruskan', nama: 'Persuratan', bidang: 'Persuratan', ikon: 'surat', to: '/portal/surat' },
+  { izin: 'panggilan.kelola', nama: 'Pemanggilan orang tua', bidang: 'Kesiswaan', ikon: 'surat', to: '/portal/kesiswaan/panggilan' },
+  { izin: 'panggilan.tindaklanjut', nama: 'Pemanggilan orang tua', bidang: 'Kesiswaan', ikon: 'surat', to: '/portal/kesiswaan/panggilan' },
+  { izin: 'kesiswaan.biodata', nama: 'Biodata siswa', bidang: 'Kesiswaan', ikon: 'kelompok', to: '/portal/kesiswaan/biodata' },
+  { izin: 'kesiswaan.keluar', nama: 'Pengeluaran siswa', bidang: 'Kesiswaan', ikon: 'kotak', to: '/portal/kesiswaan/keluar' },
+  { izin: 'dapodik.kerjakan_ajuan', nama: 'Pengeluaran siswa', bidang: 'Tata usaha', ikon: 'kotak', to: '/portal/kesiswaan/keluar' },
   { izin: 'siswa.lihat_pribadi', nama: 'Daftar siswa', bidang: 'Kesiswaan', ikon: 'kelompok', to: '/portal/peserta-didik' },
   { izin: 'dapodik.unggah', nama: 'Unggah Dapodik (operator)', bidang: 'Dapodik', ikon: 'unggah' },
   { izin: 'keuangan.kelola', nama: 'Keuangan', bidang: 'Tata usaha', ikon: 'uang' },
@@ -290,7 +295,7 @@ export function susunMenu(peran: Peran, superAdmin: boolean, tugas: TugasMenu[])
       if (m.to) {
         if (sudah.has(m.to)) continue
         sudah.add(m.to)
-        const lencana = m.to === '/portal/ajuan-masuk' ? 'ajuan_masuk' : m.to === '/portal/surat' ? 'surat' : m.to === '/portal/sarpras/usulan' ? 'sarpras' : m.to === '/portal/sarpras/kerusakan' ? 'sarpras_kerusakan' : m.to === '/portal/sarpras/permintaan' ? 'sarpras_permintaan' : m.to === '/portal/kesiswaan' ? 'kesiswaan' : undefined
+        const lencana = m.to === '/portal/ajuan-masuk' ? 'ajuan_masuk' : m.to === '/portal/surat' ? 'surat' : m.to === '/portal/sarpras/usulan' ? 'sarpras' : m.to === '/portal/sarpras/kerusakan' ? 'sarpras_kerusakan' : m.to === '/portal/sarpras/permintaan' ? 'sarpras_permintaan' : m.to === '/portal/kesiswaan' ? 'kesiswaan' : m.to === '/portal/kesiswaan/keluar' ? 'keluar' : m.to === '/portal/kesiswaan/panggilan' ? 'panggilan' : undefined
         item.push({ to: m.to, label: m.nama, ikon: m.ikon, ket: m.bidang, lencana })
       } else if (!segera.some((s) => s.nama === m.nama)) {
         segera.push({ nama: m.nama, bidang: m.bidang })

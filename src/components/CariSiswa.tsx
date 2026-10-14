@@ -4,7 +4,7 @@ import { panggil } from '../lib/rpc'
 import type { SiswaCari } from '../lib/kesiswaan'
 
 /** Kotak cari siswa (minimal 2 huruf). Hasil dibatasi jangkauan pemanggil oleh basis data. */
-export default function CariSiswa({ untuk, pilih, dipilih }: { untuk: 'catat' | 'izin' | 'pantau' | 'beasiswa' | 'ekskul'; pilih: (s: SiswaCari | null) => void; dipilih: SiswaCari | null }) {
+export default function CariSiswa({ untuk, pilih, dipilih }: { untuk: 'catat' | 'izin' | 'pantau' | 'beasiswa' | 'ekskul' | 'keluar'; pilih: (s: SiswaCari | null) => void; dipilih: SiswaCari | null }) {
   const [q, setQ] = useState('')
   const [hasil, setHasil] = useState<SiswaCari[]>([])
   const [galat, setGalat] = useState('')
@@ -13,7 +13,7 @@ export default function CariSiswa({ untuk, pilih, dipilih }: { untuk: 'catat' | 
     if (q.trim().length < 2) { setHasil([]); return }
     let batal = false
     const t = setTimeout(() => {
-      panggil<SiswaCari[]>('kesiswaan_siswa_cari', { p_cari: q.trim(), p_untuk: untuk })
+      (untuk === 'keluar' ? panggil<SiswaCari[]>('keluar_siswa_cari', { p_cari: q.trim() }) : panggil<SiswaCari[]>('kesiswaan_siswa_cari', { p_cari: q.trim(), p_untuk: untuk }))
         .then((x) => { if (!batal) { setHasil(x); setGalat('') } })
         .catch((e: Error) => { if (!batal) setGalat(e.message) })
     }, 250)

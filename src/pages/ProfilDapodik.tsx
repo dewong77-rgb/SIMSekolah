@@ -295,7 +295,7 @@ export function ProfilOrang() {
   const { profil } = useAuth()
   const valid = (jenis === 'ptk' || jenis === 'siswa') && !!id
   const { hasil, galat } = useProfil(valid ? jenis : undefined, valid ? id : undefined)
-  const balik = profil?.peran === 'orang_tua' ? '/portal/anak' : jenis === 'ptk' ? '/portal/ptk' : '/portal/peserta-didik'
+  const balik = profil?.peran === 'orang_tua' ? '/portal/anak' : jenis === 'ptk' ? '/portal/ptk' : profil?.peran === 'admin_tu' ? '/portal/peserta-didik' : '/portal/kesiswaan/biodata'
   return (
     <Halaman judul={jenis === 'ptk' ? 'Profil guru dan tendik' : 'Profil peserta didik'} lead="Tampilan formulir Dapodik, hanya baca.">
       {valid ? <Isi hasil={hasil} galat={galat} ajukan={profil?.peran === 'orang_tua'} rinciUbah={profil?.peran === 'orang_tua'} /> : <p className="catatan">Alamat tidak valid.</p>}
