@@ -6,6 +6,7 @@ import { AKSEPTASI, hapusBerkas, periksaBerkas, ukuranTeks, unduhBerkas, unggahB
 import { panggil, tgl } from '../lib/rpc'
 import { biru, merah, nilaiTeks, unduhCsv } from './lmsUtil'
 import { KartuKelas, type KelasRingkas } from './LmsProgres'
+import type { NilaiCbt } from './lmsXlsx'
 
 // Administrasi guru (perangkat ajar, jurnal), buku nilai, dan ringkasan untuk orang tua.
 
@@ -337,65 +338,145 @@ type Nilai = {
 const labelGrup: Record<string, string> = { kuis: 'Kuis', tugas: 'Tugas', uh: 'Ulangan harian', uts: 'UTS', uas: 'UAS' }
 const grupUrut = ['kuis', 'tugas', 'uh', 'uts', 'uas']
 
-/** Buku nilai satu kelas: kuis, tugas, ulangan harian, UTS dan UAS, dengan nilai akhir berbobot. */
-export function BukuNilai() {
-  const { kelasId = '' } = useParams()
+type KelasNilai = { id: string; mapel: string; rombel: string; guru: string; semester: string; peran: 'pengelola' | 'siswa' }
+
+/** Tabel nilai satu kelas dengan bobot dan unduhan. Dipakai halaman Rekap nilai dan Buku nilai per kelas. */
+function TabelNilai({ kelas }: { kelas: KelasNilai }) {
+  const kelasId = kelas.id
   const [data, setData] = useState<Nilai | null>(null)
   const [galat, setGalat] = useState('')
   const [bobot, setBobot] = useState<Record<string, number>>({ kuis: 20, tugas: 20, uh: 20, uts: 20, uas: 20 })
   const [terapan, setTerapan] = useState(bobot)
+  const [mengunduh, setMengunduh] = useState(false)
+  const [cbt, setCbt] = useState<NilaiCbt | null>(null)
+  const [semuaCbt, setSemuaCbt] = useState(false)
+  // Nilai CBT (UTS dan UAS) dibaca terpisah. Bila fungsinya belum terpasang atau gagal, bagian CBT disembunyikan.
+  useEffect(() => { setCbt(null); panggil<NilaiCbt>('lms_nilai_cbt', { p_kelas: kelasId }).then(setCbt).catch(() => setCbt(null)) }, [kelasId])
   useEffect(() => {
+    setData(null); setGalat('')
     panggil<Nilai>('lms_nilai_kelas', { p_kelas: kelasId, p_bobot: terapan }).then(setData).catch((e: Error) => setGalat(e.message))
   }, [kelasId, terapan])
-  const jumlah = grupUrut.reduce((j, g) => j + (bobot[g] || 0), 0)
-  function unduh() {
+  // Ulangan harian, UTS, dan UAS tidak lagi dibuat di kelas (dialihkan ke CBT). Kolomnya tampil hanya bila kelas masih punya data lama.
+  const grup = grupUrut.filter((g) => g === 'kuis' || g === 'tugas' || (data?.komponen ?? []).some((k) => k.grup === g))
+  const jumlah = grup.reduce((j, g) => j + (bobot[g] || 0), 0)
+  const kolomCbt = (cbt?.kolom ?? []).filter((k) => semuaCbt || k.cocok)
+  const adaCbtLain = (cbt?.kolom ?? []).some((k) => !k.cocok)
+  const nilaiCbt = new Map((cbt?.nilai ?? []).map((n) => [`${n.peserta_didik_id}|${n.kolom}`, n.nilai]))
+  const labelCbt = (k: { jenis: string; ujian: string; paket: string }) => `${k.jenis === 'uts' ? 'UTS' : k.jenis === 'uas' ? 'UAS' : 'Ujian'}: ${k.ujian} / ${k.paket}`
+  const nama = `${kelas.mapel} ${kelas.rombel}`.replace(/[\\/:*?"<>|]/g, ' ').trim()
+  function unduhCsvNilai() {
     if (!data) return
-    unduhCsv('buku-nilai.csv', [
-      ['No', 'Nama', 'NISN', ...data.komponen.map((k) => `${labelGrup[k.grup]}: ${k.judul}`), ...grupUrut.map((g) => `Rata-rata ${labelGrup[g]}`), 'Nilai akhir'],
-      ...data.siswa.map((s, i) => [s.no_urut ?? i + 1, s.nama, s.nisn, ...data.komponen.map((k) => s.nilai[k.id]), ...grupUrut.map((g) => s.rata[g]), s.akhir]),
+    unduhCsv(`nilai-${nama}.csv`, [
+      ['No', 'Nama', 'NISN', ...data.komponen.map((k) => `${labelGrup[k.grup]}: ${k.judul}`), ...grup.map((g) => `Rata-rata ${labelGrup[g]}`), 'Nilai akhir', ...kolomCbt.map(labelCbt)],
+      ...data.siswa.map((s, i) => [s.no_urut ?? i + 1, s.nama, s.nisn, ...data.komponen.map((k) => s.nilai[k.id]), ...grup.map((g) => s.rata[g]), s.akhir, ...kolomCbt.map((k) => nilaiCbt.get(`${s.peserta_didik_id}|${k.id}`))]),
     ])
   }
+  async function unduhExcel() {
+    setMengunduh(true); setGalat('')
+    try { const { unduhRekapKelas } = await import('./lmsXlsx'); await unduhRekapKelas(kelas, terapan) } catch (e) { setGalat('Gagal menyiapkan Excel. ' + (e as Error).message) }
+    setMengunduh(false)
+  }
+  const kolom = 2 + grup.length + kolomCbt.length
   return (
-    <Halaman judul="Buku nilai" lead="Nilai terbaik kuis dan ulangan, serta nilai tugas yang sudah dinilai.">
+    <>
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
       <div className="kartu form">
         <h3>Bobot nilai akhir</h3>
         <div className="grid grid-3">
-          {grupUrut.map((g) => (
+          {grup.map((g) => (
             <label key={g}>{labelGrup[g]} (%)<input type="number" min={0} max={100} value={bobot[g]} onChange={(e) => setBobot({ ...bobot, [g]: Number(e.target.value) })} /></label>
           ))}
         </div>
         <p className="catatan">Jumlah bobot {jumlah}. Komponen yang belum punya nilai tidak ikut dihitung, dan bobot disesuaikan otomatis dari komponen yang ada.</p>
         <div className="aksi">
           <button className="tombol tombol-isi" onClick={() => setTerapan(bobot)}>Terapkan bobot</button>
-          <button className="tombol" style={biru} onClick={unduh} disabled={!data}>Unduh CSV</button>
+          <button className="tombol" style={biru} onClick={() => void unduhExcel()} disabled={!data || mengunduh}>{mengunduh ? 'Menyiapkan...' : 'Unduh Excel (lengkap)'}</button>
+          <button className="tombol" style={biru} onClick={unduhCsvNilai} disabled={!data}>Unduh CSV nilai</button>
         </div>
       </div>
+      {cbt && cbt.kolom.length > 0 && (
+        <p className="catatan jarak">
+          Kolom CBT di kanan adalah nilai UTS dan UAS dari Asesmen digital, tidak masuk nilai akhir di atas.
+          {kolomCbt.length === 0 && ' Belum ada paket CBT bernama mapel ini.'}{' '}
+          {adaCbtLain && <label><input type="checkbox" checked={semuaCbt} onChange={(e) => setSemuaCbt(e.target.checked)} /> Tampilkan semua paket CBT yang diikuti kelas ini</label>}
+        </p>
+      )}
       <div className="tabel-bungkus jarak">
         <table>
           <thead>
             <tr>
               <th>Nama</th>
               {(data?.komponen ?? []).map((k) => <th key={k.id}>{k.judul}<br /><small>{labelGrup[k.grup]}</small></th>)}
-              {grupUrut.map((g) => <th key={g}>Rata {labelGrup[g]}</th>)}
+              {grup.map((g) => <th key={g}>Rata {labelGrup[g]}</th>)}
               <th>Akhir</th>
+              {kolomCbt.map((k) => <th key={k.id}>{k.paket}<br /><small>{labelCbt(k).split(':')[0]} CBT · {k.ujian}</small></th>)}
             </tr>
           </thead>
           <tbody>
-            {!data && <tr><td colSpan={6}>Memuat...</td></tr>}
-            {data && data.komponen.length === 0 && <tr><td colSpan={6}>Belum ada kuis, ulangan, atau tugas yang terbit.</td></tr>}
+            {!data && !galat && <tr><td colSpan={kolom}>Memuat...</td></tr>}
+            {data && data.komponen.length === 0 && <tr><td colSpan={kolom}>Belum ada kuis atau tugas yang terbit.</td></tr>}
             {(data?.siswa ?? []).map((s) => (
               <tr key={s.peserta_didik_id}>
                 <td>{s.nama}<br /><small>{s.nisn ?? ''}</small></td>
                 {data!.komponen.map((k) => <td key={k.id}>{nilaiTeks(s.nilai[k.id])}</td>)}
-                {grupUrut.map((g) => <td key={g}>{nilaiTeks(s.rata[g])}</td>)}
+                {grup.map((g) => <td key={g}>{nilaiTeks(s.rata[g])}</td>)}
                 <td><strong>{nilaiTeks(s.akhir)}</strong></td>
+                {kolomCbt.map((k) => <td key={k.id}>{nilaiTeks(nilaiCbt.get(`${s.peserta_didik_id}|${k.id}`))}</td>)}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+    </>
+  )
+}
+
+/** Buku nilai satu kelas (alamat lama dari halaman kelas). */
+export function BukuNilai() {
+  const { kelasId = '' } = useParams()
+  const [kelas, setKelas] = useState<KelasNilai | null>(null)
+  const [galat, setGalat] = useState('')
+  useEffect(() => {
+    panggil<KelasNilai[]>('lms_kelas_saya').then((d) => {
+      const k = d.find((x) => x.id === kelasId)
+      if (k) setKelas(k); else setGalat('Kelas tidak ditemukan.')
+    }).catch((e: Error) => setGalat(e.message))
+  }, [kelasId])
+  return (
+    <Halaman judul="Buku nilai" lead="Nilai terbaik kuis dan nilai tugas yang sudah dinilai.">
+      {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
+      {kelas && <TabelNilai kelas={kelas} />}
       <p className="catatan jarak"><Link to={`/portal/lms/${kelasId}`}>Kembali ke kelas</Link></p>
+    </Halaman>
+  )
+}
+
+/** Menu Nilai untuk guru: pilih kelas, lihat nilai semua siswa, unduh Excel atau CSV. */
+export function RekapNilai() {
+  const [kelas, setKelas] = useState<KelasNilai[] | null>(null)
+  const [galat, setGalat] = useState('')
+  const [pilih, setPilih] = useState('')
+  useEffect(() => {
+    panggil<KelasNilai[]>('lms_kelas_saya').then((d) => {
+      const k = d.filter((x) => x.peran === 'pengelola')
+      setKelas(k)
+      setPilih((lama) => lama || k[0]?.id || '')
+    }).catch((e: Error) => setGalat(e.message))
+  }, [])
+  const aktif = kelas?.find((k) => k.id === pilih) ?? null
+  return (
+    <Halaman judul="Rekap nilai" lead="Nilai kuis dan tugas semua siswa per kelas. Nilai UTS dan UAS dari Asesmen digital (CBT) tampil di kolom kanan.">
+      {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
+      {!kelas && !galat && <p className="catatan">Memuat...</p>}
+      {kelas && kelas.length === 0 && <p className="catatan">Belum ada kelas yang Anda ajar.</p>}
+      {kelas && kelas.length > 0 && (
+        <div className="chip-bar" role="tablist" aria-label="Kelas">
+          {kelas.map((k) => (
+            <button key={k.id} type="button" role="tab" aria-selected={pilih === k.id} className={'chip' + (pilih === k.id ? ' aktif' : '')} onClick={() => setPilih(k.id)}>{k.rombel} · {k.mapel}</button>
+          ))}
+        </div>
+      )}
+      {aktif && <TabelNilai key={aktif.id} kelas={aktif} />}
     </Halaman>
   )
 }
