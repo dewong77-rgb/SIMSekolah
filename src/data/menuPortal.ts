@@ -33,7 +33,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
       judul: 'Belajar',
       item: [
         { to: '/portal/lms', label: 'Kelas saya', ikon: 'buku', ket: 'Materi, lembar kerja, dan diskusi per pertemuan' },
-        { to: '/portal/penilaian/kuis', cocok: '/portal/penilaian', label: 'Kuis dan ulangan', ikon: 'centang', ket: 'Kuis, ulangan harian, UTS, dan UAS dari semua kelas' },
+        { to: '/portal/penilaian/kuis', cocok: '/portal/penilaian', label: 'Kuis', ikon: 'centang', ket: 'Kuis dari semua kelas. UTS dan UAS lewat Asesmen digital (CBT)' },
         { to: '/portal/progres-lms', label: 'Nilai dan progres', ikon: 'grafik', ket: 'Kehadiran, materi, nilai kuis, dan tugas semua mapel' },
         { to: '/asesmen', label: 'Ujian digital (CBT)', ikon: 'pena', ket: 'Jadwal dan ruang ujian sekolah. Masuk dengan token dari pengawas' },
         perpustakaan,
@@ -54,12 +54,18 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
       item: [
         { to: '/portal/lms', label: 'Kelas saya', ikon: 'buku', ket: 'Kelas, pertemuan, materi, lembar kerja, dan tugas' },
         { to: '/portal/lms/dashboard', label: 'Pantau semua kelas', ikon: 'grafik', ket: 'Siapa sudah hadir dan mengumpulkan, semua kelas dalam satu layar' },
-        { to: '/portal/penilaian/kuis', cocok: '/portal/penilaian', label: 'Kuis dan ulangan', ikon: 'centang', ket: 'Kuis, ulangan harian, UTS, dan UAS semua kelas' },
+        { to: '/portal/penilaian/kuis', cocok: '/portal/penilaian', label: 'Kuis', ikon: 'centang', ket: 'Kuis dari semua kelas. UTS dan UAS lewat Asesmen digital (CBT)' },
         { to: '/portal/absensi', label: 'Rekap kehadiran', ikon: 'centang', ket: 'Jumlah siswa yang diajar dan rekap kehadiran per kelas' },
         { to: '/asesmen', label: 'Asesmen digital (CBT)', ikon: 'pena', ket: 'Bank soal dan pengawasan ujian sekolah (UTS, UAS)' },
         perpustakaan,
         chat,
         { to: '/portal/panduan-lms', label: 'Panduan mengajar', ikon: 'info', ket: 'Urutan menyiapkan dan menjalankan satu pertemuan' },
+      ],
+    },
+    {
+      judul: 'Nilai',
+      item: [
+        { to: '/portal/nilai', label: 'Rekap nilai', ikon: 'grafik', ket: 'Nilai kuis dan tugas semua siswa per kelas, siap diunduh ke Excel' },
       ],
     },
     {

@@ -109,13 +109,16 @@ function FormAsesmen({ kelasId, pertemuan, awal, selesai, jenisAwal }: {
   }
   return (
     <form className="kartu form jarak" onSubmit={kirim}>
-      <h3>{awal ? 'Pengaturan' : 'Kuis atau ulangan baru'}</h3>
+      <h3>{awal ? 'Pengaturan' : 'Kuis baru'}</h3>
       <div className="grid grid-2">
-        <label>Jenis
-          <select value={v.jenis} onChange={(e) => setV({ ...v, jenis: e.target.value })}>
-            {Object.entries(labelJenis).map(([k, t]) => <option key={k} value={k}>{t}</option>)}
-          </select>
-        </label>
+        {/* Jenis hanya ditampilkan untuk ulangan lama. Ulangan baru tidak dibuat di sini: UTS dan UAS lewat CBT. */}
+        {awal && awal.jenis !== 'kuis' && (
+          <label>Jenis
+            <select value={v.jenis} onChange={(e) => setV({ ...v, jenis: e.target.value })}>
+              {Object.entries(labelJenis).filter(([k]) => k === 'kuis' || k === awal.jenis).map(([k, t]) => <option key={k} value={k}>{t}</option>)}
+            </select>
+          </label>
+        )}
         <label>Judul<input required maxLength={200} value={v.judul} onChange={(e) => setV({ ...v, judul: e.target.value })} /></label>
         <label>Terkait pertemuan
           <select value={v.pertemuan} onChange={(e) => setV({ ...v, pertemuan: e.target.value })}>
@@ -207,6 +210,8 @@ export function DaftarKuis({ kelasId, kelola, pertemuan, jenisTetap }: { kelasId
   const [tabPilih, setTab] = useState<Jenis>('kuis')
   const [ubahId, setUbahId] = useState<string | null>(null)
   const tab = jenisTetap ?? tabPilih
+  // Ulangan harian, UTS, dan UAS tidak lagi dibuat. Tab-nya muncul hanya bila kelas masih punya data lama.
+  const jenisTampil = urutJenis.filter((j) => j === 'kuis' || (daftar ?? []).some((a) => a.jenis === j))
   const nav = useNavigate()
   const muatDaftar = useCallback(() => panggil<Asesmen[]>('lms_asesmen_daftar', { p_kelas: kelasId }).then(setDaftar).catch((e: Error) => setGalat(e.message)), [kelasId])
   useEffect(() => { void muatDaftar() }, [muatDaftar])
@@ -217,10 +222,10 @@ export function DaftarKuis({ kelasId, kelola, pertemuan, jenisTetap }: { kelasId
   }
   return (
     <>
-      {!jenisTetap && <div className="judul-bagian jarak"><h2>Kuis dan ulangan</h2></div>}
+      {!jenisTetap && <div className="judul-bagian jarak"><h2>Kuis</h2></div>}
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
-      {!jenisTetap && <nav className="langkah-bar" aria-label="Jenis penilaian">
-        {urutJenis.map((j) => (
+      {!jenisTetap && jenisTampil.length > 1 && <nav className="langkah-bar" aria-label="Jenis penilaian">
+        {jenisTampil.map((j) => (
           <button key={j} type="button" className={`langkah${tab === j ? ' langkah-aktif' : ''}`} onClick={() => { setTab(j); setForm(false) }}>
             <span className="langkah-teks"><strong>{labelTab[j]}</strong><small>{daftar ? `${daftar.filter((a) => a.jenis === j).length} buah` : '...'}</small></span>
           </button>
