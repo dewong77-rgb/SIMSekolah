@@ -1,8 +1,8 @@
 // Kehadiran harian per rombel dan rekapnya. Izin yang disetujui mengalahkan isian petugas di hari yang sama.
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Halaman from '../../components/Halaman'
-import { panggil, tgl } from '../../lib/rpc'
+import { panggil, tgl, tglJam } from '../../lib/rpc'
 import { unduhCsv } from '../../lib/hubin'
 import { PERIODE, STATUS_HADIR, akhirPekan, hariIni, label, rentangPeriode, tambahHari, type Periode, type RombelPilih } from '../../lib/kesiswaan'
 import Gerbang from './Gerbang'
@@ -226,9 +226,120 @@ function KelengkapanTab({ pilih, bisaIsi }: { pilih: (l: Lompat) => void; bisaIs
   )
 }
 
+type BarisKoreksi = { pd: string; nama: string; nisn: string | null; rombel_id: string; rombel: string; tanggal: string; status: string; dari_izin: boolean; koreksi: number }
+type Riwayat = { id: string; nama: string; rombel: string | null; tanggal: string; dari: string | null; ke: string; alasan: string; dikonfirmasi_oleh: string; dicatat_nama: string | null; dicatat_pada: string }
+
+function FormKoreksi({ b, selesai }: { b: BarisKoreksi; selesai: (pesan: string) => void }) {
+  const [baru, setBaru] = useState('')
+  const [alasan, setAlasan] = useState('')
+  const [konf, setKonf] = useState('')
+  const [galat, setGalat] = useState('')
+  const [sibuk, setSibuk] = useState(false)
+  async function simpan() {
+    if (!baru) return setGalat('Pilih status yang benar.')
+    setSibuk(true); setGalat('')
+    try {
+      const r = await panggil<{ pemanggilan_terjadwal: number }>('kehadiran_koreksi', { p_pd: b.pd, p_tanggal: b.tanggal, p_status: baru, p_alasan: alasan, p_konfirmasi: konf })
+      selesai(`${b.nama}, ${tgl(b.tanggal)}: ${label(STATUS_HADIR, b.status)} menjadi ${label(STATUS_HADIR, baru)}.${r.pemanggilan_terjadwal > 0 ? ` Siswa ini punya ${r.pemanggilan_terjadwal} jadwal pemanggilan orang tua yang menunggu; periksa di menu Pemanggilan orang tua apakah masih perlu.` : ''}`)
+    } catch (e) { setGalat((e as Error).message) } finally { setSibuk(false) }
+  }
+  return (
+    <div className="jarak">
+      <div className="aksi" style={{ marginTop: 0, gap: 4 }} role="group" aria-label="Status yang benar">
+        {STATUS_HADIR.filter(([k]) => k !== b.status).map(([k, n]) => (
+          <button key={k} type="button" aria-pressed={baru === k} className={baru === k ? 'tombol tombol-isi' : 'tombol'} style={{ padding: '4px 10px' }} onClick={() => setBaru(k)}>{n}</button>
+        ))}
+      </div>
+      <input style={{ width: '100%', marginTop: 6 }} maxLength={300} placeholder="Alasan koreksi (wajib), mis. surat sakit menyusul" value={alasan} onChange={(e) => setAlasan(e.target.value)} aria-label="Alasan koreksi" />
+      <input style={{ width: '100%', marginTop: 6 }} maxLength={100} placeholder="Dikonfirmasi oleh (wajib): nama wali kelas atau guru piket" value={konf} onChange={(e) => setKonf(e.target.value)} aria-label="Dikonfirmasi oleh" />
+      {galat && <p className="galat" role="alert">{galat}</p>}
+      <div className="aksi"><button className="tombol tombol-isi" disabled={sibuk} onClick={simpan}>{sibuk ? 'Menyimpan...' : 'Simpan koreksi'}</button></div>
+    </div>
+  )
+}
+
+/** Koreksi status yang keliru, mis. alpa yang ternyata sakit atau terlambat. Wajib beralasan dan menyebut pengonfirmasi; riwayat tersimpan. */
+function KoreksiTab({ rombels }: { rombels: RombelPilih[] }) {
+  const [dari, setDari] = useState(tambahHari(hariIni(), -30))
+  const [sampai, setSampai] = useState(hariIni())
+  const [status, setStatus] = useState('alpa')
+  const [rombel, setRombel] = useState('')
+  const [cari, setCari] = useState('')
+  const [q, setQ] = useState('')
+  const [data, setData] = useState<{ total: number; baris: BarisKoreksi[] } | null>(null)
+  const [riwayat, setRiwayat] = useState<Riwayat[] | null>(null)
+  const [buka, setBuka] = useState<string | null>(null)
+  const [info, setInfo] = useState('')
+  const [galat, setGalat] = useState('')
+  const [versi, setVersi] = useState(0)
+
+  useEffect(() => { const t = setTimeout(() => setQ(cari.trim()), 300); return () => clearTimeout(t) }, [cari])
+  useEffect(() => {
+    let batal = false
+    setData(null)
+    panggil<{ total: number; baris: BarisKoreksi[] }>('kehadiran_koreksi_cari', { p_dari: dari, p_sampai: sampai, p_status: status, p_rombel: rombel || null, p_cari: q || null })
+      .then((x) => { if (!batal) { setData(x); setGalat('') } }).catch((e: Error) => { if (!batal) setGalat(e.message) })
+    panggil<Riwayat[]>('kehadiran_koreksi_riwayat', { p_batas: 30 }).then((x) => { if (!batal) setRiwayat(x) }).catch(() => undefined)
+    return () => { batal = true }
+  }, [dari, sampai, status, rombel, q, versi])
+
+  const kunci = (b: BarisKoreksi) => `${b.pd}-${b.tanggal}`
+  return (
+    <div>
+      <p className="catatan">Gunakan bila wali kelas atau guru piket mengonfirmasi status yang tercatat keliru, misalnya alpa yang ternyata sakit, izin, atau terlambat. Koreksi bisa dilakukan sampai 62 hari ke belakang. Tanggal yang tercakup izin yang disetujui tidak bisa dikoreksi di sini.</p>
+      <div className="aksi" style={{ marginTop: 0, alignItems: 'center' }}>
+        <label>Status tercatat <select value={status} onChange={(e) => setStatus(e.target.value)}>{STATUS_HADIR.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></label>
+        <input type="date" value={dari} max={sampai} min={tambahHari(sampai, -62)} onChange={(e) => e.target.value && setDari(e.target.value)} aria-label="Dari" />
+        <input type="date" value={sampai} min={dari} max={hariIni()} onChange={(e) => e.target.value && setSampai(e.target.value)} aria-label="Sampai" />
+        <select value={rombel} onChange={(e) => setRombel(e.target.value)} aria-label="Rombel">
+          <option value="">Semua rombel saya</option>
+          {rombels.map((r) => <option key={r.id} value={r.id}>{r.nama}</option>)}
+        </select>
+        <input type="search" placeholder="Cari nama atau NISN" value={cari} onChange={(e) => setCari(e.target.value)} aria-label="Cari" />
+      </div>
+      {info && <p className="kartu" role="status">{info}</p>}
+      {galat && <p className="kartu galat" role="alert">{galat}</p>}
+      {data && <p className="catatan">{data.total} catatan{data.total > data.baris.length ? `, ${data.baris.length} teratas ditampilkan; persempit rentang atau pilih rombel` : ''}.</p>}
+      <div className="tabel-bungkus jarak">
+        <table>
+          <thead><tr><th>Tanggal</th><th>Nama</th><th>Kelas</th><th>Status</th><th /></tr></thead>
+          <tbody>
+            {!data && !galat && <tr><td colSpan={5} className="catatan">Memuat...</td></tr>}
+            {data?.baris.length === 0 && <tr><td colSpan={5} className="catatan">Tidak ada catatan dengan status ini.</td></tr>}
+            {data?.baris.map((b) => (
+              <Fragment key={kunci(b)}>
+                <tr>
+                  <td>{tgl(b.tanggal)}</td><td>{b.nama}{b.koreksi > 0 && <small className="catatan"> · pernah dikoreksi</small>}</td><td>{b.rombel}</td>
+                  <td><strong>{label(STATUS_HADIR, b.status)}</strong>{b.dari_izin && <small className="catatan"> dari izin</small>}</td>
+                  <td>{b.dari_izin ? <small className="catatan">Tidak bisa</small> : <button className="tombol" onClick={() => setBuka(buka === kunci(b) ? null : kunci(b))}>Koreksi</button>}</td>
+                </tr>
+                {buka === kunci(b) && <tr><td colSpan={5}><FormKoreksi b={b} selesai={(m) => { setInfo(m); setBuka(null); setVersi((v) => v + 1) }} /></td></tr>}
+              </Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {riwayat && riwayat.length > 0 && (
+        <div className="jarak">
+          <h3>Koreksi terakhir</h3>
+          <div className="tabel-bungkus">
+            <table>
+              <thead><tr><th>Dikoreksi</th><th>Siswa</th><th>Tanggal</th><th>Perubahan</th><th>Alasan</th><th>Dikonfirmasi oleh</th></tr></thead>
+              <tbody>{riwayat.map((r) => (
+                <tr key={r.id}><td>{tglJam(r.dicatat_pada)}<br /><small className="catatan">{r.dicatat_nama ?? '-'}</small></td><td>{r.nama}<br /><small className="catatan">{r.rombel ?? '-'}</small></td><td>{tgl(r.tanggal)}</td>
+                  <td>{label(STATUS_HADIR, r.dari)} → <strong>{label(STATUS_HADIR, r.ke)}</strong></td><td>{r.alasan}</td><td>{r.dikonfirmasi_oleh}</td></tr>
+              ))}</tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function Isi({ izin }: { izin: string[] }) {
   const bisaIsi = izin.includes('kesiswaan.izin')
-  const [tab, setTab] = useState<'harian' | 'kelengkapan' | 'rekap'>('kelengkapan')
+  const [tab, setTab] = useState<'harian' | 'kelengkapan' | 'koreksi' | 'rekap'>('kelengkapan')
   const [lompat, setLompat] = useState<Lompat | null>(null)
   const [rombels, setRombels] = useState<RombelPilih[] | null>(null)
   const [galat, setGalat] = useState('')
@@ -240,10 +351,11 @@ function Isi({ izin }: { izin: string[] }) {
       <div className="aksi" style={{ marginTop: 0 }}>
         {bisaIsi && <button className={tab === 'harian' ? 'tombol tombol-isi' : 'tombol'} onClick={() => setTab('harian')}>Isi kehadiran</button>}
         <button className={tab === 'kelengkapan' ? 'tombol tombol-isi' : 'tombol'} onClick={() => setTab('kelengkapan')}>Kelengkapan mingguan</button>
+        {bisaIsi && <button className={tab === 'koreksi' ? 'tombol tombol-isi' : 'tombol'} onClick={() => setTab('koreksi')}>Koreksi</button>}
         <button className={tab === 'rekap' ? 'tombol tombol-isi' : 'tombol'} onClick={() => setTab('rekap')}>Rekap</button>
       </div>
       <div className="jarak">
-        {rombels === null ? <p className="catatan">Memuat rombel...</p> : tab === 'harian' ? <Harian key={`${lompat?.rombel}-${lompat?.tanggal}`} rombels={rombels} awal={lompat} /> : tab === 'kelengkapan' ? <KelengkapanTab bisaIsi={bisaIsi} pilih={(l) => { setLompat(l); setTab('harian') }} /> : <RekapTab rombels={rombels} />}
+        {rombels === null ? <p className="catatan">Memuat rombel...</p> : tab === 'harian' ? <Harian key={`${lompat?.rombel}-${lompat?.tanggal}`} rombels={rombels} awal={lompat} /> : tab === 'koreksi' ? <KoreksiTab rombels={rombels} /> : tab === 'kelengkapan' ? <KelengkapanTab bisaIsi={bisaIsi} pilih={(l) => { setLompat(l); setTab('harian') }} /> : <RekapTab rombels={rombels} />}
       </div>
       <p><Link to="/portal/kesiswaan">Kembali ke Kesiswaan</Link></p>
     </Halaman>
