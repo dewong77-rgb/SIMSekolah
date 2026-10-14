@@ -489,11 +489,11 @@ language plpgsql stable security definer set search_path = '' as $$
 declare v text[] := '{}';
 begin
   if auth.uid() is null then return v; end if;
-  if private.adalah_super() or private.peran_saya() = 'admin_tu' or private.punya_izin('kesiswaan.biodata', '__semua__') then v := v || 'biodata'; end if;
-  if private.keluar_pengusul() then v := v || 'keluar'; end if;
-  if private.boleh_kerjakan() then v := v || 'keluar.tanggapi'; end if;
-  if private.panggilan_kelola() then v := v || 'panggilan.kelola'; end if;
-  if private.adalah_super() or cardinality(private.panggilan_wali_rombel()) > 0 then v := v || 'panggilan.wali'; end if;
+  if private.adalah_super() or private.peran_saya() = 'admin_tu' or private.punya_izin('kesiswaan.biodata', '__semua__') then v := array_append(v, 'biodata'); end if;
+  if private.keluar_pengusul() then v := array_append(v, 'keluar'); end if;
+  if private.boleh_kerjakan() then v := array_append(v, 'keluar.tanggapi'); end if;
+  if private.panggilan_kelola() then v := array_append(v, 'panggilan.kelola'); end if;
+  if private.adalah_super() or cardinality(private.panggilan_wali_rombel()) > 0 then v := array_append(v, 'panggilan.wali'); end if;
   return v;
 end $$;
 

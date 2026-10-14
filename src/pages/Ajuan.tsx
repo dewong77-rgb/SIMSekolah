@@ -9,6 +9,7 @@ import Halaman from '../components/Halaman'
 import Pager, { efektif } from '../components/Pager'
 import { supabase } from '../lib/supabase'
 import { panggil } from '../lib/rpc'
+import { kodeBerkas } from '../lib/gambar'
 import { useAuth } from '../auth/AuthContext'
 import { unduhCsv } from './lmsUtil'
 
@@ -26,6 +27,7 @@ type Ajuan = {
   butuh_dokumen: boolean; status: StatusAjuan; catatan_admin: string | null; catatan_operator: string | null
   diputuskan_pada: string | null; dibuat_pada: string; bagian: string | null; belum_terbukti: boolean
   dikerjakan_pada: string | null; selesai_pada: string | null; diterapkan_pada?: string | null; aksi?: string[]
+  diteruskan_pada?: string | null; bukti_path?: string | null; bukti_nama?: string | null; bukti_pada?: string | null
 }
 type Profil = { jenis: 'ptk' | 'siswa'; data: Record<string, unknown>; sensitif: Record<string, unknown>; disamarkan: boolean; orang_tua?: Record<string, unknown>[] }
 
@@ -48,6 +50,63 @@ const nilaiTampil = (kunci: string, x: string | null) => {
   return x
 }
 const pesan = (e: { message: string } | null) => e?.message ?? 'Terjadi kesalahan.'
+
+const JENIS_BUKTI: Record<string, string> = { pdf: 'application/pdf', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp' }
+
+/** Ceklis tahap ajuan dan bukti hasil kerja operator (PDF atau tangkapan layar Dapodik). */
+function CeklisBukti({ a, bisaUnggah, muat }: { a: Ajuan; bisaUnggah: boolean; muat: () => Promise<void> }) {
+  const { profil } = useAuth()
+  const [berkas, setBerkas] = useState<File | null>(null)
+  const [sibuk, setSibuk] = useState(false)
+  const [galat, setGalat] = useState('')
+  const langkah: [boolean, string, string | null][] = [
+    [true, 'Diajukan', waktu(a.dibuat_pada)],
+    [!!a.diteruskan_pada, 'Disetujui TU dan diteruskan ke operator', a.diteruskan_pada ? waktu(a.diteruskan_pada) : null],
+    [a.status === 'dikerjakan' || a.status === 'selesai' || !!a.dikerjakan_pada, 'Dikerjakan operator di Dapodik', a.dikerjakan_pada ? waktu(a.dikerjakan_pada) : null],
+    [a.status === 'selesai', 'Selesai', a.selesai_pada ? waktu(a.selesai_pada) : null],
+  ]
+  async function unggah() {
+    if (!berkas) return
+    const ext = berkas.name.split('.').pop()?.toLowerCase() ?? ''
+    const jenis = JENIS_BUKTI[ext]
+    if (!jenis) return setGalat('Bukti harus berupa PDF, PNG, JPG, atau WebP.')
+    if (berkas.size > 5 * 1024 * 1024) return setGalat('Ukuran bukti maksimal 5 MB.')
+    setSibuk(true); setGalat('')
+    const path = `${profil?.npsn}/${a.id}/bukti-${kodeBerkas()}.${ext}`
+    try {
+      const { error } = await supabase.storage.from('bukti-ajuan').upload(path, berkas, { contentType: jenis, upsert: false })
+      if (error) throw new Error(error.message)
+      try { await panggil('ajuan_bukti_simpan', { p_id: a.id, p_path: path, p_nama: berkas.name }) }
+      catch (e) { await supabase.storage.from('bukti-ajuan').remove([path]).catch(() => undefined); throw e }
+      setBerkas(null); await muat()
+    } catch (e) { setGalat((e as Error).message) } finally { setSibuk(false) }
+  }
+  async function lihat() {
+    if (!a.bukti_path) return
+    const { data, error } = await supabase.storage.from('bukti-ajuan').createSignedUrl(a.bukti_path, 300, { download: a.bukti_nama ?? 'bukti' })
+    if (error || !data) return setGalat(error?.message ?? 'Tautan berkas gagal dibuat.')
+    window.open(data.signedUrl, '_blank', 'noopener')
+  }
+  return (
+    <div className="jarak">
+      <ul style={{ padding: 0, margin: 0 }} aria-label="Tahapan ajuan">
+        {langkah.map(([ok, teks, ket]) => (
+          <li key={teks} style={{ listStyle: 'none' }}><span aria-hidden="true">{ok ? '☑' : '☐'}</span> <span style={{ fontWeight: ok ? 600 : 400 }}>{teks}</span>{ket && <small className="catatan"> · {ket}</small>}</li>
+        ))}
+        <li style={{ listStyle: 'none' }}><span aria-hidden="true">{a.bukti_path ? '☑' : '☐'}</span> <span style={{ fontWeight: a.bukti_path ? 600 : 400 }}>Bukti hasil kerja terlampir</span>
+          {a.bukti_path && <small className="catatan"> · {a.bukti_nama} ({waktu(a.bukti_pada ?? null)}) </small>}
+          {a.bukti_path && <button className="tombol" style={{ padding: '2px 10px', marginLeft: 6 }} onClick={lihat}>Lihat</button>}</li>
+      </ul>
+      {bisaUnggah && (
+        <div className="aksi" style={{ alignItems: 'center' }}>
+          <input type="file" accept="application/pdf,image/png,image/jpeg,image/webp,.pdf,.png,.jpg,.jpeg,.webp" onChange={(e) => setBerkas(e.target.files?.[0] ?? null)} aria-label="Bukti hasil kerja" />
+          <button className="tombol" disabled={!berkas || sibuk} onClick={unggah}>{sibuk ? 'Mengunggah...' : a.bukti_path ? 'Ganti bukti' : 'Unggah bukti'}</button>
+        </div>
+      )}
+      {galat && <p className="galat" role="alert">{galat}</p>}
+    </div>
+  )
+}
 
 function Status({ s }: { s: StatusAjuan }) {
   return <span className={`status status-${s}`}>{namaStatus[s]}</span>
@@ -418,6 +477,7 @@ export function AjuanMasuk() {
                     {a.butuh_dokumen && <p className="catatan">Memuat perubahan identitas. Minta KK, akta, atau ijazah dari pengaju sebelum menyetujui.</p>}
                     {a.catatan_admin && <p className="catatan"><strong>Catatan TU:</strong> {a.catatan_admin}</p>}
                     {a.catatan_operator && <p className="catatan"><strong>Catatan operator:</strong> {a.catatan_operator}</p>}
+                    {a.status !== 'ditolak' && a.status !== 'dibatalkan' && <CeklisBukti a={a} bisaUnggah={!!a.aksi?.includes('kerjakan')} muat={muat} />}
                     {(a.aksi ?? []).length > 0 && (
                       <div className="form jarak">
                         <label><span>Catatan {a.aksi?.includes('putuskan') ? '(wajib bila menolak)' : '(wajib bila mengembalikan)'}</span>
@@ -433,7 +493,7 @@ export function AjuanMasuk() {
                           {a.aksi?.includes('kerjakan') && (
                             <>
                               {a.status === 'diteruskan' && <button className="tombol" disabled={sibuk} onClick={() => jalankan('kerjakan_ajuan', { p_id: a.id, p_aksi: 'mulai', p_catatan: catatan }, 'Ajuan ditandai sedang dikerjakan.')}>Mulai kerjakan</button>}
-                              <button className="tombol tombol-isi" disabled={sibuk} onClick={() => jalankan('kerjakan_ajuan', { p_id: a.id, p_aksi: 'selesai', p_catatan: catatan }, 'Ajuan ditandai selesai: sudah di Dapodik.')}>Sudah di Dapodik</button>
+                              <button className="tombol tombol-isi" disabled={sibuk || !a.bukti_path} title={a.bukti_path ? undefined : 'Unggah bukti hasil kerja lebih dulu'} onClick={() => jalankan('kerjakan_ajuan', { p_id: a.id, p_aksi: 'selesai', p_catatan: catatan }, 'Ajuan ditandai selesai: sudah di Dapodik.')}>Sudah di Dapodik</button>
                               <button className="tombol" disabled={sibuk || catatan.trim().length < 3} onClick={() => jalankan('kerjakan_ajuan', { p_id: a.id, p_aksi: 'kembalikan', p_catatan: catatan }, 'Ajuan dikembalikan ke pengaju.')}>Kembalikan</button>
                             </>
                           )}
