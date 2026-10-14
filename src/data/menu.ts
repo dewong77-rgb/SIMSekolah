@@ -4,7 +4,7 @@ export type ItemMenu = {
   anak?: { label: string; to: string }[]
 }
 
-// Hanya fitur yang sudah berjalan dengan data sungguhan. Halaman contoh (PPDB, Perpustakaan) tidak ditautkan.
+// Hanya fitur yang sudah berjalan dengan data sungguhan. Halaman contoh (PPDB) tidak ditautkan.
 export const menuUtama: ItemMenu[] = [
   { label: 'Beranda', to: '/' },
   {
@@ -23,6 +23,7 @@ export const menuUtama: ItemMenu[] = [
       { label: 'Kalender Akademik', to: '/akademik' },
       { label: 'Asesmen Digital (CBT)', to: '/asesmen' },
       { label: 'LMS', to: '/lms' },
+      { label: 'Perpustakaan', to: '/perpustakaan' },
     ],
   },
   {

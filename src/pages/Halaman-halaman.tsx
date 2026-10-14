@@ -1,5 +1,4 @@
 import Halaman, { Segera } from '../components/Halaman'
-import { koleksiPerpustakaan } from '../data/contoh'
 import { useKerjasama } from '../lib/hubin'
 import { bersihWilayah, nomorWa, useSekolah } from '../lib/profilSekolah'
 import { tanggalPanjang } from '../lib/format'
@@ -160,24 +159,19 @@ export function Lms() {
 
 export function Perpustakaan() {
   return (
-    <Halaman judul="Perpustakaan" lead="Telusuri koleksi dan panduan layanan perpustakaan.">
-      <div className="tabel-bungkus">
-        <table>
-          <thead>
-            <tr><th>Judul</th><th>Kategori</th><th>Ketersediaan</th></tr>
-          </thead>
-          <tbody>
-            {koleksiPerpustakaan.map((b) => (
-              <tr key={b.judul}>
-                <td>{b.judul}</td>
-                <td>{b.kategori}</td>
-                <td>{b.tersedia ? 'Tersedia' : 'Dipinjam'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <Halaman judul="Perpustakaan" lead="Perpustakaan digital dan fisik sekolah. Perlu masuk dengan akun sekolah.">
+      <div className="grid grid-2">
+        <div className="kartu">
+          <h3>Perpustakaan digital</h3>
+          <p>Baca buku koleksi sekolah langsung di aplikasi, dari komputer maupun ponsel. Posisi bacaan tersimpan otomatis. Guru melampirkan buku sebagai bacaan rujukan pada pertemuan dan tugas, dan siswa mengutipnya ke jawaban.</p>
+          <Link to="/portal/perpustakaan" className="tombol tombol-isi">Buka perpustakaan digital</Link>
+        </div>
+        <div className="kartu">
+          <h3>Perpustakaan fisik</h3>
+          <p>Cek apakah buku cetak tersedia dan di rak mana letaknya, lihat buku yang sedang dipinjam, lalu pinjam lewat petugas perpustakaan.</p>
+          <Link to="/portal/perpustakaan/fisik" className="tombol tombol-isi">Cek buku fisik</Link>
+        </div>
       </div>
-      <p className="catatan">Koleksi di atas contoh. Katalog sungguhan menyusul.</p>
     </Halaman>
   )
 }
