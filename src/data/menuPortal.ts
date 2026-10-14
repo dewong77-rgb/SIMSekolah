@@ -173,7 +173,7 @@ const pengaturanSuper: ItemPortal[] = [
   { to: '/portal/kurikulum/jadwal', label: 'Jadwal pelajaran', ikon: 'kalender', ket: 'Susun jadwal per kelas dengan penjagaan bentrok guru dan kuota jam mapel' },
   { to: '/portal/kurikulum/wali-kelas', label: 'Wali kelas', ikon: 'sekolah', ket: 'Usulan wali kelas, persetujuan Kepala Sekolah, dan lampiran SK' },
   { to: '/portal/kurikulum/formulir', label: 'Formulir rombel', ikon: 'dokumen', ket: 'F-ROMBEL: jurusan, moving class, SK mengajar, dan cetak format Dapodik' },
-  { to: '/portal/sarpras/buku', label: 'Sarana dan prasarana', ikon: 'tas', ket: 'Inventaris, kerusakan, permintaan, usulan bertingkat, kartu inventaris, dan pembukuan' },
+  { to: '/portal/sarpras/buku', label: 'Sarana dan prasarana', ikon: 'tas', ket: 'Inventaris, kerusakan, permintaan, peminjaman alat, usulan bertingkat, kartu inventaris, dan pembukuan' },
   { to: '/portal/perpustakaan/kelola', label: 'Kelola perpustakaan', ikon: 'buku', ket: 'Koleksi digital dan fisik, peminjaman, laporan baca, dan penanggung jawab perpustakaan' },
   { to: '/portal/spmi', label: 'Penjaminan mutu (SPMI)', ikon: 'centang', ket: 'Standar mutu, indikator, dan dokumen satuan penjamin mutu internal' },
 ]
@@ -228,6 +228,9 @@ const menuIzin: { izin: string; nama: string; bidang: string; ikon: string; to?:
   { izin: 'sarpras.catat_lab', nama: 'Usulan sarpras', bidang: 'Sarana dan prasarana', ikon: 'kotak', to: '/portal/sarpras/usulan' },
   { izin: 'sarpras.verifikasi_program', nama: 'Usulan sarpras', bidang: 'Sarana dan prasarana', ikon: 'kotak', to: '/portal/sarpras/usulan' },
   { izin: 'sarpras.lihat', nama: 'Usulan sarpras', bidang: 'Sarana dan prasarana', ikon: 'kotak', to: '/portal/sarpras/usulan' },
+  { izin: 'sarpras.kelola', nama: 'Peminjaman alat', bidang: 'Sarana dan prasarana', ikon: 'kotak', to: '/portal/sarpras/peminjaman' },
+  { izin: 'sarpras.operasional', nama: 'Peminjaman alat', bidang: 'Sarana dan prasarana', ikon: 'kotak', to: '/portal/sarpras/peminjaman' },
+  { izin: 'sarpras.lihat', nama: 'Peminjaman alat', bidang: 'Sarana dan prasarana', ikon: 'kotak', to: '/portal/sarpras/peminjaman' },
   { izin: 'sarpras.kelola', nama: 'Kartu inventaris', bidang: 'Sarana dan prasarana', ikon: 'cetak', to: '/portal/sarpras/kartu' },
   { izin: 'sarpras.operasional', nama: 'Kartu inventaris', bidang: 'Sarana dan prasarana', ikon: 'cetak', to: '/portal/sarpras/kartu' },
   { izin: 'sarpras.catat_lab', nama: 'Kartu inventaris', bidang: 'Sarana dan prasarana', ikon: 'cetak', to: '/portal/sarpras/kartu' },
