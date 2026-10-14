@@ -13,6 +13,12 @@ type Nilai = {
   komponen: { id: string; grup: string; judul: string }[]
   siswa: { peserta_didik_id: string; nama: string; nisn: string | null; no_urut: number | null; nilai: Record<string, number>; rata: Record<string, number>; akhir: number | null }[]
 }
+/** Nilai Asesmen digital (CBT) siswa kelas ini, dari lms_nilai_cbt. */
+export type NilaiCbt = {
+  kolom: { id: string; ujian: string; jenis: string; paket: string; cocok: boolean }[]
+  nilai: { peserta_didik_id: string; kolom: string; nilai: number }[]
+}
+const jenisCbt: Record<string, string> = { uts: 'UTS', uas: 'UAS', lainnya: 'Ujian' }
 type Asesmen = { id: string; judul: string; jenis: string; status: string; kkm: number | null; komposisi: { esai: number; isian: number }; terkunci: boolean }
 type RekapAsesmen = { siswa: { peserta_didik_id: string; nama: string; nisn: string | null; no_urut: number | null; percobaan: number; status: string; nilai_terbaik: number | null }[] }
 type Tugas = { id: string; judul: string; status: string; nilai_maks: number; tenggat: string | null }
@@ -34,13 +40,14 @@ const bersih = (s: string) => s.replace(/[\\/?*[\]:]/g, ' ').slice(0, 31).trim()
 
 export async function unduhRekapKelas(kelas: Info, bobot: Record<string, number> = { kuis: 20, tugas: 20, uh: 20, uts: 20, uas: 20 }) {
   const id = kelas.id
-  const [pertemuan, rekap, nilai, asesmen, tugas, jurnal] = await Promise.all([
+  const [pertemuan, rekap, nilai, asesmen, tugas, jurnal, cbt] = await Promise.all([
     panggil<Pertemuan[]>('lms_pertemuan_daftar', { p_kelas: id }),
     panggil<RekapKelas>('lms_rekap_kelas', { p_kelas: id }),
     panggil<Nilai>('lms_nilai_kelas', { p_kelas: id, p_bobot: bobot }),
     panggil<Asesmen[]>('lms_asesmen_daftar', { p_kelas: id }),
     panggil<Tugas[]>('lms_tugas_daftar', { p_kelas: id }),
     panggil<Jurnal[]>('lms_jurnal_daftar', { p_kelas: id }),
+    panggil<NilaiCbt>('lms_nilai_cbt', { p_kelas: id }).catch(() => null),
   ])
   const sesi = pertemuan.filter((p) => p.status === 'terbit')
   const [absen, rekapAsesmen, rekapTugas, koreksi] = await Promise.all([
@@ -104,6 +111,13 @@ export async function unduhRekapKelas(kelas: Info, bobot: Record<string, number>
   // 4. Nilai akhir
   sheet('Buku nilai', [...pangkal, ...nilai.komponen.map((k) => `${grupNama[k.grup]}: ${k.judul}`), ...grupUrut.map((g) => `Rata ${grupNama[g]}`), 'Nilai akhir'],
     urut.map((s) => [...identitas(s), ...nilai.komponen.map((k) => s.nilai[k.id] ?? null), ...grupUrut.map((g) => s.rata[g] ?? null), s.akhir]))
+
+  // 4b. Nilai CBT (UTS, UAS). Semua paket yang diikuti siswa kelas ini; kolom 'Sesuai mapel' menandai paket bernama mapel kelas.
+  if (cbt && cbt.kolom.length) {
+    const cb = new Map(cbt.nilai.map((n) => [`${n.peserta_didik_id}|${n.kolom}`, n.nilai]))
+    sheet('Nilai CBT', [...pangkal, ...cbt.kolom.map((k) => `${jenisCbt[k.jenis] ?? k.jenis}: ${k.ujian} / ${k.paket}${k.cocok ? '' : ' (bukan mapel ini?)'}`)],
+      urut.map((s) => [...identitas(s), ...cbt.kolom.map((k) => cb.get(`${s.peserta_didik_id}|${k.id}`) ?? null)]), 16)
+  }
 
   // 5. Kuis dan ulangan
   if (asesmen.length) {

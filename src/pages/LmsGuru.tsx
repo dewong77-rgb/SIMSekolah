@@ -6,6 +6,7 @@ import { AKSEPTASI, hapusBerkas, periksaBerkas, ukuranTeks, unduhBerkas, unggahB
 import { panggil, tgl } from '../lib/rpc'
 import { biru, merah, nilaiTeks, unduhCsv } from './lmsUtil'
 import { KartuKelas, type KelasRingkas } from './LmsProgres'
+import type { NilaiCbt } from './lmsXlsx'
 
 // Administrasi guru (perangkat ajar, jurnal), buku nilai, dan ringkasan untuk orang tua.
 
@@ -347,6 +348,10 @@ function TabelNilai({ kelas }: { kelas: KelasNilai }) {
   const [bobot, setBobot] = useState<Record<string, number>>({ kuis: 20, tugas: 20, uh: 20, uts: 20, uas: 20 })
   const [terapan, setTerapan] = useState(bobot)
   const [mengunduh, setMengunduh] = useState(false)
+  const [cbt, setCbt] = useState<NilaiCbt | null>(null)
+  const [semuaCbt, setSemuaCbt] = useState(false)
+  // Nilai CBT (UTS dan UAS) dibaca terpisah. Bila fungsinya belum terpasang atau gagal, bagian CBT disembunyikan.
+  useEffect(() => { setCbt(null); panggil<NilaiCbt>('lms_nilai_cbt', { p_kelas: kelasId }).then(setCbt).catch(() => setCbt(null)) }, [kelasId])
   useEffect(() => {
     setData(null); setGalat('')
     panggil<Nilai>('lms_nilai_kelas', { p_kelas: kelasId, p_bobot: terapan }).then(setData).catch((e: Error) => setGalat(e.message))
@@ -354,12 +359,16 @@ function TabelNilai({ kelas }: { kelas: KelasNilai }) {
   // Ulangan harian, UTS, dan UAS tidak lagi dibuat di kelas (dialihkan ke CBT). Kolomnya tampil hanya bila kelas masih punya data lama.
   const grup = grupUrut.filter((g) => g === 'kuis' || g === 'tugas' || (data?.komponen ?? []).some((k) => k.grup === g))
   const jumlah = grup.reduce((j, g) => j + (bobot[g] || 0), 0)
+  const kolomCbt = (cbt?.kolom ?? []).filter((k) => semuaCbt || k.cocok)
+  const adaCbtLain = (cbt?.kolom ?? []).some((k) => !k.cocok)
+  const nilaiCbt = new Map((cbt?.nilai ?? []).map((n) => [`${n.peserta_didik_id}|${n.kolom}`, n.nilai]))
+  const labelCbt = (k: { jenis: string; ujian: string; paket: string }) => `${k.jenis === 'uts' ? 'UTS' : k.jenis === 'uas' ? 'UAS' : 'Ujian'}: ${k.ujian} / ${k.paket}`
   const nama = `${kelas.mapel} ${kelas.rombel}`.replace(/[\\/:*?"<>|]/g, ' ').trim()
   function unduhCsvNilai() {
     if (!data) return
     unduhCsv(`nilai-${nama}.csv`, [
-      ['No', 'Nama', 'NISN', ...data.komponen.map((k) => `${labelGrup[k.grup]}: ${k.judul}`), ...grup.map((g) => `Rata-rata ${labelGrup[g]}`), 'Nilai akhir'],
-      ...data.siswa.map((s, i) => [s.no_urut ?? i + 1, s.nama, s.nisn, ...data.komponen.map((k) => s.nilai[k.id]), ...grup.map((g) => s.rata[g]), s.akhir]),
+      ['No', 'Nama', 'NISN', ...data.komponen.map((k) => `${labelGrup[k.grup]}: ${k.judul}`), ...grup.map((g) => `Rata-rata ${labelGrup[g]}`), 'Nilai akhir', ...kolomCbt.map(labelCbt)],
+      ...data.siswa.map((s, i) => [s.no_urut ?? i + 1, s.nama, s.nisn, ...data.komponen.map((k) => s.nilai[k.id]), ...grup.map((g) => s.rata[g]), s.akhir, ...kolomCbt.map((k) => nilaiCbt.get(`${s.peserta_didik_id}|${k.id}`))]),
     ])
   }
   async function unduhExcel() {
@@ -367,7 +376,7 @@ function TabelNilai({ kelas }: { kelas: KelasNilai }) {
     try { const { unduhRekapKelas } = await import('./lmsXlsx'); await unduhRekapKelas(kelas, terapan) } catch (e) { setGalat('Gagal menyiapkan Excel. ' + (e as Error).message) }
     setMengunduh(false)
   }
-  const kolom = 2 + grup.length
+  const kolom = 2 + grup.length + kolomCbt.length
   return (
     <>
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
@@ -385,6 +394,13 @@ function TabelNilai({ kelas }: { kelas: KelasNilai }) {
           <button className="tombol" style={biru} onClick={unduhCsvNilai} disabled={!data}>Unduh CSV nilai</button>
         </div>
       </div>
+      {cbt && cbt.kolom.length > 0 && (
+        <p className="catatan jarak">
+          Kolom CBT di kanan adalah nilai UTS dan UAS dari Asesmen digital, tidak masuk nilai akhir di atas.
+          {kolomCbt.length === 0 && ' Belum ada paket CBT bernama mapel ini.'}{' '}
+          {adaCbtLain && <label><input type="checkbox" checked={semuaCbt} onChange={(e) => setSemuaCbt(e.target.checked)} /> Tampilkan semua paket CBT yang diikuti kelas ini</label>}
+        </p>
+      )}
       <div className="tabel-bungkus jarak">
         <table>
           <thead>
@@ -393,6 +409,7 @@ function TabelNilai({ kelas }: { kelas: KelasNilai }) {
               {(data?.komponen ?? []).map((k) => <th key={k.id}>{k.judul}<br /><small>{labelGrup[k.grup]}</small></th>)}
               {grup.map((g) => <th key={g}>Rata {labelGrup[g]}</th>)}
               <th>Akhir</th>
+              {kolomCbt.map((k) => <th key={k.id}>{k.paket}<br /><small>{labelCbt(k).split(':')[0]} CBT · {k.ujian}</small></th>)}
             </tr>
           </thead>
           <tbody>
@@ -404,6 +421,7 @@ function TabelNilai({ kelas }: { kelas: KelasNilai }) {
                 {data!.komponen.map((k) => <td key={k.id}>{nilaiTeks(s.nilai[k.id])}</td>)}
                 {grup.map((g) => <td key={g}>{nilaiTeks(s.rata[g])}</td>)}
                 <td><strong>{nilaiTeks(s.akhir)}</strong></td>
+                {kolomCbt.map((k) => <td key={k.id}>{nilaiTeks(nilaiCbt.get(`${s.peserta_didik_id}|${k.id}`))}</td>)}
               </tr>
             ))}
           </tbody>
@@ -447,7 +465,7 @@ export function RekapNilai() {
   }, [])
   const aktif = kelas?.find((k) => k.id === pilih) ?? null
   return (
-    <Halaman judul="Rekap nilai" lead="Nilai kuis dan tugas semua siswa per kelas. Nilai UTS dan UAS dikelola di Asesmen digital (CBT).">
+    <Halaman judul="Rekap nilai" lead="Nilai kuis dan tugas semua siswa per kelas. Nilai UTS dan UAS dari Asesmen digital (CBT) tampil di kolom kanan.">
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
       {!kelas && !galat && <p className="catatan">Memuat...</p>}
       {kelas && kelas.length === 0 && <p className="catatan">Belum ada kelas yang Anda ajar.</p>}
