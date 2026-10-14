@@ -164,18 +164,22 @@ const akunSuper: ItemPortal[] = [
   { to: '/portal/penugasan', label: 'Penugasan', ikon: 'tas', ket: 'Jabatan tambahan, lingkup, dan struktur organisasi' },
   { to: '/portal/sambungan-drive', label: 'Sambungan Drive', ikon: 'unggah', ket: 'Uji sambungan ke Google Drive sekolah dan lihat kuota' },
 ]
-const pengaturanSuper: ItemPortal[] = [
+const pengaturanUmum: ItemPortal[] = [
   { to: '/portal/profil-sekolah', label: 'Profil sekolah', ikon: 'sekolah', ket: 'Alamat, koordinat, kontak, media sosial, visi dan misi' },
   { to: '/portal/kalender', label: 'Kalender sekolah', ikon: 'kalender', ket: 'Kalender pendidikan, kegiatan, libur, dan ujian' },
   { to: '/portal/jam-pelajaran', label: 'Jam pelajaran', ikon: 'kalender', ket: 'Jam masuk, jam pelajaran, dan istirahat' },
+  { to: '/portal/spmi', label: 'Penjaminan mutu (SPMI)', ikon: 'centang', ket: 'Standar mutu, indikator, dan dokumen satuan penjamin mutu internal' },
+]
+const pengaturanKurikulum: ItemPortal[] = [
   { to: '/portal/kurikulum/struktur', label: 'Struktur kurikulum', ikon: 'buku', ket: 'Durasi jam pelajaran, daftar mapel, dan jam per minggu per tingkat dan program' },
   { to: '/portal/kurikulum/beban', label: 'Beban mengajar', ikon: 'kelompok', ket: 'Pembagian guru per mapel dan kelas, linieritas dari Dapodik, dan rekap jam per guru' },
   { to: '/portal/kurikulum/jadwal', label: 'Jadwal pelajaran', ikon: 'kalender', ket: 'Susun jadwal per kelas dengan penjagaan bentrok guru dan kuota jam mapel' },
   { to: '/portal/kurikulum/wali-kelas', label: 'Wali kelas', ikon: 'sekolah', ket: 'Usulan wali kelas, persetujuan Kepala Sekolah, dan lampiran SK' },
   { to: '/portal/kurikulum/formulir', label: 'Formulir rombel', ikon: 'dokumen', ket: 'F-ROMBEL: jurusan, moving class, SK mengajar, dan cetak format Dapodik' },
+]
+const pengaturanSarana: ItemPortal[] = [
   { to: '/portal/sarpras/buku', label: 'Sarana dan prasarana', ikon: 'tas', ket: 'Inventaris, kerusakan, permintaan, peminjaman alat, usulan bertingkat, kartu inventaris, dan pembukuan' },
   { to: '/portal/perpustakaan/kelola', label: 'Kelola perpustakaan', ikon: 'buku', ket: 'Koleksi digital dan fisik, peminjaman, laporan baca, dan penanggung jawab perpustakaan' },
-  { to: '/portal/spmi', label: 'Penjaminan mutu (SPMI)', ikon: 'centang', ket: 'Standar mutu, indikator, dan dokumen satuan penjamin mutu internal' },
 ]
 
 /** Menu dari izin penugasan. Item tanpa `to` belum punya halaman. */
@@ -285,7 +289,11 @@ export function susunMenu(peran: Peran, superAdmin: boolean, tugas: TugasMenu[])
     const akun = kelompok.find((k) => k.judul === 'Akun dan akses')
     if (akun) akun.item.push(...akunSuper)
     else kelompok.push({ judul: 'Akun dan akses', item: [...akunSuper] })
-    kelompok.push({ judul: 'Pengaturan sekolah', item: [...pengaturanSuper] })
+    kelompok.push(
+      { judul: 'Pengaturan sekolah', item: [...pengaturanUmum] },
+      { judul: 'Kurikulum dan jadwal', item: [...pengaturanKurikulum] },
+      { judul: 'Sarana dan perpustakaan', item: [...pengaturanSarana] },
+    )
   }
   const sudah = new Set(kelompok.flatMap((k) => k.item.map((i) => i.to)))
   const segera: { nama: string; bidang: string }[] = []
