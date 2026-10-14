@@ -1,5 +1,5 @@
 // Usul pengeluaran siswa. TU Kesiswaan memilih siswa, alasan, dan tanggal keluar; operator sekolah atau super admin
-// menanggapi dengan melampirkan PDF bukti proses keluar dari Dapodik. SIMS tidak mengubah status siswa.
+// menanggapi dengan melampirkan bukti proses keluar dari Dapodik (PDF atau tangkapan layar). SIMS tidak mengubah status siswa.
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Halaman from '../../components/Halaman'
@@ -14,8 +14,15 @@ type Ajuan = {
   id: string; pd: string; nama: string; nisn: string | null; nipd: string | null; rombel: string | null; alasan: string; keterangan: string | null
   tgl_keluar: string; status: string; diajukan_nama: string | null; diajukan_pada: string; ditanggapi_nama: string | null; ditanggapi_pada: string | null
   catatan_tanggapan: string | null; bukti_path: string | null; bukti_nama: string | null; bisa_batal: boolean
+  diproses_nama: string | null; diproses_pada: string | null; catatan_proses: string | null
 }
-const BATAS_PDF = 5 * 1024 * 1024
+const BATAS_BUKTI = 5 * 1024 * 1024
+const JENIS_BUKTI: Record<string, string> = { pdf: 'application/pdf', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp' }
+const ekstensi = (f: File) => f.name.split('.').pop()?.toLowerCase() ?? ''
+
+function Ceklis({ ok, teks, ket }: { ok: boolean; teks: string; ket?: string }) {
+  return <li style={{ listStyle: 'none' }}><span aria-hidden="true">{ok ? '☑' : '☐'}</span> <span style={{ fontWeight: ok ? 600 : 400 }}>{teks}</span>{ket && <small className="catatan"> · {ket}</small>}</li>
+}
 
 function FormAjuan({ selesai }: { selesai: () => void }) {
   const [siswa, setSiswa] = useState<SiswaCari | null>(null)
@@ -55,25 +62,31 @@ function FormAjuan({ selesai }: { selesai: () => void }) {
 
 function KartuAjuan({ a, operator, muat }: { a: Ajuan; operator: boolean; muat: () => void }) {
   const { profil } = useAuth()
-  const [mode, setMode] = useState<'' | 'selesai' | 'tolak'>('')
+  const [mode, setMode] = useState<'' | 'proses' | 'selesai' | 'tolak'>('')
   const [catatan, setCatatan] = useState('')
   const [berkas, setBerkas] = useState<File | null>(null)
   const [galat, setGalat] = useState('')
   const [sibuk, setSibuk] = useState(false)
 
+  async function proses() {
+    setSibuk(true); setGalat('')
+    try { await panggil('keluar_proses', { p_id: a.id, p_catatan: catatan || null }); setMode(''); setCatatan(''); muat() }
+    catch (e) { setGalat((e as Error).message) } finally { setSibuk(false) }
+  }
   async function kirim() {
     setGalat('')
+    const jenis = berkas ? JENIS_BUKTI[ekstensi(berkas)] : undefined
     if (mode === 'selesai') {
-      if (!berkas) return setGalat('Lampirkan PDF bukti hasil keluar dari Dapodik.')
-      if (berkas.type !== 'application/pdf' && !/\.pdf$/i.test(berkas.name)) return setGalat('Berkas harus berformat PDF.')
-      if (berkas.size > BATAS_PDF) return setGalat('Ukuran PDF maksimal 5 MB.')
+      if (!berkas) return setGalat('Lampirkan bukti hasil keluar dari Dapodik (PDF atau tangkapan layar).')
+      if (!jenis) return setGalat('Bukti harus berupa PDF, PNG, JPG, atau WebP.')
+      if (berkas.size > BATAS_BUKTI) return setGalat('Ukuran bukti maksimal 5 MB.')
     }
     setSibuk(true)
     let path: string | null = null
     try {
-      if (mode === 'selesai' && berkas) {
-        path = `${profil?.npsn}/${a.id}/bukti-${kodeBerkas()}.pdf`
-        const { error } = await supabase.storage.from('dokumen-keluar').upload(path, berkas, { contentType: 'application/pdf', upsert: false })
+      if (mode === 'selesai' && berkas && jenis) {
+        path = `${profil?.npsn}/${a.id}/bukti-${kodeBerkas()}.${ekstensi(berkas)}`
+        const { error } = await supabase.storage.from('dokumen-keluar').upload(path, berkas, { contentType: jenis, upsert: false })
         if (error) throw new Error(error.message)
       }
       await panggil('keluar_tanggapi', { p_id: a.id, p_selesai: mode === 'selesai', p_catatan: catatan || null, p_bukti_path: path, p_bukti_nama: berkas?.name ?? null })
@@ -89,7 +102,7 @@ function KartuAjuan({ a, operator, muat }: { a: Ajuan; operator: boolean; muat: 
   }
   async function unduh() {
     if (!a.bukti_path) return
-    const { data, error } = await supabase.storage.from('dokumen-keluar').createSignedUrl(a.bukti_path, 300, { download: a.bukti_nama ?? 'bukti-keluar.pdf' })
+    const { data, error } = await supabase.storage.from('dokumen-keluar').createSignedUrl(a.bukti_path, 300, { download: a.bukti_nama ?? 'bukti-keluar' })
     if (error || !data) return setGalat(error?.message ?? 'Tautan berkas gagal dibuat.')
     window.open(data.signedUrl, '_blank', 'noopener')
   }
@@ -102,10 +115,18 @@ function KartuAjuan({ a, operator, muat }: { a: Ajuan; operator: boolean; muat: 
       </div>
       <p style={{ margin: '6px 0' }}>{a.alasan}, keluar {tgl(a.tgl_keluar)}{a.keterangan ? `. ${a.keterangan}` : ''}</p>
       <small className="catatan">Diajukan {a.diajukan_nama ?? '-'}, {tglJam(a.diajukan_pada)}</small>
-      {a.status !== 'diajukan' && <p className="catatan" style={{ margin: '6px 0 0' }}>{a.status === 'dibatalkan' ? 'Dibatalkan' : 'Ditanggapi'} oleh {a.ditanggapi_nama ?? '-'}, {tglJam(a.ditanggapi_pada)}{a.catatan_tanggapan ? `. ${a.catatan_tanggapan}` : ''}</p>}
+      {a.status !== 'dibatalkan' && a.status !== 'ditolak' && (
+        <ul style={{ padding: 0, margin: '8px 0' }} aria-label="Tahapan">
+          <Ceklis ok teks="Diajukan" ket={`${a.diajukan_nama ?? '-'}, ${tglJam(a.diajukan_pada)}`} />
+          <Ceklis ok={a.status === 'diproses' || a.status === 'selesai'} teks="Diproses di Dapodik" ket={a.diproses_pada ? `${a.diproses_nama ?? '-'}, ${tglJam(a.diproses_pada)}${a.catatan_proses ? `. ${a.catatan_proses}` : ''}` : undefined} />
+          <Ceklis ok={a.status === 'selesai'} teks="Selesai, bukti hasil kerja terlampir" ket={a.status === 'selesai' ? `${a.ditanggapi_nama ?? '-'}, ${tglJam(a.ditanggapi_pada)}${a.catatan_tanggapan ? `. ${a.catatan_tanggapan}` : ''}` : undefined} />
+        </ul>
+      )}
+      {(a.status === 'dibatalkan' || a.status === 'ditolak') && <p className="catatan" style={{ margin: '6px 0 0' }}>{a.status === 'dibatalkan' ? 'Dibatalkan' : 'Ditolak'} oleh {a.ditanggapi_nama ?? '-'}, {tglJam(a.ditanggapi_pada)}{a.catatan_tanggapan ? `. ${a.catatan_tanggapan}` : ''}</p>}
       <div className="aksi">
-        {a.bukti_path && <button className="tombol" onClick={unduh}>Unduh bukti Dapodik (PDF)</button>}
-        {a.status === 'diajukan' && operator && mode === '' && <>
+        {a.bukti_path && <button className="tombol" onClick={unduh}>Lihat bukti hasil kerja</button>}
+        {a.status === 'diajukan' && operator && mode === '' && <button className="tombol tombol-isi" onClick={() => setMode('proses')}>Tandai sedang diproses</button>}
+        {(a.status === 'diajukan' || a.status === 'diproses') && operator && mode === '' && <>
           <button className="tombol tombol-isi" onClick={() => setMode('selesai')}>Selesaikan dengan bukti</button>
           <button className="tombol" onClick={() => setMode('tolak')}>Tolak</button>
         </>}
@@ -113,11 +134,11 @@ function KartuAjuan({ a, operator, muat }: { a: Ajuan; operator: boolean; muat: 
       </div>
       {mode !== '' && (
         <div className="jarak">
-          {mode === 'selesai' && <p className="catatan">Proses keluar siswa di Dapodik terlebih dahulu, lalu unggah PDF hasilnya.</p>}
-          {mode === 'selesai' && <input type="file" accept="application/pdf,.pdf" onChange={(e) => setBerkas(e.target.files?.[0] ?? null)} aria-label="PDF bukti" />}
-          <textarea rows={2} maxLength={500} placeholder={mode === 'tolak' ? 'Alasan penolakan (wajib)' : 'Catatan untuk pengusul (opsional)'} value={catatan} onChange={(e) => setCatatan(e.target.value)} style={{ width: '100%' }} aria-label="Catatan" />
+          {mode === 'selesai' && <p className="catatan">Proses keluar siswa di Dapodik terlebih dahulu, lalu unggah hasilnya: PDF atau tangkapan layar (PNG, JPG, WebP), maksimal 5 MB.</p>}
+          {mode === 'selesai' && <input type="file" accept="application/pdf,image/png,image/jpeg,image/webp,.pdf,.png,.jpg,.jpeg,.webp" onChange={(e) => setBerkas(e.target.files?.[0] ?? null)} aria-label="Bukti hasil kerja" />}
+          <textarea rows={2} maxLength={500} placeholder={mode === 'tolak' ? 'Alasan penolakan (wajib)' : 'Catatan (opsional)'} value={catatan} onChange={(e) => setCatatan(e.target.value)} style={{ width: '100%' }} aria-label="Catatan" />
           <div className="aksi">
-            <button className="tombol tombol-isi" disabled={sibuk} onClick={kirim}>{sibuk ? 'Mengirim...' : mode === 'selesai' ? 'Kirim bukti' : 'Tolak ajuan'}</button>
+            <button className="tombol tombol-isi" disabled={sibuk} onClick={mode === 'proses' ? proses : kirim}>{sibuk ? 'Mengirim...' : mode === 'selesai' ? 'Kirim bukti' : mode === 'proses' ? 'Tandai diproses' : 'Tolak ajuan'}</button>
             <button className="tombol" disabled={sibuk} onClick={() => { setMode(''); setGalat('') }}>Batal</button>
           </div>
         </div>
@@ -144,16 +165,16 @@ export default function PengeluaranSiswa() {
   if (memuat) return <Halaman judul="Pengeluaran siswa"><p className="catatan">Memeriksa hak akses...</p></Halaman>
   if (!boleh) return <Halaman judul="Tidak ada akses" lead="Pengeluaran siswa untuk TU Kesiswaan, Waka Kesiswaan, dan operator sekolah."><Link to="/portal" className="tombol tombol-isi">Kembali ke portal</Link></Halaman>
 
-  const menunggu = data?.baris.filter((b) => b.status === 'diajukan').length ?? 0
+  const menunggu = data?.baris.filter((b) => b.status === 'diajukan' || b.status === 'diproses').length ?? 0
   return (
-    <Halaman judul="Pengeluaran siswa" lead="Usul pengeluaran dari TU Kesiswaan diteruskan ke operator sekolah. Operator memprosesnya di Dapodik lalu melampirkan PDF buktinya. Status siswa di SIMS berubah lewat unggahan Dapodik berikutnya.">
+    <Halaman judul="Pengeluaran siswa" lead="Usul pengeluaran dari TU Kesiswaan diteruskan ke operator sekolah. Operator memprosesnya di Dapodik, menandai tahapnya, lalu melampirkan bukti hasil kerja (PDF atau tangkapan layar). Status siswa di SIMS berubah lewat unggahan Dapodik berikutnya.">
       {!operator && <FormAjuan selesai={muat} />}
       <div className="aksi" style={{ alignItems: 'center' }}>
         <select value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Status">
           <option value="">Semua status</option>
           {STATUS_KELUAR.map(([k, n]) => <option key={k} value={k}>{n}</option>)}
         </select>
-        {data && <span className="catatan">{menunggu} menunggu tanggapan operator</span>}
+        {data && <span className="catatan">{menunggu} belum selesai</span>}
       </div>
       {galat && <p className="kartu galat" role="alert">{galat}</p>}
       <div className="jarak" style={{ display: 'grid', gap: 12 }}>

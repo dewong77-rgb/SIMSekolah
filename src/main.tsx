@@ -44,6 +44,7 @@ const KesBK = lazy(() => import('./pages/kesiswaan/BK'))
 const KesBKKasus = lazy(() => import('./pages/kesiswaan/BKKasus'))
 const KesBiodata = lazy(() => import('./pages/kesiswaan/BiodataSiswa'))
 const KesKeluar = lazy(() => import('./pages/kesiswaan/PengeluaranSiswa'))
+const KesPanggilan = lazy(() => import('./pages/kesiswaan/PemanggilanOrtu'))
 const CatatanSaya = lazy(() => import('./pages/kesiswaan/CatatanSaya'))
 const PerpustakaanDigital = lazy(() => import('./pages/perpustakaan/Perpustakaan'))
 const PerpustakaanFisik = lazy(() => import('./pages/perpustakaan/PerpustakaanFisik'))
@@ -425,6 +426,14 @@ createRoot(document.getElementById('root')!).render(
             element={
               <RequireRole peran={['admin_tu', 'guru', 'staf']}>
                 <Suspense fallback={<Memuat />}><KesKeluar /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/kesiswaan/panggilan"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf']}>
+                <Suspense fallback={<Memuat />}><KesPanggilan /></Suspense>
               </RequireRole>
             }
           />

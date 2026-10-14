@@ -27,7 +27,9 @@ export function useAksesKes() {
 }
 
 export const ALASAN_KELUAR = ['Mutasi', 'Dikeluarkan', 'Mengundurkan diri', 'Putus sekolah', 'Wafat', 'Hilang', 'Lainnya'] as const
-export const STATUS_KELUAR = [['diajukan', 'Menunggu operator'], ['selesai', 'Selesai'], ['ditolak', 'Ditolak'], ['dibatalkan', 'Dibatalkan']] as const
+export const STATUS_KELUAR = [['diajukan', 'Menunggu operator'], ['diproses', 'Sedang diproses'], ['selesai', 'Selesai'], ['ditolak', 'Ditolak'], ['dibatalkan', 'Dibatalkan']] as const
+export const STATUS_PANGGILAN = [['dijadwalkan', 'Menunggu tindak lanjut wali kelas'], ['selesai', 'Selesai, berita acara terisi'], ['tidak_hadir', 'Orang tua tidak hadir'], ['dibatalkan', 'Dibatalkan']] as const
+export const namaTahapPanggilan = (u: number) => (u >= 4 ? 'Kunjungan rumah dan SP 1' : `Panggilan orang tua ke-${u}`)
 
 type Daftar = readonly (readonly [string, string])[]
 export const label = (d: Daftar, k: string | null | undefined) => d.find((x) => x[0] === k)?.[1] ?? (k ?? '-')

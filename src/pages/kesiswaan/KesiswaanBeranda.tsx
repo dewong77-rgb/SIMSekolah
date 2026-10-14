@@ -23,6 +23,8 @@ function Isi({ izin }: { izin: string[] }) {
   useEffect(() => { panggil<Ringkasan>('kesiswaan_ringkasan').then(setR).catch((e: Error) => setGalat(e.message)) }, [])
   const punya = (...k: string[]) => izin.some((i) => k.includes(i))
   const tambahan = useAksesKes()
+  const [lencanaTambahan, setLencanaTambahan] = useState<{ keluar: number; panggilan: number } | null>(null)
+  useEffect(() => { panggil<{ keluar: number; panggilan: number }>('kesiswaan_lencana_tambahan').then(setLencanaTambahan).catch(() => undefined) }, [])
   const sekolah = r?.seluruh_sekolah ?? false
 
   const menu = [
@@ -35,7 +37,8 @@ function Isi({ izin }: { izin: string[] }) {
     punya('bk.kelola', 'bk.baca') && { to: '/portal/kesiswaan/bk', nama: 'Bimbingan konseling', ket: 'Catatan konseling dan pencegahan siswa putus sekolah (ATS)', n: 0 },
     punya('ekskul.kelola', 'ekskul.lihat') && { to: '/portal/kesiswaan/ekskul', nama: 'Ekskul dan OSIS', ket: 'Anggota, pertemuan, dan predikat', n: 0 },
     tambahan.punya('biodata') && { to: '/portal/kesiswaan/biodata', nama: 'Biodata siswa', ket: 'Identitas, alamat, dan orang tua siswa dari data Dapodik', n: 0 },
-    tambahan.punya('keluar') && { to: '/portal/kesiswaan/keluar', nama: 'Pengeluaran siswa', ket: tambahan.punya('keluar.tanggapi') ? 'Tanggapi usul keluar dengan bukti PDF dari Dapodik' : 'Usulkan siswa keluar dan pantau tanggapan operator', n: 0 },
+    tambahan.punya('keluar') && { to: '/portal/kesiswaan/keluar', nama: 'Pengeluaran siswa', ket: tambahan.punya('keluar.tanggapi') ? 'Proses usul keluar di Dapodik dan lampirkan bukti' : 'Usulkan siswa keluar dan pantau tanggapan operator', n: tambahan.punya('keluar.tanggapi') ? lencanaTambahan?.keluar : 0 },
+    (tambahan.punya('panggilan.kelola') || tambahan.punya('panggilan.wali')) && { to: '/portal/kesiswaan/panggilan', nama: 'Pemanggilan orang tua', ket: 'Siswa sering tidak hadir: panggilan 1 sampai 3, kunjungan rumah, dan SP 1', n: lencanaTambahan?.panggilan },
     punya('kesiswaan.beasiswa') && { to: '/portal/kesiswaan/beasiswa', nama: 'Beasiswa dan PIP', ket: 'Program, calon, berkas, dan pencairan', n: 0 },
   ].filter(Boolean) as { to: string; nama: string; ket: string; n?: number }[]
 
