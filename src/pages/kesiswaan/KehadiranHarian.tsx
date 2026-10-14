@@ -9,9 +9,11 @@ import Gerbang from './Gerbang'
 
 type Siswa = { pd: string; nama: string; nisn: string | null; no_urut: number | null; status: string | null; dari_izin: boolean; izin_keluar: { jam_keluar: string; jam_kembali: string | null; alasan: string } | null }
 
-function Harian({ rombels }: { rombels: RombelPilih[] }) {
-  const [rombel, setRombel] = useState(rombels[0]?.id ?? '')
-  const [tanggal, setTanggal] = useState(akhirPekan(hariIni()) ? tambahHari(hariIni(), new Date().getDay() === 6 ? -1 : -2) : hariIni())
+type Lompat = { rombel: string; tanggal: string }
+
+function Harian({ rombels, awal }: { rombels: RombelPilih[]; awal: Lompat | null }) {
+  const [rombel, setRombel] = useState(awal?.rombel ?? rombels[0]?.id ?? '')
+  const [tanggal, setTanggal] = useState(awal?.tanggal ?? (akhirPekan(hariIni()) ? tambahHari(hariIni(), new Date().getDay() === 6 ? -1 : -2) : hariIni()))
   const [siswa, setSiswa] = useState<Siswa[]>([])
   const [isian, setIsian] = useState<Record<string, string>>({})
   const [galat, setGalat] = useState('')
@@ -158,9 +160,76 @@ function RekapTab({ rombels }: { rombels: RombelPilih[] }) {
   )
 }
 
+type Kelengkapan = { awal: string; hari_ini: string; baris: { id: string; nama: string; jumlah: number; hari: { tgl: string; terisi: number }[] }[] }
+const NAMA_HARI = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum']
+const BATAS_HARI = 7
+
+/** Matriks rombel x hari (Senin sampai Jumat): mana yang sudah, sebagian, atau belum terisi. Tenggat pengisian satu minggu. */
+function KelengkapanTab({ pilih, bisaIsi }: { pilih: (l: Lompat) => void; bisaIsi: boolean }) {
+  const [awal, setAwal] = useState(hariIni())
+  const [data, setData] = useState<Kelengkapan | null>(null)
+  const [galat, setGalat] = useState('')
+  useEffect(() => {
+    let batal = false
+    setData(null)
+    panggil<Kelengkapan>('kehadiran_kelengkapan', { p_awal: awal }).then((x) => { if (!batal) { setData(x); setGalat('') } }).catch((e: Error) => { if (!batal) setGalat(e.message) })
+    return () => { batal = true }
+  }, [awal])
+
+  const hariIniIso = data?.hari_ini ?? hariIni()
+  // Hanya hari yang sudah lewat atau hari ini yang dinilai.
+  const dinilai = (t: string) => t <= hariIniIso
+  const lewatBatas = (t: string) => t < tambahHari(hariIniIso, -BATAS_HARI)
+  const rekap = data ? data.baris.flatMap((r) => r.hari.filter((h) => dinilai(h.tgl)).map((h) => ({ nama: r.nama, tgl: h.tgl, kurang: r.jumlah - h.terisi, jumlah: r.jumlah }))) : []
+  const kosong = rekap.filter((x) => x.kurang > 0)
+  const terlambat = kosong.filter((x) => lewatBatas(x.tgl)).length
+
+  return (
+    <div>
+      <div className="aksi" style={{ marginTop: 0, alignItems: 'center' }}>
+        <button className="tombol" onClick={() => setAwal(tambahHari(data?.awal ?? awal, -7))}>Minggu sebelumnya</button>
+        <strong>{data ? `${tgl(data.awal)} sampai ${tgl(tambahHari(data.awal, 4))}` : '...'}</strong>
+        <button className="tombol" disabled={!data || tambahHari(data.awal, 7) > hariIniIso} onClick={() => setAwal(tambahHari(data?.awal ?? awal, 7))}>Minggu berikutnya</button>
+      </div>
+      {galat && <p className="kartu galat" role="alert">{galat}</p>}
+      {data && <p className="catatan">
+        {kosong.length === 0 ? 'Semua rombel sudah terisi untuk hari yang telah berjalan.' : `${kosong.length} kelas-hari belum lengkap${terlambat ? `, ${terlambat} di antaranya melewati batas ${BATAS_HARI} hari` : ''}.`}
+        {' '}Tenggat pengisian satu minggu; idealnya setiap hari. Hari libur nasional belum dikecualikan: abaikan sel pada hari libur.
+      </p>}
+      <div className="tabel-bungkus jarak">
+        <table>
+          <thead><tr><th>Kelas</th><th>Siswa</th>{NAMA_HARI.map((h, i) => <th key={h}>{h}{data ? ` ${new Date(tambahHari(data.awal, i) + 'T00:00:00').getDate()}` : ''}</th>)}</tr></thead>
+          <tbody>
+            {!data && !galat && <tr><td colSpan={7} className="catatan">Memuat...</td></tr>}
+            {data?.baris.map((r) => (
+              <tr key={r.id}>
+                <td>{r.nama}</td><td>{r.jumlah}</td>
+                {r.hari.map((h) => {
+                  if (!dinilai(h.tgl)) return <td key={h.tgl} className="catatan">-</td>
+                  const kurang = r.jumlah - h.terisi
+                  const teks = kurang <= 0 ? '✓ Lengkap' : h.terisi === 0 ? 'Belum' : `Kurang ${kurang}`
+                  const gaya = kurang <= 0 ? undefined : { fontWeight: 700, textDecoration: lewatBatas(h.tgl) ? 'underline' : undefined }
+                  return (
+                    <td key={h.tgl}>
+                      {kurang > 0 && bisaIsi
+                        ? <button className="tombol" style={{ padding: '2px 8px', ...gaya }} onClick={() => pilih({ rombel: r.id, tanggal: h.tgl })} title={lewatBatas(h.tgl) ? 'Melewati batas satu minggu' : 'Isi kehadiran'}>{teks}</button>
+                        : <span style={gaya}>{teks}</span>}
+                    </td>
+                  )
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 function Isi({ izin }: { izin: string[] }) {
   const bisaIsi = izin.includes('kesiswaan.izin')
-  const [tab, setTab] = useState<'harian' | 'rekap'>(bisaIsi ? 'harian' : 'rekap')
+  const [tab, setTab] = useState<'harian' | 'kelengkapan' | 'rekap'>('kelengkapan')
+  const [lompat, setLompat] = useState<Lompat | null>(null)
   const [rombels, setRombels] = useState<RombelPilih[] | null>(null)
   const [galat, setGalat] = useState('')
   useEffect(() => { panggil<RombelPilih[]>('kesiswaan_rombel', { p_untuk: bisaIsi ? 'izin' : 'pantau' }).then(setRombels).catch((e: Error) => { setGalat(e.message); setRombels([]) }) }, [bisaIsi])
@@ -170,10 +239,11 @@ function Isi({ izin }: { izin: string[] }) {
       {galat && <p className="kartu galat" role="alert">{galat}</p>}
       <div className="aksi" style={{ marginTop: 0 }}>
         {bisaIsi && <button className={tab === 'harian' ? 'tombol tombol-isi' : 'tombol'} onClick={() => setTab('harian')}>Isi kehadiran</button>}
+        <button className={tab === 'kelengkapan' ? 'tombol tombol-isi' : 'tombol'} onClick={() => setTab('kelengkapan')}>Kelengkapan mingguan</button>
         <button className={tab === 'rekap' ? 'tombol tombol-isi' : 'tombol'} onClick={() => setTab('rekap')}>Rekap</button>
       </div>
       <div className="jarak">
-        {rombels === null ? <p className="catatan">Memuat rombel...</p> : tab === 'harian' ? <Harian rombels={rombels} /> : <RekapTab rombels={rombels} />}
+        {rombels === null ? <p className="catatan">Memuat rombel...</p> : tab === 'harian' ? <Harian key={`${lompat?.rombel}-${lompat?.tanggal}`} rombels={rombels} awal={lompat} /> : tab === 'kelengkapan' ? <KelengkapanTab bisaIsi={bisaIsi} pilih={(l) => { setLompat(l); setTab('harian') }} /> : <RekapTab rombels={rombels} />}
       </div>
       <p><Link to="/portal/kesiswaan">Kembali ke Kesiswaan</Link></p>
     </Halaman>
