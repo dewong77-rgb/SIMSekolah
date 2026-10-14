@@ -13,7 +13,7 @@ const hariIni = () => new Date(Date.now() + 7 * 3600_000).toISOString().slice(0,
 const awalBulan = () => hariIni().slice(0, 8) + '01'
 const teks = (v: unknown) => (v == null ? '' : String(v))
 
-type FormPinjam = { barang_id?: string; jumlah?: number | string; peminjam_nama?: string; keperluan?: string; tanggal_pinjam?: string; rencana_kembali?: string }
+type FormPinjam = { barang_id?: string; jumlah?: number | string; peminjam_ptk_id?: string; keperluan?: string; tanggal_pinjam?: string; rencana_kembali?: string }
 type FormKembali = { id: string; rusak: string; berat: string; hilang: string; catatan: string; tanggal: string }
 
 function kondisiKembali(k: Pinjam) {
@@ -31,6 +31,7 @@ function Isi({ izin }: { izin: string[] }) {
   const [daftar, setDaftar] = useState<Pinjam[]>([])
   const [alat, setAlat] = useState<AlatPinjam[]>([])
   const [rekap, setRekap] = useState<RekapPinjam | null>(null)
+  const [ptk, setPtk] = useState<{ id: string; nama: string; jenis_ptk: string | null }[]>([])
   const [status, setStatus] = useState('')
   const [cari, setCari] = useState('')
   const [dari, setDari] = useState(awalBulan())
@@ -44,12 +45,13 @@ function Isi({ izin }: { izin: string[] }) {
 
   const baca = useCallback(async () => {
     try {
-      const [d, a, r] = await Promise.all([
+      const [d, a, r, g] = await Promise.all([
         panggil<Pinjam[]>('sarpras_pinjam_daftar', { p_status: status || null, p_cari: cari || null, p_dari: dari || null, p_sampai: sampai || null }),
         panggil<AlatPinjam[]>('sarpras_pinjam_alat'),
         panggil<RekapPinjam | null>('sarpras_pinjam_rekap', { p_dari: dari || null, p_sampai: sampai || null }),
+        panggil<{ id: string; nama: string; jenis_ptk: string | null }[]>('sarpras_pinjam_ptk'),
       ])
-      setDaftar(d ?? []); setAlat(a ?? []); setRekap(r)
+      setDaftar(d ?? []); setAlat(a ?? []); setRekap(r); setPtk(g ?? [])
     } catch (e) { setGalat((e as Error).message) }
     setMemuat(false)
   }, [status, cari, dari, sampai])
@@ -57,7 +59,6 @@ function Isi({ izin }: { izin: string[] }) {
 
   const alatDipilih = alat.find((a) => a.id === form?.barang_id)
   const alatBisa = useMemo(() => alat.filter((a) => Number(a.tersedia) > 0), [alat])
-  const namaPeminjam = useMemo(() => (rekap?.per_peminjam ?? []).map((p) => p.nama), [rekap])
   const pinjamKembali = daftar.find((x) => x.id === kembali?.id)
 
   function pinjamBaru() {
@@ -69,13 +70,13 @@ function Isi({ izin }: { izin: string[] }) {
   async function simpan(e: FormEvent) {
     e.preventDefault(); if (!form) return; setGalat(''); setInfo('')
     if (!form.barang_id) return setGalat('Pilih alat yang dipinjam.')
-    if (!form.peminjam_nama?.trim()) return setGalat('Nama peminjam wajib diisi.')
+    if (!form.peminjam_ptk_id) return setGalat('Pilih peminjam dari daftar guru dan tenaga kependidikan.')
     const n = Number(form.jumlah ?? 0)
     if (!(n > 0)) return setGalat('Jumlah harus lebih dari nol.')
     if (alatDipilih && n > Number(alatDipilih.tersedia)) return setGalat(`Jumlah melebihi alat yang tersedia (${angka(alatDipilih.tersedia)}).`)
     setSibuk(true)
     try {
-      await panggil('sarpras_pinjam_catat', { p: { barang_id: form.barang_id, jumlah: n, peminjam_nama: form.peminjam_nama, keperluan: form.keperluan || null, tanggal_pinjam: form.tanggal_pinjam || null, rencana_kembali: form.rencana_kembali || null } })
+      await panggil('sarpras_pinjam_catat', { p: { barang_id: form.barang_id, jumlah: n, peminjam_ptk_id: form.peminjam_ptk_id, keperluan: form.keperluan || null, tanggal_pinjam: form.tanggal_pinjam || null, rencana_kembali: form.rencana_kembali || null } })
       setForm(null); setInfo('Peminjaman tercatat.'); await baca()
     } catch (er) { setGalat((er as Error).message) }
     setSibuk(false)
@@ -133,10 +134,16 @@ function Isi({ izin }: { izin: string[] }) {
         <span className="lencana">Kembali bermasalah {angka(r?.bermasalah ?? 0)}</span>
       </div>
 
+      {alat.length === 0 && (
+        <p className="kartu" role="status">
+          Belum ada alat di inventaris, jadi peminjaman belum bisa dicatat. Staf Sarpras perlu mengisi alat (kategori Alat, misalnya proyektor dan sound system) lebih dulu di <Link to="/portal/sarpras/inventaris">Inventaris</Link>.
+        </p>
+      )}
+      {alat.length > 0 && alatBisa.length === 0 && <p className="catatan">Semua alat sedang dipinjam.</p>}
       <div className="aksi" style={{ marginTop: 0, alignItems: 'center', flexWrap: 'wrap' }}>
         <button className={tab === 'daftar' ? 'tombol tombol-isi' : 'tombol'} onClick={() => setTab('daftar')}>Daftar peminjaman</button>
         <button className={tab === 'rekap' ? 'tombol tombol-isi' : 'tombol'} onClick={() => setTab('rekap')}>Rekap dan kondisi alat</button>
-        {bisaCatat && <button className="tombol tombol-isi" onClick={pinjamBaru}>Catat peminjaman</button>}
+        {bisaCatat && alat.length > 0 && <button className="tombol tombol-isi" onClick={pinjamBaru}>Catat peminjaman</button>}
         <TombolIkon ikon="unduh" label="Unduh CSV" onClick={unduh} />
       </div>
 
@@ -164,11 +171,12 @@ function Isi({ izin }: { izin: string[] }) {
               {alatBisa.map((a) => <option key={a.id} value={a.id}>{a.nama}{a.kode_barang ? ` (${a.kode_barang})` : ''} · {a.lab_nama} · tersedia {angka(a.tersedia)} {a.satuan}</option>)}
             </select>
           </label>
-          {alat.length === 0 && <p className="catatan">Belum ada alat di inventaris. Catat alat dengan kategori Alat di menu Inventaris lebih dulu.</p>}
           <div className="grid grid-2">
-            <label>Nama peminjam
-              <input list="daftar-peminjam" value={teks(form.peminjam_nama)} onChange={(e) => setForm((x) => ({ ...x, peminjam_nama: e.target.value }))} />
-              <datalist id="daftar-peminjam">{namaPeminjam.map((n) => <option key={n} value={n} />)}</datalist>
+            <label>Peminjam
+              <select value={teks(form.peminjam_ptk_id)} onChange={(e) => setForm((x) => ({ ...x, peminjam_ptk_id: e.target.value }))}>
+                <option value="">Pilih guru atau tenaga kependidikan</option>
+                {ptk.map((g) => <option key={g.id} value={g.id}>{g.nama}{g.jenis_ptk ? ` (${g.jenis_ptk})` : ''}</option>)}
+              </select>
             </label>
             <label>Jumlah<input type="number" min={0} step="any" value={teks(form.jumlah)} onChange={(e) => setForm((x) => ({ ...x, jumlah: e.target.value }))} /></label>
           </div>
