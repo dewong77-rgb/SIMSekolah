@@ -36,13 +36,16 @@ const sapaan = () => {
 }
 export { sapaan }
 
-const KUNCI_TERTUTUP = 'sims.menu.tertutup'
-function bacaTertutup(): string[] {
+const KUNCI_PILIHAN = 'sims.menu.pilihan'
+type Pilihan = Record<string, boolean>
+function bacaPilihan(): Pilihan {
   try {
-    const v: unknown = JSON.parse(localStorage.getItem(KUNCI_TERTUTUP) ?? '[]')
-    return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []
-  } catch { return [] }
+    const v: unknown = JSON.parse(localStorage.getItem(KUNCI_PILIHAN) ?? '{}')
+    return v && typeof v === 'object' && !Array.isArray(v) ? (v as Pilihan) : {}
+  } catch { return {} }
 }
+/** Bawaan: kelompok tugas tambahan tertutup, lainnya terbuka. Pilihan pengguna menimpa bawaan. */
+const bukaBawaan = (judul: string) => !judul.startsWith('Tugas tambahan')
 
 export default function PortalLayout() {
   const { session, profil, superAdmin, penugasan, keluar } = useAuth()
@@ -51,7 +54,7 @@ export default function PortalLayout() {
   const [akun, setAkun] = useState(false)
   const [lencana, setLencana] = useState<Lencana>({})
   const [nama, setNama] = useState<string | null>(null)
-  const [tertutup, setTertutup] = useState<string[]>(bacaTertutup)
+  const [pilihan, setPilihan] = useState<Pilihan>(bacaPilihan)
   const akunRef = useRef<HTMLDivElement>(null)
 
   const wajibGanti = !!(session?.user.app_metadata as Record<string, unknown> | undefined)?.wajib_ganti_sandi
@@ -128,10 +131,10 @@ export default function PortalLayout() {
 
   const aktif = itemAktif(menu.kelompok, pathname)
   // Kelompok berisi halaman aktif selalu terbuka. Pilihan buka-tutup lainnya diingat di peramban.
-  const alihKelompok = (judul: string) => {
-    setTertutup((lama) => {
-      const baru = lama.includes(judul) ? lama.filter((j) => j !== judul) : [...lama, judul]
-      try { localStorage.setItem(KUNCI_TERTUTUP, JSON.stringify(baru)) } catch { /* penyimpanan diblokir: abaikan */ }
+  const alihKelompok = (judul: string, sekarangBuka: boolean) => {
+    setPilihan((lama) => {
+      const baru = { ...lama, [judul]: !sekarangBuka }
+      try { localStorage.setItem(KUNCI_PILIHAN, JSON.stringify(baru)) } catch { /* penyimpanan diblokir: abaikan */ }
       return baru
     })
   }
@@ -172,7 +175,7 @@ export default function PortalLayout() {
               </NavLink>
               {menu.kelompok.map((k, idx) => {
                 const berisiAktif = !!aktif && k.item.some((i) => i.to === aktif.to)
-                const buka = berisiAktif || !tertutup.includes(k.judul)
+                const buka = berisiAktif || (pilihan[k.judul] ?? bukaBawaan(k.judul))
                 const nKelompok = k.item.reduce((a, i) => a + (i.lencana ? lencana[i.lencana] ?? 0 : 0), 0)
                 const idDaftar = `kelompok-menu-${idx}`
                 return (
@@ -182,7 +185,7 @@ export default function PortalLayout() {
                       className={'samping-judul' + (buka ? ' buka' : '')}
                       aria-expanded={buka}
                       aria-controls={idDaftar}
-                      onClick={() => { if (!berisiAktif) alihKelompok(k.judul) }}
+                      onClick={() => { if (!berisiAktif) alihKelompok(k.judul, buka) }}
                     >
                       <Ikon nama="panah" ukuran={14} />
                       <span>{k.judul}</span>
