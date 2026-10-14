@@ -36,6 +36,14 @@ const sapaan = () => {
 }
 export { sapaan }
 
+const KUNCI_TERTUTUP = 'sims.menu.tertutup'
+function bacaTertutup(): string[] {
+  try {
+    const v: unknown = JSON.parse(localStorage.getItem(KUNCI_TERTUTUP) ?? '[]')
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []
+  } catch { return [] }
+}
+
 export default function PortalLayout() {
   const { session, profil, superAdmin, penugasan, keluar } = useAuth()
   const { pathname } = useLocation()
@@ -43,6 +51,7 @@ export default function PortalLayout() {
   const [akun, setAkun] = useState(false)
   const [lencana, setLencana] = useState<Lencana>({})
   const [nama, setNama] = useState<string | null>(null)
+  const [tertutup, setTertutup] = useState<string[]>(bacaTertutup)
   const akunRef = useRef<HTMLDivElement>(null)
 
   const wajibGanti = !!(session?.user.app_metadata as Record<string, unknown> | undefined)?.wajib_ganti_sandi
@@ -118,6 +127,14 @@ export default function PortalLayout() {
   }, [akun])
 
   const aktif = itemAktif(menu.kelompok, pathname)
+  // Kelompok berisi halaman aktif selalu terbuka. Pilihan buka-tutup lainnya diingat di peramban.
+  const alihKelompok = (judul: string) => {
+    setTertutup((lama) => {
+      const baru = lama.includes(judul) ? lama.filter((j) => j !== judul) : [...lama, judul]
+      try { localStorage.setItem(KUNCI_TERTUTUP, JSON.stringify(baru)) } catch { /* penyimpanan diblokir: abaikan */ }
+      return baru
+    })
+  }
   const email = session?.user.email
   const tampil = nama ?? namaTampil(email)
   const inisial = (tampil[0] ?? 'P').toUpperCase()
@@ -153,25 +170,43 @@ export default function PortalLayout() {
               <NavLink to="/portal" end className={({ isActive }) => 'samping-item' + (isActive ? ' aktif' : '')}>
                 <Ikon nama="beranda" /><span>Beranda</span>
               </NavLink>
-              {menu.kelompok.map((k) => (
-                <div className="samping-kelompok" key={k.judul}>
-                  <p className="samping-judul">{k.judul}</p>
-                  {k.item.map((i) => {
-                    const n = i.lencana ? lencana[i.lencana] ?? 0 : 0
-                    return (
-                      <Link
-                        key={i.to}
-                        to={i.to}
-                        className={'samping-item' + (aktif?.to === i.to ? ' aktif' : '')}
-                        aria-current={aktif?.to === i.to ? 'page' : undefined}
-                      >
-                        <Ikon nama={i.ikon} /><span>{i.label}</span>
-                        {n > 0 && <b className="angka" aria-label={`${n} menunggu`}>{n > 99 ? '99+' : n}</b>}
-                      </Link>
-                    )
-                  })}
-                </div>
-              ))}
+              {menu.kelompok.map((k, idx) => {
+                const berisiAktif = !!aktif && k.item.some((i) => i.to === aktif.to)
+                const buka = berisiAktif || !tertutup.includes(k.judul)
+                const nKelompok = k.item.reduce((a, i) => a + (i.lencana ? lencana[i.lencana] ?? 0 : 0), 0)
+                const idDaftar = `kelompok-menu-${idx}`
+                return (
+                  <div className="samping-kelompok" key={k.judul}>
+                    <button
+                      type="button"
+                      className={'samping-judul' + (buka ? ' buka' : '')}
+                      aria-expanded={buka}
+                      aria-controls={idDaftar}
+                      onClick={() => { if (!berisiAktif) alihKelompok(k.judul) }}
+                    >
+                      <Ikon nama="panah" ukuran={14} />
+                      <span>{k.judul}</span>
+                      {!buka && nKelompok > 0 && <b className="angka" aria-label={`${nKelompok} menunggu`}>{nKelompok > 99 ? '99+' : nKelompok}</b>}
+                    </button>
+                    <div id={idDaftar} hidden={!buka}>
+                      {k.item.map((i) => {
+                        const n = i.lencana ? lencana[i.lencana] ?? 0 : 0
+                        return (
+                          <Link
+                            key={i.to}
+                            to={i.to}
+                            className={'samping-item' + (aktif?.to === i.to ? ' aktif' : '')}
+                            aria-current={aktif?.to === i.to ? 'page' : undefined}
+                          >
+                            <Ikon nama={i.ikon} /><span>{i.label}</span>
+                            {n > 0 && <b className="angka" aria-label={`${n} menunggu`}>{n > 99 ? '99+' : n}</b>}
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
             </nav>
 
             <div className="samping-kaki">
