@@ -8,6 +8,7 @@ const TAUTAN: { to: string; nama: string; perlu: IzinSarpras[] }[] = [
   { to: '/portal/sarpras/kerusakan', nama: 'Kerusakan', perlu: ['kelola', 'operasional', 'catat_lab', 'verifikasi_program', 'lihat'] },
   { to: '/portal/sarpras/permintaan', nama: 'Permintaan', perlu: ['kelola', 'operasional', 'catat_lab', 'verifikasi_program', 'lihat'] },
   { to: '/portal/sarpras/usulan', nama: 'Usulan', perlu: ['kelola', 'operasional', 'catat_lab', 'verifikasi_program', 'lihat'] },
+  { to: '/portal/sarpras/peminjaman', nama: 'Peminjaman alat', perlu: ['kelola', 'operasional', 'lihat'] },
   { to: '/portal/sarpras/kartu', nama: 'Kartu inventaris', perlu: ['kelola', 'operasional', 'catat_lab', 'verifikasi_program', 'lihat'] },
   { to: '/portal/sarpras/buku', nama: 'Pembukuan', perlu: ['kelola', 'operasional', 'lihat'] },
   { to: '/portal/sarpras/formulir', nama: 'Formulir Dapodik', perlu: ['kelola', 'operasional', 'lihat'] },

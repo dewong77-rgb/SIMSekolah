@@ -86,3 +86,21 @@ export type Buku = {
 /** Jumlah barang yang tidak berkondisi baik (rusak ringan, rusak berat, hilang). */
 export const tidakBaik = (x: { jumlah_rusak: number; jumlah_rusak_berat: number; jumlah_hilang: number }) =>
   Number(x.jumlah_rusak) + Number(x.jumlah_rusak_berat) + Number(x.jumlah_hilang)
+
+export const STATUS_PINJAM = [['dipinjam', 'Sedang dipinjam'], ['dikembalikan', 'Dikembalikan'], ['dibatalkan', 'Dibatalkan']] as const
+export type AlatPinjam = {
+  id: string; nama: string; kode_barang: string | null; merek_tipe: string | null; satuan: string; lab_id: string | null; lab_nama: string
+  jumlah_baik: number; jumlah_rusak: number; jumlah_rusak_berat: number; jumlah_hilang: number; dipinjam: number; tersedia: number
+}
+export type Pinjam = {
+  id: string; nomor: string | null; barang_id: string; nama_barang: string; jumlah: number; satuan: string; peminjam_nama: string; keperluan: string | null
+  tanggal_pinjam: string; rencana_kembali: string | null; status: string; tanggal_kembali: string | null
+  kembali_baik: number; kembali_rusak: number; kembali_rusak_berat: number; kembali_hilang: number; catatan_kembali: string | null
+  dicatat_nama: string | null; dikembalikan_nama: string | null; dibuat_pada: string; terlambat: boolean; aksi: string[]
+}
+export type RekapPinjam = {
+  ringkas: { sedang: number; terlambat: number; periode: number; bermasalah: number }
+  per_alat: { id: string; nama: string; lab_nama: string; satuan: string; jumlah_baik: number; jumlah_rusak: number; jumlah_rusak_berat: number; jumlah_hilang: number
+    jumlah_total: number; kali: number; dipinjam: number; tersedia: number }[]
+  per_peminjam: { nama: string; kali: number; sedang: number; terlambat: number }[]
+}

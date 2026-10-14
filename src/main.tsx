@@ -55,6 +55,7 @@ const SarprasUsulan = lazy(() => import('./pages/sarpras/SarprasUsulan'))
 const SarprasBuku = lazy(() => import('./pages/sarpras/SarprasBuku'))
 const SarprasKerusakan = lazy(() => import('./pages/sarpras/SarprasKerusakan'))
 const SarprasPermintaan = lazy(() => import('./pages/sarpras/SarprasPermintaan'))
+const SarprasPeminjaman = lazy(() => import('./pages/sarpras/SarprasPeminjaman'))
 const SarprasKartu = lazy(() => import('./pages/sarpras/SarprasKartu'))
 const SarprasFormulir = lazy(() => import('./pages/sarpras/SarprasFormulir'))
 const SpmiBeranda = lazy(() => import('./pages/spmi/SpmiBeranda'))
@@ -290,6 +291,14 @@ createRoot(document.getElementById('root')!).render(
             element={
               <RequireRole peran={['admin_tu', 'guru', 'staf']}>
                 <Suspense fallback={<Memuat />}><SarprasPermintaan /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/sarpras/peminjaman"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf']}>
+                <Suspense fallback={<Memuat />}><SarprasPeminjaman /></Suspense>
               </RequireRole>
             }
           />
