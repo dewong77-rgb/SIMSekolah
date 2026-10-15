@@ -45,6 +45,12 @@ function Isi({ izin }: { izin: string[] }) {
     catch (e) { setGalat((e as Error).message) } finally { setSibuk(false) }
   }
 
+  async function isiBawaan(rpc: 'spmi_siapkan_indikator' | 'spmi_siapkan_dokumen', satuan: string) {
+    setGalat(''); setInfo(''); setSibuk(true)
+    try { const n = await panggil<number>(rpc); setInfo(n ? `${n} ${satuan} ditambahkan.` : `Semua ${satuan} bawaan sudah ada.`); await baca() }
+    catch (e) { setGalat((e as Error).message) } finally { setSibuk(false) }
+  }
+
   async function simpanS(e: FormEvent) {
     e.preventDefault(); if (!formS) return; setGalat(''); setInfo('')
     if (!formS.kode?.trim() || !formS.nama?.trim()) return setGalat('Kode dan nama standar wajib diisi.')
@@ -97,7 +103,9 @@ function Isi({ izin }: { izin: string[] }) {
         <button className={tab === 'standar' ? 'tombol tombol-isi' : 'tombol'} onClick={() => setTab('standar')}>Standar dan indikator ({standar.length})</button>
         <button className={tab === 'dokumen' ? 'tombol tombol-isi' : 'tombol'} onClick={() => setTab('dokumen')}>Dokumen mutu ({dokumen.filter((x) => !x.diarsipkan).length})</button>
         {bolehKelola && tab === 'standar' && <button className="tombol" onClick={() => setFormS({ urutan: 100, aktif: true })}>Tambah standar</button>}
+        {bolehKelola && tab === 'standar' && standar.length > 0 && <button className="tombol" disabled={sibuk} onClick={() => isiBawaan('spmi_siapkan_indikator', 'indikator')}>Isi indikator bawaan</button>}
         {bolehTulis && tab === 'dokumen' && <button className="tombol" onClick={() => setFormD({ jenis: 'kebijakan' })}>Tambah dokumen</button>}
+        {bolehKelola && tab === 'dokumen' && <button className="tombol" disabled={sibuk} onClick={() => isiBawaan('spmi_siapkan_dokumen', 'dokumen')}>Isi daftar dokumen bawaan</button>}
         {tab === 'dokumen' && <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}><input type="checkbox" checked={arsip} onChange={(e) => setArsip(e.target.checked)} /> Arsip</label>}
       </div>
 
