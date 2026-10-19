@@ -22,7 +22,12 @@ function Judul({ label, judul, tautan, ke }: { label: string; judul: string; tau
   )
 }
 
-const Rangka = ({ n }: { n: number }) => (
+const aplikasi = [
+  { href: 'http://103.159.220.9:1113/', judul: 'Dapodik Sekolah', isi: 'Buka aplikasi Dapodik di server sekolah. Dibuka di tab baru.' },
+  { href: 'http://103.159.220.9:1114/', judul: 'e-Rapor SMK', isi: 'Buka aplikasi e-Rapor SMK untuk penilaian dan rapor. Dibuka di tab baru.' },
+]
+
+const Rangka =({ n }: { n: number }) => (
   <>{Array.from({ length: n }, (_, i) => <div key={i} className="kartu rangka" aria-hidden="true"><i /><i /><i /></div>)}</>
 )
 
@@ -114,6 +119,19 @@ export default function Beranda() {
               <h3>{l.judul}</h3>
               <p>{l.isi}</p>
             </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="wadah bagian">
+        <Judul label="Aplikasi sekolah" judul="Dapodik dan e-Rapor" />
+        <div className="grid grid-3 grid-layanan">
+          {aplikasi.map((a) => (
+            <a key={a.href} href={a.href} target="_blank" rel="noopener noreferrer" className="kartu tautan">
+              <span className="kartu-ikon"><Ikon nama="tautan" ukuran={22} /></span>
+              <h3>{a.judul}</h3>
+              <p>{a.isi}</p>
+            </a>
           ))}
         </div>
       </section>
