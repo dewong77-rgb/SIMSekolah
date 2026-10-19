@@ -110,9 +110,9 @@ export function DaftarKelas() {
               <span className="alat-ikon"><Ikon nama="grafik" ukuran={18} /></span>
               <span><strong>Pantau semua kelas</strong><small>Siapa sudah hadir dan mengumpulkan</small></span>
             </Link>
-            <Link to="/portal/lms/administrasi" className="alat-kartu" title="Perangkat ajar dan supervisi">
+            <Link to="/portal/lms/administrasi" className="alat-kartu" title="Pertemuan mana yang masih kurang bahan bacaan atau lembar kerja">
               <span className="alat-ikon"><Ikon nama="dokumen" ukuran={18} /></span>
-              <span><strong>Administrasi guru</strong><small>Perangkat ajar dan supervisi</small></span>
+              <span><strong>Kelengkapan administrasi</strong><small>Pertemuan yang masih kurang</small></span>
             </Link>
             <Link to="/portal/panduan-lms" className="alat-kartu" title="Urutan menjalankan satu pertemuan">
               <span className="alat-ikon"><Ikon nama="info" ukuran={18} /></span>

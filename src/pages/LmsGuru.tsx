@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import Halaman from '../components/Halaman'
 import { useAuth } from '../auth/AuthContext'
@@ -102,13 +102,101 @@ function FormPerangkat({ kelas, awal, jenisAwal, selesai, batal }: { kelas: Kela
   )
 }
 
-/** Perangkat ajar milik guru. Admin TU melihat semua guru sebagai bahan supervisi. */
+type KelengkapanKelas = {
+  kelas_id: string; mapel: string; rombel: string; guru: string
+  jumlah_pertemuan: number; lengkap: number; modul_guru: number
+  kurang: { id: string; nomor: number; judul: string; kurang: string[] }[]
+}
+
+/**
+ * Kelengkapan administrasi, dihitung otomatis dari isi LMS: pertemuan lengkap bila punya bahan bacaan dan lembar kerja.
+ * Guru melihat kelasnya sendiri. Admin TU melihat semua guru, ditambah daftar dokumen perangkat ajar tingkat tahun.
+ */
 export function AdministrasiGuru() {
-  const { profil } = useAuth()
-  const supervisi = profil?.peran === 'admin_tu'
+  const [data, setData] = useState<{ supervisi: boolean; kelas: KelengkapanKelas[] } | null>(null)
+  const [galat, setGalat] = useState('')
+  const [guruPilih, setGuruPilih] = useState('')
+  const [buka, setBuka] = useState<string | null>(null)
+  useEffect(() => {
+    panggil<{ supervisi: boolean; kelas: KelengkapanKelas[] }>('lms_kelengkapan_administrasi').then(setData).catch((e: Error) => setGalat(e.message))
+  }, [])
+  const supervisi = data?.supervisi ?? false
+  const guruDaftar = useMemo(() => Array.from(new Set((data?.kelas ?? []).map((k) => k.guru))).sort(), [data])
+  const tampil = (data?.kelas ?? []).filter((k) => !guruPilih || k.guru === guruPilih)
+  const total = tampil.reduce((j, k) => j + k.jumlah_pertemuan, 0)
+  const lengkap = tampil.reduce((j, k) => j + k.lengkap, 0)
+  const persen = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : null)
+  const labelPersen = (a: number, b: number) => (persen(a, b) === null ? '-' : `${persen(a, b)}%`)
   return (
-    <Halaman judul="Administrasi guru" lead={supervisi ? 'Perangkat ajar seluruh guru, untuk supervisi.' : 'Perangkat ajar Anda: ATP, modul ajar, program, dan lainnya.'}>
-      <DaftarPerangkat />
+    <Halaman judul="Kelengkapan administrasi" lead={supervisi ? 'Kelengkapan pertemuan semua guru, dihitung otomatis dari isi LMS.' : 'Kelengkapan pertemuan Anda, dihitung otomatis dari isi LMS.'}>
+      {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
+      {!data && !galat && <p className="catatan">Memuat...</p>}
+      {data && (
+        <>
+          <div className="grid grid-3">
+            <div className="kartu"><small>Pertemuan lengkap</small><p style={{ margin: 0, fontSize: '1.4rem' }}>{lengkap} dari {total}</p><small>{labelPersen(lengkap, total)} dari seluruh pertemuan</small></div>
+            <div className="kartu"><small>Kelas ajar</small><p style={{ margin: 0, fontSize: '1.4rem' }}>{tampil.length}</p><small>{tampil.filter((k) => k.kurang.length === 0).length} kelas sudah lengkap</small></div>
+            <div className="kartu"><small>Modul guru</small><p style={{ margin: 0, fontSize: '1.4rem' }}>{tampil.reduce((j, k) => j + k.modul_guru, 0)} pertemuan</p><small>Punya materi khusus guru (modul ajar)</small></div>
+          </div>
+          <p className="catatan jarak">Pertemuan dinilai lengkap bila punya bahan bacaan dan lembar kerja untuk siswa. Isi di ruang pertemuan, bukan di sini. Halaman ini hanya membaca hasilnya.</p>
+          <div className="aksi">
+            {supervisi && (
+              <label>Guru
+                <select value={guruPilih} onChange={(e) => setGuruPilih(e.target.value)}>
+                  <option value="">Semua guru</option>
+                  {guruDaftar.map((g) => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </label>
+            )}
+            <button type="button" className="tombol" style={biru} disabled={tampil.length === 0} onClick={() => unduhCsv('kelengkapan-administrasi', [
+              ['Guru', 'Mata pelajaran', 'Rombel', 'Jumlah pertemuan', 'Pertemuan lengkap', 'Persen lengkap', 'Pertemuan bermodul guru', 'Pertemuan yang kurang'],
+              ...tampil.map((k) => [k.guru, k.mapel, k.rombel, k.jumlah_pertemuan, k.lengkap, persen(k.lengkap, k.jumlah_pertemuan), k.modul_guru,
+                k.kurang.map((x) => `P${x.nomor} (${x.kurang.join(', ')})`).join('; ')]),
+            ])}>Unduh CSV</button>
+          </div>
+          <div className="tabel-bungkus jarak">
+            <table>
+              <thead><tr>{supervisi && <th>Guru</th>}<th>Kelas</th><th>Pertemuan lengkap</th><th>Modul guru</th><th>Status</th><th></th></tr></thead>
+              <tbody>
+                {tampil.length === 0 && <tr><td colSpan={supervisi ? 6 : 5}>Belum ada kelas ajar.</td></tr>}
+                {tampil.map((k) => (
+                  <Fragment key={k.kelas_id}>
+                    <tr>
+                      {supervisi && <td>{k.guru}</td>}
+                      <td><Link to={`/portal/lms/${k.kelas_id}`}>{k.mapel} {k.rombel}</Link></td>
+                      <td>{k.lengkap} dari {k.jumlah_pertemuan} ({labelPersen(k.lengkap, k.jumlah_pertemuan)})</td>
+                      <td>{k.modul_guru} dari {k.jumlah_pertemuan}</td>
+                      <td>{k.jumlah_pertemuan === 0
+                        ? <span className="status status-dibatalkan">Belum ada pertemuan</span>
+                        : k.kurang.length === 0 ? <span className="status status-selesai">Lengkap</span> : <span className="status status-menunggu">{k.kurang.length} pertemuan kurang</span>}</td>
+                      <td>{k.kurang.length > 0 && <button type="button" className="tombol" style={biru} onClick={() => setBuka(buka === k.kelas_id ? null : k.kelas_id)}>{buka === k.kelas_id ? 'Tutup' : 'Lihat yang kurang'}</button>}</td>
+                    </tr>
+                    {buka === k.kelas_id && (
+                      <tr><td colSpan={supervisi ? 6 : 5}>
+                        <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
+                          {k.kurang.map((x) => (
+                            <li key={x.id}><Link to={`/portal/lms/${k.kelas_id}/pertemuan/${x.id}`}>Pertemuan {x.nomor}: {x.judul}</Link> <small>belum ada {x.kurang.join(' dan ')}</small></li>
+                          ))}
+                        </ul>
+                      </td></tr>
+                    )}
+                  </Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {supervisi
+            ? (
+              <>
+                <h2 className="jarak" style={{ fontSize: '1.2rem' }}>Dokumen perangkat ajar per guru</h2>
+                <p className="catatan">Dokumen tingkat tahun yang tidak melekat pada satu pertemuan: CP, ATP, Prota, Promes, dan KKTP.</p>
+                <DaftarPerangkat />
+              </>
+            )
+            : <p className="catatan jarak">Dokumen tingkat tahun (CP, ATP, Prota, Promes, KKTP) diunggah di <Link to="/portal/lms/perangkat/tp">Dokumen perangkat ajar</Link>.</p>}
+        </>
+      )}
+      <p className="catatan jarak"><Link to="/portal/lms">Kembali ke ruang belajar</Link></p>
     </Halaman>
   )
 }
