@@ -1,12 +1,20 @@
 export type ItemMenu = {
   label: string
   to?: string
-  anak?: { label: string; to: string }[]
+  /** `luar`: tautan ke aplikasi di luar SIMS, dibuka di tab baru. */
+  anak?: { label: string; to: string; luar?: boolean }[]
 }
 
 // Hanya fitur yang sudah berjalan dengan data sungguhan. Halaman contoh (PPDB) tidak ditautkan.
 export const menuUtama: ItemMenu[] = [
   { label: 'Beranda', to: '/' },
+  {
+    label: 'Aplikasi',
+    anak: [
+      { label: 'Dapodik Sekolah', to: '/dapodik', luar: true },
+      { label: 'e-Rapor SMK', to: '/erapor', luar: true },
+    ],
+  },
   {
     label: 'Profil Sekolah',
     anak: [
