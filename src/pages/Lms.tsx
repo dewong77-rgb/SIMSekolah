@@ -14,7 +14,7 @@ import { Forum } from './LmsForum'
 import { nilaiTeks, unduhCsv } from './lmsUtil'
 import PengingatLms from './LmsPengingat'
 import { wordKeHtml, judulDariNama, BATAS_HTML } from '../lib/dokumen'
-import { unduhRekapKelas } from './lmsXlsx'
+import { unduhRekapKelas, unduhRekapPengerjaan } from './lmsXlsx'
 import KelolaPertemuan, { AksesPertemuan } from './LmsKelola'
 import { BerandaBelajar, IsiMateri, KartuKriteria, PertemuanSiswa, type Materi } from './LmsBelajar'
 
@@ -894,16 +894,34 @@ export function RekapKelas() {
   const { kelasId = '' } = useParams()
   const [data, setData] = useState<RekapKelasData | null>(null)
   const [galat, setGalat] = useState('')
+  const [kelas, setKelas] = useState<{ mapel: string; rombel: string } | null>(null)
+  const [mengunduh, setMengunduh] = useState(false)
   useEffect(() => {
     panggil<RekapKelasData>('lms_rekap_kelas', { p_kelas: kelasId }).then(setData).catch((e: Error) => setGalat(e.message))
+    panggil<Kelas[]>('lms_kelas_saya').then((d) => setKelas(d.find((x) => x.id === kelasId) ?? null)).catch(() => undefined)
   }, [kelasId])
+  async function unduhExcel() {
+    if (!data || !kelas) return
+    setMengunduh(true); setGalat('')
+    try { await unduhRekapPengerjaan(kelas, data) } catch (er) { setGalat('Gagal menyiapkan Excel. ' + (er as Error).message) }
+    setMengunduh(false)
+  }
   const persen = (s: BarisRekap) => (data && data.total_sesi > 0 ? Math.round((s.hadir / data.total_sesi) * 100) : null)
   const aktif = (s: BarisRekap, pertemuanId: string) => s.per_pertemuan[pertemuanId] === 'hadir'
   return (
     <Halaman judul="Rekap pengerjaan LMS" lead={data ? `${data.total_sesi} pertemuan terbit. Dikerjakan berarti siswa sudah membuka materi, mengerjakan lembar kerja, atau menulis di forum.` : undefined}>
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
       <PilihKelas kelasId={kelasId} sub="/rekap" />
-      <div className="tabel-bungkus">
+      <div className="aksi">
+        <button type="button" className="tombol tombol-isi" disabled={!data || !kelas || mengunduh} onClick={() => void unduhExcel()}>
+          <Ikon nama="unduh" ukuran={16} /> {mengunduh ? 'Menyiapkan berkas...' : 'Unduh Excel'}
+        </button>
+        <button type="button" className="tombol" style={{ color: 'var(--warna-utama)' }} disabled={!data} onClick={() => data && unduhCsv('rekap-pengerjaan-lms.csv', [
+          ['Nama', 'NISN', ...data.pertemuan.map((p) => `P${p.nomor}`), 'Dikerjakan', 'Belum dikerjakan', 'Total pertemuan', 'Persen dikerjakan'],
+          ...data.siswa.map((s) => [s.nama, s.nisn, ...data.pertemuan.map((p) => (aktif(s, p.id) ? 'Sudah' : 'Belum')), s.hadir, Math.max(data.total_sesi - s.hadir, 0), data.total_sesi, persen(s)]),
+        ])}>Unduh CSV</button>
+      </div>
+      <div className="tabel-bungkus jarak">
         <table>
           <thead>
             <tr>
@@ -928,12 +946,6 @@ export function RekapKelas() {
             ))}
           </tbody>
         </table>
-      </div>
-      <div className="aksi jarak">
-        <button className="tombol" style={{ color: 'var(--warna-utama)' }} disabled={!data} onClick={() => data && unduhCsv('rekap-pengerjaan-lms.csv', [
-          ['Nama', 'NISN', ...data.pertemuan.map((p) => `P${p.nomor}`), 'Dikerjakan', 'Belum dikerjakan', 'Total pertemuan', 'Persen dikerjakan'],
-          ...data.siswa.map((s) => [s.nama, s.nisn, ...data.pertemuan.map((p) => (aktif(s, p.id) ? 'Sudah' : 'Belum')), s.hadir, Math.max(data.total_sesi - s.hadir, 0), data.total_sesi, persen(s)]),
-        ])}>Unduh CSV</button>
       </div>
       <p className="catatan jarak">Tercatat otomatis dari aktivitas siswa di LMS. Kehadiran tatap muka (hadir, izin, sakit, alpa) dicatat di modul Kesiswaan.</p>
       <Kembali ke={`/portal/lms/${kelasId}`} teks="Kembali ke kelas" />
