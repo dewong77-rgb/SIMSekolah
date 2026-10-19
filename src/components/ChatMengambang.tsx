@@ -43,7 +43,8 @@ export default function ChatMengambang({ jumlah }: { jumlah: number }) {
   useEffect(() => {
     if (!buka) return
     void muat()
-    const id = window.setInterval(() => { if (!document.hidden) void muat() }, 20000)
+    // Daftar tidak terlihat saat percakapan terbuka (percakapan sendiri menyegarkannya setelah membaca atau mengirim), jadi tidak perlu polling.
+    const id = ruangId ? 0 : window.setInterval(() => { if (!document.hidden) void muat() }, 20000)
     const tutupLuar = (e: MouseEvent) => { if (!ruangId && !kotak.current?.contains(e.target as Node)) setBuka(false) }
     const tutupEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setBuka(false) }
     document.addEventListener('mousedown', tutupLuar)

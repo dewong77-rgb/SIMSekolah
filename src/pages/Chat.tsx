@@ -24,6 +24,8 @@ type Laporan = {
 
 const labelJenis: Record<Jenis, string> = { kelas: 'Kelas', tanya: 'Tanya guru', guru: 'Ruang guru', kanal: 'Kanal jabatan' }
 const BATAS = 2000
+const JEDA_RAPAT = 8000
+const JEDA_JARANG = 30000
 
 const kapital = (n: string) => n.toLowerCase().replace(/(^|[\s.'-])(\p{L})/gu, (_m, a: string, b: string) => a + b.toUpperCase())
 
@@ -138,6 +140,9 @@ function Percakapan({ ruang, muatDaftar, mini }: { ruang: Ruang; muatDaftar: () 
   const gulir = useRef<HTMLDivElement>(null)
   const dekatDasar = useRef(true)
   const terakhirId = useRef<string | null>(null)
+  // Jeda polling adaptif untuk menghemat kuota paket gratis: rapat (8 detik) saat percakapan aktif,
+  // makin jarang (sampai 30 detik) selama tidak ada pesan baru. Pesan baru, kirim, atau kembali ke tab mengembalikannya ke rapat.
+  const [jeda, setJeda] = useState(JEDA_RAPAT)
 
   const muat = useCallback(async () => {
     try {
@@ -147,6 +152,8 @@ function Percakapan({ ruang, muatDaftar, mini }: { ruang: Ruang; muatDaftar: () 
       setMasihAda(h.pesan.length >= 50)
       setGalat('')
       const akhir = h.pesan[h.pesan.length - 1]
+      const baru = !!akhir && akhir.id !== terakhirId.current
+      setJeda((j) => (baru ? JEDA_RAPAT : Math.min(Math.round(j * 1.5), JEDA_JARANG)))
       if (akhir && akhir.id !== terakhirId.current) {
         terakhirId.current = akhir.id
         if (h.akses === 'peserta' && !document.hidden) {
@@ -160,7 +167,12 @@ function Percakapan({ ruang, muatDaftar, mini }: { ruang: Ruang; muatDaftar: () 
   }, [ruang.id, muatDaftar])
 
   useEffect(() => { void muat() }, [muat])
-  useBerkala(() => void muat(), 8000)
+  useBerkala(() => void muat(), jeda)
+  useEffect(() => {
+    const lihat = () => { if (!document.hidden) setJeda(JEDA_RAPAT) }
+    document.addEventListener('visibilitychange', lihat)
+    return () => document.removeEventListener('visibilitychange', lihat)
+  }, [])
 
   // Tandai dibaca saat tab kembali terlihat.
   useEffect(() => {
@@ -204,6 +216,7 @@ function Percakapan({ ruang, muatDaftar, mini }: { ruang: Ruang; muatDaftar: () 
     try {
       const h = await panggil<{ tenang: boolean }>('chat_kirim', { p_ruang: ruang.id, p_isi: isi })
       setTeks('')
+      setJeda(JEDA_RAPAT)
       dekatDasar.current = true
       if (h.tenang) setInfo('Terkirim. Sekarang jam tenang (21.00 sampai 05.00 WIB), jadi penerima baru membacanya saat membuka chat.')
       await muat()
