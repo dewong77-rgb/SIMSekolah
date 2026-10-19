@@ -122,7 +122,7 @@ export default function SambunganDrive() {
 
         <h3 style={{ marginTop: 16 }}>Struktur folder</h3>
         <p className="catatan">
-          Folder tersusun: nama sekolah, lalu Guru, Tenaga Kependidikan, Siswa (per kelas), dan Sekolah, turun ke berkas pribadi,
+          Folder tersusun: nama sekolah, lalu Guru, Tenaga Kependidikan, Siswa (per jurusan), dan Sekolah, turun ke berkas pribadi,
           modul ajar, materi, dan tugas. Unggahan baru langsung masuk struktur ini. Tombol di bawah memindahkan berkas lama
           (isi berkas dan izin akses tidak berubah) dan mengganti nama folder induk dengan nama sekolah. Aman diulang.
         </p>
