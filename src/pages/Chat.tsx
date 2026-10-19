@@ -8,8 +8,8 @@ import { biru, merah } from './lmsUtil'
 // Chat sekolah. Semua data lewat fungsi basis data chat_*. Tabel chat tidak punya policy.
 // Pembaruan memakai polling ringan (hanya saat tab terlihat) agar aman untuk batas koneksi paket gratis.
 
-type Jenis = 'kelas' | 'tanya' | 'guru' | 'kanal'
-type Ruang = {
+export type Jenis = 'kelas' | 'tanya' | 'guru' | 'kanal'
+export type Ruang = {
   id: string; jenis: Jenis; akses: 'peserta' | 'pemantau'; judul: string
   pesan_terakhir_pada: string | null; pesan_terakhir: string | null; belum_dibaca: number
 }
@@ -24,6 +24,8 @@ type Laporan = {
 
 const labelJenis: Record<Jenis, string> = { kelas: 'Kelas', tanya: 'Tanya guru', guru: 'Ruang guru', kanal: 'Kanal jabatan' }
 const BATAS = 2000
+const JEDA_RAPAT = 8000
+const JEDA_JARANG = 30000
 
 const kapital = (n: string) => n.toLowerCase().replace(/(^|[\s.'-])(\p{L})/gu, (_m, a: string, b: string) => a + b.toUpperCase())
 
@@ -117,7 +119,12 @@ export default function Chat() {
   )
 }
 
-function Percakapan({ ruang, muatDaftar }: { ruang: Ruang; muatDaftar: () => Promise<void> }) {
+/** Percakapan di dalam balon chat mengambang: tanpa halaman Chat penuh, Enter langsung mengirim. */
+export function PercakapanMini({ ruang, muatDaftar, kembali }: { ruang: Ruang; muatDaftar: () => Promise<void>; kembali: () => void }) {
+  return <Percakapan ruang={ruang} muatDaftar={muatDaftar} mini={{ kembali }} />
+}
+
+function Percakapan({ ruang, muatDaftar, mini }: { ruang: Ruang; muatDaftar: () => Promise<void>; mini?: { kembali: () => void } }) {
   const { profil } = useAuth()
   const navigate = useNavigate()
   const [pesan, setPesan] = useState<Pesan[]>([])
@@ -133,6 +140,9 @@ function Percakapan({ ruang, muatDaftar }: { ruang: Ruang; muatDaftar: () => Pro
   const gulir = useRef<HTMLDivElement>(null)
   const dekatDasar = useRef(true)
   const terakhirId = useRef<string | null>(null)
+  // Jeda polling adaptif untuk menghemat kuota paket gratis: rapat (8 detik) saat percakapan aktif,
+  // makin jarang (sampai 30 detik) selama tidak ada pesan baru. Pesan baru, kirim, atau kembali ke tab mengembalikannya ke rapat.
+  const [jeda, setJeda] = useState(JEDA_RAPAT)
 
   const muat = useCallback(async () => {
     try {
@@ -142,6 +152,8 @@ function Percakapan({ ruang, muatDaftar }: { ruang: Ruang; muatDaftar: () => Pro
       setMasihAda(h.pesan.length >= 50)
       setGalat('')
       const akhir = h.pesan[h.pesan.length - 1]
+      const baru = !!akhir && akhir.id !== terakhirId.current
+      setJeda((j) => (baru ? JEDA_RAPAT : Math.min(Math.round(j * 1.5), JEDA_JARANG)))
       if (akhir && akhir.id !== terakhirId.current) {
         terakhirId.current = akhir.id
         if (h.akses === 'peserta' && !document.hidden) {
@@ -155,7 +167,12 @@ function Percakapan({ ruang, muatDaftar }: { ruang: Ruang; muatDaftar: () => Pro
   }, [ruang.id, muatDaftar])
 
   useEffect(() => { void muat() }, [muat])
-  useBerkala(() => void muat(), 8000)
+  useBerkala(() => void muat(), jeda)
+  useEffect(() => {
+    const lihat = () => { if (!document.hidden) setJeda(JEDA_RAPAT) }
+    document.addEventListener('visibilitychange', lihat)
+    return () => document.removeEventListener('visibilitychange', lihat)
+  }, [])
 
   // Tandai dibaca saat tab kembali terlihat.
   useEffect(() => {
@@ -199,6 +216,7 @@ function Percakapan({ ruang, muatDaftar }: { ruang: Ruang; muatDaftar: () => Pro
     try {
       const h = await panggil<{ tenang: boolean }>('chat_kirim', { p_ruang: ruang.id, p_isi: isi })
       setTeks('')
+      setJeda(JEDA_RAPAT)
       dekatDasar.current = true
       if (h.tenang) setInfo('Terkirim. Sekarang jam tenang (21.00 sampai 05.00 WIB), jadi penerima baru membacanya saat membuka chat.')
       await muat()
@@ -208,7 +226,9 @@ function Percakapan({ ruang, muatDaftar }: { ruang: Ruang; muatDaftar: () => Pro
   }
 
   function tekan(e: KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); void kirim() }
+    if (e.key !== 'Enter') return
+    // Di balon: Enter kirim, Shift+Enter baris baru (seperti aplikasi pesan). Di halaman penuh: Ctrl+Enter.
+    if (mini ? !e.shiftKey && !e.nativeEvent.isComposing : e.ctrlKey || e.metaKey) { e.preventDefault(); void kirim() }
   }
 
   async function hapus(id: string) {
@@ -234,13 +254,16 @@ function Percakapan({ ruang, muatDaftar }: { ruang: Ruang; muatDaftar: () => Pro
   const guru = profil?.peran === 'guru'
 
   return (
-    <div className="chat-panel">
+    <div className={'chat-panel' + (mini ? ' mini' : '')}>
       <div className="chat-kepala">
-        <button type="button" className="tombol chat-kembali" style={biru} onClick={() => navigate('/portal/chat')}>Kembali</button>
+        {mini
+          ? <button type="button" className="tombol" style={biru} onClick={mini.kembali} aria-label="Kembali ke daftar percakapan">&lsaquo;</button>
+          : <button type="button" className="tombol chat-kembali" style={biru} onClick={() => navigate('/portal/chat')}>Kembali</button>}
         <div>
           <h2>{ruang.judul}</h2>
           <small>{labelJenis[ruang.jenis]}</small>
         </div>
+        {mini && <Link to={`/portal/chat/${ruang.id}`} className="chat-penuh">Layar penuh</Link>}
       </div>
 
       {akses === 'pemantau' && <p className="catatan chat-banner">Anda memantau percakapan ini sebagai wali kelas. Hanya baca. Akses Anda tercatat.</p>}
@@ -285,7 +308,7 @@ function Percakapan({ ruang, muatDaftar }: { ruang: Ruang; muatDaftar: () => Pro
         <form className="chat-kirim" onSubmit={kirim}>
           <label className="sr-saja" htmlFor="chat-teks">Tulis pesan</label>
           <textarea
-            id="chat-teks" rows={2} maxLength={BATAS} value={teks} placeholder="Tulis pesan. Ctrl+Enter untuk kirim."
+            id="chat-teks" rows={mini ? 1 : 2} maxLength={BATAS} value={teks} placeholder={mini ? 'Tulis pesan. Enter untuk kirim.' : 'Tulis pesan. Ctrl+Enter untuk kirim.'}
             onChange={(e) => setTeks(e.target.value)} onKeyDown={tekan}
           />
           <div className="chat-kirim-bawah">

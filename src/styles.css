@@ -1423,3 +1423,18 @@ a.bt-tag:hover, button.bt-tag:hover, .bt-tag.aktif { background: var(--warna-uta
 .chat-balon-cuplikan > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chat-balon-cuplikan .angka { flex: none; background: var(--warna-utama); color: #fff; border-radius: 99px; font-size: .72rem; padding: 1px 8px; }
 @media (max-width: 560px) { .chat-balon { right: 14px; bottom: 14px; } }
+
+/* Percakapan di dalam balon chat */
+.chat-balon-panel li button { display: grid; gap: 2px; width: 100%; padding: 10px 14px; text-align: left; font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+.chat-balon-panel li button:hover { background: var(--latar-lembut); }
+.chat-balon-panel.percakapan { width: min(380px, calc(100vw - 40px)); height: min(72vh, 580px); max-height: none; }
+.chat-panel.mini { height: 100%; min-height: 0; display: flex; flex-direction: column; gap: 8px; padding: 10px; box-sizing: border-box; }
+.chat-panel.mini .chat-kepala { gap: 8px; }
+.chat-panel.mini .chat-kepala h2 { font-size: 1rem; }
+.chat-panel.mini .chat-kepala > div { flex: 1; min-width: 0; }
+.chat-panel.mini .chat-kepala h2, .chat-panel.mini .chat-kepala small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+.chat-panel.mini .chat-penuh { font-size: .8rem; white-space: nowrap; }
+.chat-panel.mini .chat-banner { font-size: .8rem; padding: 6px 10px; margin: 0; }
+.chat-panel.mini .chat-pesan { flex: 1; height: auto; min-height: 0; padding: 10px; }
+.chat-panel.mini .gelembung { max-width: 88%; }
+.chat-panel.mini .chat-kirim textarea { font-size: 15px; resize: none; }
