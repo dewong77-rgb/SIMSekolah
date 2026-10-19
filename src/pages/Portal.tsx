@@ -18,6 +18,12 @@ const kalimatPeran = {
   admin_ujian: 'Kelola ujian, ruang, dan pengawas di Asesmen Digital.',
 } as const
 
+/** Aplikasi sekolah di luar SIMSekolah. Alamat IP lokal/server sekolah, dibuka di tab baru. */
+const aplikasiLuar = [
+  { href: 'http://103.159.220.9:1113/', judul: 'Dapodik Sekolah', ket: 'Aplikasi Dapodik di server sekolah', peran: ['admin_tu', 'staf'] },
+  { href: 'http://103.159.220.9:1114/', judul: 'e-Rapor SMK', ket: 'Penilaian dan rapor peserta didik', peran: ['admin_tu', 'guru'] },
+] as const
+
 export default function Portal() {
   const { profil, superAdmin, penugasan } = useAuth()
   const { menu, lencana, nama } = usePortal()
@@ -74,6 +80,23 @@ export default function Portal() {
         <AgendaTerdekat semua hari={14} maks={5} judul="Agenda 14 hari ke depan" />
         {ikutJam && <JamSistem varian="kartu" />}
       </div>
+
+      {aplikasiLuar.some((a) => (a.peran as readonly string[]).includes(profil.peran)) && (
+        <section className="menu-bagian" aria-labelledby="k-aplikasi-luar">
+          <h2 id="k-aplikasi-luar" className="menu-bagian-judul">Aplikasi sekolah</h2>
+          <div className="grid grid-3">
+            {aplikasiLuar.filter((a) => (a.peran as readonly string[]).includes(profil.peran)).map((a) => (
+              <a key={a.href} href={a.href} target="_blank" rel="noopener noreferrer" className="kartu tautan kartu-menu">
+                <span className="kartu-menu-ikon"><Ikon nama="tautan" ukuran={22} /></span>
+                <span className="kartu-menu-isi">
+                  <h3>{a.judul}</h3>
+                  <small>{a.ket}. Dibuka di tab baru.</small>
+                </span>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
 
       {menu.kelompok.map((k) => (
         <section key={k.judul} className="menu-bagian" aria-labelledby={`k-${k.judul}`}>
