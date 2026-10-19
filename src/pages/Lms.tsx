@@ -26,7 +26,7 @@ type Kelas = {
 type Pertemuan = {
   id: string; nomor: number; judul: string; tanggal: string; tujuan: string | null
   status: 'draf' | 'terbit'; wajib_absen: boolean; absen_terbuka: boolean; absen_tutup: string | null
-  kode_absen: string | null; jumlah_materi: number; jumlah_latihan: number; hadir: number | null; status_saya: string | null
+  kode_absen: string | null; jumlah_materi: number; jumlah_latihan: number; hadir: number | null; jumlah_siswa?: number | null; status_saya: string | null
   kelengkapan: Kelengkapan | null
   ditutup?: boolean; buka_sampai?: string | null; terbuka?: boolean; boleh?: boolean | null; tuntas_saya?: boolean | null
 }
@@ -320,7 +320,7 @@ export function DetailKelas() {
                 <td>{tgl(p.tanggal)}</td>
                 <td>
                   {kelola
-                    ? <>{p.hadir ?? 0} hadir{p.absen_terbuka ? <> <span className="status status-menunggu">Absen dibuka</span></> : null}</>
+                    ? <>{p.hadir ?? 0}{p.jumlah_siswa != null ? ` dari ${p.jumlah_siswa} siswa` : ''} hadir{p.absen_terbuka ? <> <span className="status status-menunggu">Absen dibuka</span></> : null}</>
                     : p.absen_terbuka && !p.status_saya
                       ? <span className="status status-menunggu">Absen dibuka</span>
                       : <span className={`status ${kelasStatus[p.status_saya ?? 'belum']}`}>{labelStatus[p.status_saya ?? 'belum']}</span>}
