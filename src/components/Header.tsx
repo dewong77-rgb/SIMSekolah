@@ -60,7 +60,9 @@ export default function Header() {
                   <ul className="submenu">
                     {m.anak.map((a) => (
                       <li key={a.to}>
-                        <NavLink to={a.to}>{a.label}</NavLink>
+                        {a.luar
+                          ? <a href={a.to} target="_blank" rel="noopener noreferrer">{a.label}</a>
+                          : <NavLink to={a.to}>{a.label}</NavLink>}
                       </li>
                     ))}
                   </ul>
