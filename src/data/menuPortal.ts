@@ -23,6 +23,7 @@ export const namaPeran: Record<Peran, string> = {
 }
 
 const ajuanSaya: ItemPortal = { to: '/portal/ajuan', label: 'Ajuan saya', ikon: 'kotak', ket: 'Perbaikan data yang diajukan dan keputusannya', lencana: 'ajuan_saya' }
+const berkasSaya: ItemPortal = { to: '/portal/berkas-saya', label: 'Berkas saya', ikon: 'unggah', ket: 'Berkas pribadi dan modul ajar di folder Drive sekolah' }
 const perpustakaan: ItemPortal = { to: '/portal/perpustakaan', label: 'Perpustakaan', ikon: 'buku', ket: 'Baca buku digital di aplikasi dan cek ketersediaan buku fisik', cocok: '/portal/perpustakaan' }
 const disposisi: ItemPortal = { to: '/portal/disposisi', label: 'Disposisi saya', ikon: 'surat', ket: 'Instruksi dari pimpinan untuk Anda', lencana: 'disposisi' }
 
@@ -43,6 +44,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
       judul: 'Data diri',
       item: [
         { to: '/portal/data-saya', label: 'Data saya', ikon: 'pengguna', ket: 'Identitas, catatan kesiswaan, dan ajuan perbaikan data', lencana: 'ajuan_saya' },
+        berkasSaya,
       ],
     },
   ],
@@ -70,6 +72,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
       judul: 'Data diri',
       item: [
         { to: '/portal/data-saya', label: 'Profil saya', ikon: 'pengguna', ket: 'Data pribadi dan kepegawaian seperti di Dapodik' },
+        berkasSaya,
         disposisi,
         ajuanSaya,
       ],
@@ -83,6 +86,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
       item: [
         disposisi,
         { to: '/portal/data-saya', label: 'Profil saya', ikon: 'pengguna', ket: 'Data pribadi dan kepegawaian seperti di Dapodik' },
+        berkasSaya,
         ajuanSaya,
       ],
     },
@@ -135,7 +139,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
       ],
     },
     { judul: 'Kesiswaan', item: [{ to: '/portal/kesiswaan', label: 'Kesiswaan', ikon: 'kelompok', ket: 'Pelanggaran, prestasi, izin, kehadiran, ekskul, dan beasiswa', lencana: 'kesiswaan' }] },
-    { judul: 'Layanan sekolah', item: [{ to: '/portal/buku-tamu', label: 'Buku tamu', ikon: 'kelompok', ket: 'Catat pengunjung, jam pulang, rekap asal dan tujuan' }] },
+    { judul: 'Layanan sekolah', item: [{ to: '/portal/buku-tamu', label: 'Buku tamu', ikon: 'kelompok', ket: 'Catat pengunjung, jam pulang, rekap asal dan tujuan' }, berkasSaya] },
     {
       judul: 'Akun dan akses',
       item: [

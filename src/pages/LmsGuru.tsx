@@ -51,7 +51,7 @@ function FormPerangkat({ kelas, awal, jenisAwal, selesai, batal }: { kelas: Kela
     try {
       let berkasId = berkasLama?.id ?? null
       if (berkas) {
-        const b = await unggahBerkas(berkas, 'perangkat_ajar', null, setProgres)
+        const b = await unggahBerkas(berkas, v.jenis === 'modul_ajar' ? 'modul_ajar' : 'perangkat_ajar', null, setProgres)
         baruId = b.id; berkasId = b.id
       }
       await panggil('lms_perangkat_simpan', { p_id: awal?.id ?? null, p_kelas: v.kelas || null, p_jenis: v.jenis, p_judul: v.judul, p_isi: v.isi || null, p_url: v.url || null, p_berkas: berkasId })

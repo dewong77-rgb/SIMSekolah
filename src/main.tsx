@@ -13,6 +13,7 @@ import Masuk from './pages/Masuk'
 import Portal from './pages/Portal'
 const Privasi = lazy(() => import('./pages/Privasi'))
 const SambunganDrive = lazy(() => import('./pages/SambunganDrive'))
+const BerkasSaya = lazy(() => import('./pages/BerkasSaya'))
 const Unggah = lazy(() => import('./pages/Unggah'))
 const Akun = lazy(() => import('./pages/Akun'))
 const Pengguna = lazy(() => import('./pages/Pengguna'))
@@ -212,6 +213,14 @@ createRoot(document.getElementById('root')!).render(
             element={
               <RequireRole peran={['admin_tu']} superAdmin>
                 <Suspense fallback={<Memuat />}><Penugasan /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/berkas-saya"
+            element={
+              <RequireRole peran={['admin_tu', 'guru', 'staf', 'siswa']}>
+                <Suspense fallback={<Memuat />}><BerkasSaya /></Suspense>
               </RequireRole>
             }
           />

@@ -22,6 +22,7 @@ export default function SambunganDrive() {
   const [status, setStatus] = useState<Status | null>(null)
   const [galat, setGalat] = useState('')
   const [langkah, setLangkah] = useState<Langkah[]>([])
+  const [hasilRapi, setHasilRapi] = useState('')
 
   async function uji() {
     setSibuk(true); setGalat(''); setStatus(null)
@@ -85,6 +86,25 @@ export default function SambunganDrive() {
     setSibuk(false)
   }
 
+  async function rapikan() {
+    setSibuk(true); setGalat(''); setHasilRapi('')
+    let total = 0, gagal = 0
+    try {
+      for (let i = 0; i < 50; i++) {
+        const r = await panggilDrive<{ folder_induk: string; dipindah: number; gagal: number; sisa: number }>({ aksi: 'rapikan' })
+        total += r.dipindah; gagal += r.gagal
+        setHasilRapi(`Folder induk: ${r.folder_induk}. Dipindahkan ${total} berkas, sisa ${r.sisa}${gagal ? `, gagal ${gagal}` : ''}...`)
+        if (r.sisa === 0 || r.dipindah === 0) {
+          setHasilRapi(`Folder induk: ${r.folder_induk}. Dipindahkan ${total} berkas${r.sisa ? `, ${r.sisa} belum bisa dipindah (gagal ${gagal})` : ', semua sudah sesuai struktur'}.`)
+          break
+        }
+      }
+    } catch (e) {
+      setGalat((e as Error).message)
+    }
+    setSibuk(false)
+  }
+
   const persen = status?.kuota_byte && status.terpakai_byte != null ? Math.min(100, Math.round((status.terpakai_byte / status.kuota_byte) * 100)) : null
 
   return (
@@ -99,6 +119,15 @@ export default function SambunganDrive() {
           <button className="tombol tombol-isi" onClick={uji} disabled={sibuk}>{sibuk ? 'Memeriksa...' : 'Uji sambungan'}</button>
           <button className="tombol" onClick={ujiUnggah} disabled={sibuk}>Uji unggah dan unduh</button>
         </p>
+
+        <h3 style={{ marginTop: 16 }}>Struktur folder</h3>
+        <p className="catatan">
+          Folder tersusun: nama sekolah, lalu Guru, Tenaga Kependidikan, Siswa (per jurusan), dan Sekolah, turun ke berkas pribadi,
+          modul ajar, materi, dan tugas. Unggahan baru langsung masuk struktur ini. Tombol di bawah memindahkan berkas lama
+          (isi berkas dan izin akses tidak berubah) dan mengganti nama folder induk dengan nama sekolah. Aman diulang.
+        </p>
+        <p><button className="tombol" onClick={rapikan} disabled={sibuk}>Rapikan folder Drive</button></p>
+        {hasilRapi && <p role="status" className="catatan sukses">{hasilRapi}</p>}
 
         {galat && <p role="alert" className="catatan galat">{galat}</p>}
 
