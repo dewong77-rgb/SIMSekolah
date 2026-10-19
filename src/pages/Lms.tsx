@@ -40,7 +40,8 @@ type BarisTerpadu = {
   forum_topik: number; forum_balasan: number; forum_total: number
 }
 type Terpadu = { total_lembar?: number; total_materi: number; total_latihan: number; total_topik: number; siswa: BarisTerpadu[] }
-type BarisRekap = { peserta_didik_id: string; nama: string; nisn: string | null; hadir: number; izin: number; sakit: number; alpa: number }
+type BarisRekap = { peserta_didik_id: string; nama: string; nisn: string | null; hadir: number; izin: number; sakit: number; alpa: number; per_pertemuan: Record<string, string> }
+type RekapKelasData = { total_sesi: number; pertemuan: { id: string; nomor: number; judul: string }[]; siswa: BarisRekap[] }
 
 const labelStatus: Record<string, string> = { hadir: 'Hadir', izin: 'Izin', sakit: 'Sakit', alpa: 'Alpa', belum: 'Belum dicatat' }
 const kelasStatus: Record<string, string> = { hadir: 'status-selesai', izin: 'status-diteruskan', sakit: 'status-diteruskan', alpa: 'status-ditolak', belum: 'status-dibatalkan' }
@@ -241,7 +242,7 @@ export function DetailKelas() {
         <div className="alat-bar">
           <button className="tombol tombol-isi" onClick={() => setForm(!form)}><Ikon nama={form ? 'tutup' : 'tambah'} ukuran={16} /> {form ? 'Tutup formulir' : 'Tambah pertemuan'}</button>
           <span className="alat-pemisah" aria-hidden="true" />
-          <Link to={`/portal/lms/${kelasId}/rekap`} className="alat-pil"><Ikon nama="centang" ukuran={16} /> Rekap kehadiran</Link>
+          <Link to={`/portal/lms/${kelasId}/rekap`} className="alat-pil"><Ikon nama="centang" ukuran={16} /> Rekap kehadiran LMS</Link>
           <Link to={`/portal/lms/${kelasId}/nilai`} className="alat-pil"><Ikon nama="grafik" ukuran={16} /> Buku nilai</Link>
           <Link to={`/portal/lms/${kelasId}/jurnal`} className="alat-pil"><Ikon nama="pena" ukuran={16} /> Jurnal mengajar</Link>
           <button type="button" className="alat-pil" disabled={!kelas || mengunduh} onClick={() => void unduhSemua()}>
@@ -887,36 +888,48 @@ export function RuangPertemuan() {
 /** Rekap kehadiran semua pertemuan satu kelas. */
 export function RekapKelas() {
   const { kelasId = '' } = useParams()
-  const [data, setData] = useState<{ total_sesi: number; siswa: BarisRekap[] } | null>(null)
+  const [data, setData] = useState<RekapKelasData | null>(null)
   const [galat, setGalat] = useState('')
   useEffect(() => {
-    panggil<{ total_sesi: number; siswa: BarisRekap[] }>('lms_rekap_kelas', { p_kelas: kelasId }).then(setData).catch((e: Error) => setGalat(e.message))
+    panggil<RekapKelasData>('lms_rekap_kelas', { p_kelas: kelasId }).then(setData).catch((e: Error) => setGalat(e.message))
   }, [kelasId])
+  const persen = (s: BarisRekap) => (data && data.total_sesi > 0 ? Math.round((s.hadir / data.total_sesi) * 100) : null)
+  const aktif = (s: BarisRekap, pertemuanId: string) => s.per_pertemuan[pertemuanId] === 'hadir'
   return (
-    <Halaman judul="Rekap kehadiran" lead={data ? `${data.total_sesi} pertemuan dengan absen dibuka.` : undefined}>
+    <Halaman judul="Rekap kehadiran LMS" lead={data ? `${data.total_sesi} pertemuan terbit. Hadir berarti siswa tercatat aktif di LMS, bukan kehadiran tatap muka.` : undefined}>
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
       <div className="tabel-bungkus">
         <table>
-          <thead><tr><th>Nama</th><th>Hadir</th><th>Izin</th><th>Sakit</th><th>Alpa</th><th>Kehadiran</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Nama</th>
+              {(data?.pertemuan ?? []).map((p) => <th key={p.id} title={p.judul} style={{ textAlign: 'center' }}>P{p.nomor}</th>)}
+              <th>Hadir di LMS</th><th>%</th>
+            </tr>
+          </thead>
           <tbody>
-            {!data && <tr><td colSpan={6}>Memuat...</td></tr>}
+            {!data && <tr><td colSpan={4}>Memuat...</td></tr>}
+            {data && data.siswa.length === 0 && <tr><td colSpan={data.pertemuan.length + 3}>Belum ada siswa di rombel ini.</td></tr>}
             {(data?.siswa ?? []).map((s) => (
               <tr key={s.peserta_didik_id}>
                 <td>{s.nama}<br /><small>{s.nisn ?? ''}</small></td>
-                <td>{s.hadir}</td><td>{s.izin}</td><td>{s.sakit}</td><td>{s.alpa}</td>
-                <td>{data && data.total_sesi > 0 ? `${Math.round((s.hadir / data.total_sesi) * 100)}%` : '-'}</td>
+                {(data?.pertemuan ?? []).map((p) => (
+                  <td key={p.id} style={{ textAlign: 'center' }} aria-label={aktif(s, p.id) ? 'Hadir di LMS' : 'Belum hadir di LMS'}>{aktif(s, p.id) ? '✓' : '–'}</td>
+                ))}
+                <td>{s.hadir} dari {data?.total_sesi ?? 0}</td>
+                <td>{persen(s) === null ? '-' : `${persen(s)}%`}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       <div className="aksi jarak">
-        <button className="tombol" style={{ color: 'var(--warna-utama)' }} disabled={!data} onClick={() => data && unduhCsv('rekap-kehadiran.csv', [
-          ['Nama', 'NISN', 'Hadir', 'Izin', 'Sakit', 'Alpa', 'Persen hadir'],
-          ...data.siswa.map((s) => [s.nama, s.nisn, s.hadir, s.izin, s.sakit, s.alpa, data.total_sesi > 0 ? Math.round((s.hadir / data.total_sesi) * 100) : null]),
+        <button className="tombol" style={{ color: 'var(--warna-utama)' }} disabled={!data} onClick={() => data && unduhCsv('rekap-kehadiran-lms.csv', [
+          ['Nama', 'NISN', ...data.pertemuan.map((p) => `P${p.nomor}`), 'Hadir di LMS', 'Total pertemuan', 'Persen hadir'],
+          ...data.siswa.map((s) => [s.nama, s.nisn, ...data.pertemuan.map((p) => (aktif(s, p.id) ? 'H' : '')), s.hadir, data.total_sesi, persen(s)]),
         ])}>Unduh CSV</button>
       </div>
-      <p className="catatan jarak">Pertemuan yang belum dicatat untuk seorang siswa tidak dihitung hadir.</p>
+      <p className="catatan jarak">Absen LMS tercatat otomatis saat siswa membuka materi, mengerjakan lembar kerja, atau menulis di forum. Izin, sakit, dan alpa tatap muka dicatat di modul Kesiswaan, bukan di sini.</p>
       <Kembali ke={`/portal/lms/${kelasId}`} teks="Kembali ke kelas" />
     </Halaman>
   )

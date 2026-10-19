@@ -89,7 +89,7 @@ export async function unduhRekapKelas(kelas: Info, bobot: Record<string, number>
   // 1. Ringkasan
   sheet('Ringkasan', ['Keterangan', 'Isi'], [
     ['Mata pelajaran', kelas.mapel], ['Rombel', kelas.rombel], ['Guru', kelas.guru], ['Semester', kelas.semester],
-    ['Jumlah siswa', urut.length], ['Pertemuan terbit', sesi.length], ['Pertemuan dengan absen dibuka', rekap.total_sesi],
+    ['Jumlah siswa', urut.length], ['Pertemuan terbit', sesi.length], ['Pertemuan terbit (penyebut kehadiran LMS)', rekap.total_sesi],
     ['Kuis dan ulangan', asesmen.length], ['Tugas', tugas.length],
     ['Bobot nilai akhir', grupUrut.map((g) => `${grupNama[g]} ${bobot[g] ?? 0}%`).join(', ')],
     ['Diunduh', new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }) + ' WIB'],
