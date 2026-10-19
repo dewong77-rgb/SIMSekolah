@@ -1403,3 +1403,23 @@ a.bt-tag:hover, button.bt-tag:hover, .bt-tag.aktif { background: var(--warna-uta
 .rujukan-daftar li { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid var(--garis); }
 .rujukan-daftar li:last-child { border-bottom: 0; padding-bottom: 0; }
 @media (max-width: 720px) { .buku-cari { grid-template-columns: 1fr; } .baca-area { max-height: 70vh; } }
+
+/* Balon chat mengambang di portal */
+.chat-balon { position: fixed; right: 20px; bottom: 20px; z-index: 35; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
+.chat-balon-tombol { position: relative; width: 56px; height: 56px; border-radius: 50%; border: 0; cursor: pointer; display: grid; place-items: center; color: #fff; background: var(--warna-utama); box-shadow: 0 6px 18px rgba(16, 24, 40, .28); }
+.chat-balon-tombol:hover { filter: brightness(1.1); }
+.chat-balon-tombol .angka { position: absolute; top: -4px; right: -4px; min-width: 22px; height: 22px; padding: 0 6px; display: grid; place-items: center; border-radius: 99px; background: #c62828; color: #fff; font-size: .72rem; border: 2px solid #fff; }
+.chat-balon-panel { width: min(360px, calc(100vw - 40px)); max-height: min(70vh, 520px); display: flex; flex-direction: column; background: #fff; border: 1px solid var(--garis); border-radius: var(--radius); box-shadow: 0 12px 32px rgba(16, 24, 40, .22); overflow: hidden; }
+.chat-balon-panel header { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--garis); }
+.chat-balon-panel ul { list-style: none; margin: 0; padding: 0; overflow-y: auto; }
+.chat-balon-panel li { border-top: 1px solid var(--garis); }
+.chat-balon-panel li:first-child { border-top: 0; }
+.chat-balon-panel li .catatan { display: block; padding: 12px 14px; margin: 0; }
+.chat-balon-panel li a { display: grid; gap: 2px; padding: 10px 14px; text-decoration: none; color: inherit; }
+.chat-balon-panel li a:hover { background: var(--latar-lembut); }
+.chat-balon-atas { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.chat-balon-atas small { color: var(--teks-lembut); white-space: nowrap; }
+.chat-balon-cuplikan { display: flex; justify-content: space-between; gap: 8px; align-items: center; color: var(--teks-lembut); font-size: .88rem; }
+.chat-balon-cuplikan > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-balon-cuplikan .angka { flex: none; background: var(--warna-utama); color: #fff; border-radius: 99px; font-size: .72rem; padding: 1px 8px; }
+@media (max-width: 560px) { .chat-balon { right: 14px; bottom: 14px; } }

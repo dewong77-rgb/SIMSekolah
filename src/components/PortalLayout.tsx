@@ -7,6 +7,7 @@ import JamSistem from './JamSistem'
 import { panggil } from '../lib/rpc'
 import Ikon from './Ikon'
 import PembatasGalat from './PembatasGalat'
+import ChatMengambang from './ChatMengambang'
 
 export type Lencana = Partial<Record<'ajuan_masuk' | 'ajuan_saya' | 'disposisi' | 'surat' | 'sarpras' | 'sarpras_kerusakan' | 'sarpras_permintaan' | 'kesiswaan' | 'keluar' | 'panggilan' | 'chat', number>>
 
@@ -301,6 +302,7 @@ export default function PortalLayout() {
             <small>{sekolah.nama} · Sistem Informasi Manajemen Sekolah · Data bersumber dari Dapodik</small>
           </footer>
         </div>
+        {bisaChat && <ChatMengambang jumlah={lencana.chat ?? 0} />}
       </div>
     </KonteksPortal.Provider>
   )
