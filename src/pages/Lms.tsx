@@ -7,6 +7,7 @@ import Halaman from '../components/Halaman'
 import { useAuth } from '../auth/AuthContext'
 import { panggil, tgl, tglJam } from '../lib/rpc'
 import { supabase } from '../lib/supabase'
+import PilihKelas from './LmsPilihKelas'
 import { DaftarKuis, LatihanPertemuan } from './LmsKuis'
 import { DaftarTugas } from './LmsTugas'
 import { Forum } from './LmsForum'
@@ -237,6 +238,7 @@ export function DetailKelas() {
             <strong>{kelas.mapel}</strong>
             <small>{kelas.rombel} · {kelas.jumlah_pertemuan} pertemuan</small>
           </div>
+          <PilihKelas kelasId={kelasId} />
         </div>
       )}
       {kelola && (
@@ -900,6 +902,7 @@ export function RekapKelas() {
   return (
     <Halaman judul="Rekap pengerjaan LMS" lead={data ? `${data.total_sesi} pertemuan terbit. Dikerjakan berarti siswa sudah membuka materi, mengerjakan lembar kerja, atau menulis di forum.` : undefined}>
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
+      <PilihKelas kelasId={kelasId} sub="/rekap" />
       <div className="tabel-bungkus">
         <table>
           <thead>

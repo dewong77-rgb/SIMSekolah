@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext'
 import { AKSEPTASI, hapusBerkas, periksaBerkas, ukuranTeks, unduhBerkas, unggahBerkas } from '../lib/berkas'
 import { panggil, tgl } from '../lib/rpc'
 import { biru, merah, nilaiTeks, unduhCsv } from './lmsUtil'
+import PilihKelas from './LmsPilihKelas'
 import { KartuKelas, type KelasRingkas } from './LmsProgres'
 import type { NilaiCbt } from './lmsXlsx'
 
@@ -297,6 +298,7 @@ export function JurnalKelas() {
   return (
     <Halaman judul="Jurnal mengajar" lead="Catatan harian pembelajaran. Kehadiran terisi dari absensi pertemuan.">
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
+      <PilihKelas kelasId={kelasId} sub="/jurnal" />
       <div className="aksi">
         {!edit && <button className="tombol tombol-isi" onClick={() => setEdit('baru')}>Tambah jurnal</button>}
         <button className="tombol" style={biru} onClick={unduh} disabled={!daftar || daftar.length === 0}>Unduh CSV</button>
@@ -445,6 +447,7 @@ export function BukuNilai() {
   return (
     <Halaman judul="Buku nilai" lead="Nilai terbaik kuis dan nilai tugas yang sudah dinilai.">
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
+      <PilihKelas kelasId={kelasId} sub="/nilai" />
       {kelas && <TabelNilai kelas={kelas} />}
       <p className="catatan jarak"><Link to={`/portal/lms/${kelasId}`}>Kembali ke kelas</Link></p>
     </Halaman>
