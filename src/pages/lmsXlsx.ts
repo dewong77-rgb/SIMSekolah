@@ -169,3 +169,84 @@ export async function unduhRekapKelas(kelas: Info, bobot: Record<string, number>
   a.href = url; a.download = `${nama}.xlsx`; a.click()
   URL.revokeObjectURL(url)
 }
+
+type RekapPengerjaan = {
+  total_sesi: number
+  pertemuan: { id: string; nomor: number; judul: string }[]
+  siswa: { peserta_didik_id: string; nama: string; nisn: string | null; hadir: number; per_pertemuan: Record<string, string> }[]
+}
+
+/** Rekap pengerjaan satu kelas sebagai Excel yang rapi dan siap dibagikan: matriks siswa x pertemuan, plus daftar judul pertemuan. */
+export async function unduhRekapPengerjaan(kelas: { mapel: string; rombel: string }, rekap: RekapPengerjaan) {
+  const { Workbook } = await import('exceljs')
+  const wb = new Workbook()
+  wb.creator = 'SIMS SMKN 1 Gunung Sindur'
+  const total = rekap.total_sesi
+  const judul = `Rekap pengerjaan LMS ${kelas.mapel} ${kelas.rombel}`
+  const garis = { style: 'thin' as const, color: { argb: 'FFCCCCCC' } }
+  const tengah = { horizontal: 'center' as const, vertical: 'middle' as const }
+
+  const ws = wb.addWorksheet('Pengerjaan', { views: [{ state: 'frozen', xSplit: 3, ySplit: 4 }] })
+  const kolom = 3 + rekap.pertemuan.length + 3
+  ws.mergeCells(1, 1, 1, kolom)
+  ws.getCell(1, 1).value = judul
+  ws.getCell(1, 1).font = { name: 'Calibri', size: 14, bold: true }
+  ws.mergeCells(2, 1, 2, kolom)
+  ws.getCell(2, 1).value = `${total} pertemuan terbit. Diunduh ${new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })} WIB. ✓ = sudah dikerjakan, kosong = belum.`
+  ws.getCell(2, 1).font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF666666' } }
+
+  const kepala = ['No', 'Nama', 'NISN', ...rekap.pertemuan.map((p) => `P${p.nomor}`), 'Dikerjakan', 'Belum', 'Persen']
+  const hr = ws.getRow(4)
+  kepala.forEach((h, i) => {
+    const c = hr.getCell(i + 1)
+    c.value = h
+    c.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } }
+    c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4A4A4A' } }
+    c.alignment = i >= 3 ? tengah : { vertical: 'middle' }
+    c.border = { bottom: garis }
+  })
+
+  rekap.siswa.forEach((s, i) => {
+    const belum = Math.max(total - s.hadir, 0)
+    const baris = ws.getRow(5 + i)
+    const isi: (string | number | null)[] = [
+      i + 1, s.nama, s.nisn,
+      ...rekap.pertemuan.map((p) => (s.per_pertemuan[p.id] === 'hadir' ? '✓' : '')),
+      s.hadir, belum, total > 0 ? s.hadir / total : null,
+    ]
+    isi.forEach((v, j) => {
+      const c = baris.getCell(j + 1)
+      c.value = v
+      c.font = { name: 'Calibri', size: 11 }
+      c.border = { bottom: garis }
+      if (j >= 3) c.alignment = tengah
+      const p = j - 3
+      if (p >= 0 && p < rekap.pertemuan.length) {
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: v === '✓' ? 'FFD9EAD3' : 'FFF4CCCC' } }
+      }
+      if (j === isi.length - 1) c.numFmt = '0%'
+    })
+  })
+
+  ws.getColumn(1).width = 5
+  ws.getColumn(2).width = Math.min(40, Math.max(12, ...rekap.siswa.map((s) => s.nama.length + 2)))
+  ws.getColumn(3).width = 13
+  rekap.pertemuan.forEach((_, i) => { ws.getColumn(4 + i).width = 5 })
+  ws.getColumn(4 + rekap.pertemuan.length).width = 12
+  ws.getColumn(5 + rekap.pertemuan.length).width = 8
+  ws.getColumn(6 + rekap.pertemuan.length).width = 9
+
+  const wp = wb.addWorksheet('Daftar pertemuan')
+  wp.addRow(['Kode', 'Judul pertemuan'])
+  rekap.pertemuan.forEach((p) => wp.addRow([`P${p.nomor}`, p.judul]))
+  wp.getRow(1).font = { name: 'Calibri', size: 11, bold: true }
+  wp.getColumn(1).width = 8
+  wp.getColumn(2).width = 80
+
+  const buf = await wb.xlsx.writeBuffer()
+  const url = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }))
+  const a = document.createElement('a')
+  const nama = judul.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  a.href = url; a.download = `${nama}.xlsx`; a.click()
+  URL.revokeObjectURL(url)
+}
