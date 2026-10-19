@@ -85,6 +85,7 @@ export function StrukturOrganisasi({ ekskulId, struktur, anggota, ubahBoleh, mua
 
   useEffect(() => {
     if (!ubahBoleh) return
+    // Daftar ringkas (id dan nama). Guru tidak membaca tabel ptk langsung, jadi data pribadi PTK tidak ikut terbuka.
     panggil<{ id: string; nama: string }[]>('ptk_pilihan').then((d) => setGuru(d ?? [])).catch(() => setGuru([]))
   }, [ubahBoleh])
 
