@@ -66,6 +66,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
     {
       judul: 'Perangkat ajar',
       item: [
+        { to: '/portal/lms/administrasi', label: 'Kelengkapan administrasi', ikon: 'centang', ket: 'Pertemuan yang masih kurang bahan bacaan atau lembar kerja' },
         { to: '/portal/lms/rencana', label: 'Rencana ajar (Excel)', ikon: 'dokumen', ket: 'Sumber data TP, ATP, KKTP, dan Promes. Template bisa diunduh dan diunggah' },
         { to: '/portal/lms/perangkat/tp', cocok: '/portal/lms/perangkat', label: 'Dokumen perangkat ajar', ikon: 'dokumen', ket: 'TP, ATP, KKTP, Silabus, Prota, Promes, Modul Ajar, dan RPP' },
       ],
@@ -134,7 +135,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
       item: [
         { to: '/portal/lms', label: 'Kelas ajar', ikon: 'buku', ket: 'Kelas, materi, absensi per pertemuan' },
         { to: '/portal/absensi', label: 'Rekap pengerjaan', ikon: 'centang', ket: 'Jumlah siswa yang diajar dan rekap pengerjaan LMS per kelas' },
-        { to: '/portal/lms/administrasi', label: 'Administrasi guru', ikon: 'dokumen', ket: 'Perangkat ajar dan supervisi' },
+        { to: '/portal/lms/administrasi', label: 'Kelengkapan administrasi', ikon: 'dokumen', ket: 'Kelengkapan pertemuan semua guru dan dokumen perangkat ajar' },
         perpustakaan,
         chat,
         { to: '/asesmen', label: 'Asesmen digital (CBT)', ikon: 'pena', ket: 'Kelola ujian, ruang, bank soal, dan pengawas' },
