@@ -20,8 +20,8 @@ const kalimatPeran = {
 
 /** Aplikasi sekolah di luar SIMSekolah. Alamat IP lokal/server sekolah, dibuka di tab baru. */
 const aplikasiLuar = [
-  { href: 'http://103.159.220.9:1113/', judul: 'Dapodik Sekolah', ket: 'Aplikasi Dapodik di server sekolah', peran: ['admin_tu', 'staf'] },
-  { href: 'http://103.159.220.9:1114/', judul: 'e-Rapor SMK', ket: 'Penilaian dan rapor peserta didik', peran: ['admin_tu', 'guru'] },
+  { href: 'http://103.159.220.9:1113/', judul: 'Dapodik Sekolah', ket: 'Aplikasi Dapodik di server sekolah', peran: ['admin_tu', 'guru', 'staf'] },
+  { href: 'http://103.159.220.9:1114/', judul: 'e-Rapor SMK', ket: 'Penilaian dan rapor peserta didik', peran: ['admin_tu', 'guru', 'staf'] },
 ] as const
 
 export default function Portal() {
