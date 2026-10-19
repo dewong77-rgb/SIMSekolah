@@ -9,7 +9,7 @@ import PilihKelas from './LmsPilihKelas'
 import { KartuKelas, type KelasRingkas } from './LmsProgres'
 import type { NilaiCbt } from './lmsXlsx'
 
-// Administrasi guru (perangkat ajar, jurnal), buku nilai, dan ringkasan untuk orang tua.
+// Kelengkapan administrasi guru, dokumen perangkat ajar, jurnal mengajar, buku nilai, dan ringkasan untuk orang tua.
 
 type Kelas = { id: string; mapel: string; rombel: string; peran: 'pengelola' | 'siswa' }
 type Perangkat = {
