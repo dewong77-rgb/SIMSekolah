@@ -8,8 +8,8 @@ import { biru, merah } from './lmsUtil'
 // Chat sekolah. Semua data lewat fungsi basis data chat_*. Tabel chat tidak punya policy.
 // Pembaruan memakai polling ringan (hanya saat tab terlihat) agar aman untuk batas koneksi paket gratis.
 
-type Jenis = 'kelas' | 'tanya' | 'guru' | 'kanal'
-type Ruang = {
+export type Jenis = 'kelas' | 'tanya' | 'guru' | 'kanal'
+export type Ruang = {
   id: string; jenis: Jenis; akses: 'peserta' | 'pemantau'; judul: string
   pesan_terakhir_pada: string | null; pesan_terakhir: string | null; belum_dibaca: number
 }
@@ -117,7 +117,12 @@ export default function Chat() {
   )
 }
 
-function Percakapan({ ruang, muatDaftar }: { ruang: Ruang; muatDaftar: () => Promise<void> }) {
+/** Percakapan di dalam balon chat mengambang: tanpa halaman Chat penuh, Enter langsung mengirim. */
+export function PercakapanMini({ ruang, muatDaftar, kembali }: { ruang: Ruang; muatDaftar: () => Promise<void>; kembali: () => void }) {
+  return <Percakapan ruang={ruang} muatDaftar={muatDaftar} mini={{ kembali }} />
+}
+
+function Percakapan({ ruang, muatDaftar, mini }: { ruang: Ruang; muatDaftar: () => Promise<void>; mini?: { kembali: () => void } }) {
   const { profil } = useAuth()
   const navigate = useNavigate()
   const [pesan, setPesan] = useState<Pesan[]>([])
@@ -208,7 +213,9 @@ function Percakapan({ ruang, muatDaftar }: { ruang: Ruang; muatDaftar: () => Pro
   }
 
   function tekan(e: KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); void kirim() }
+    if (e.key !== 'Enter') return
+    // Di balon: Enter kirim, Shift+Enter baris baru (seperti aplikasi pesan). Di halaman penuh: Ctrl+Enter.
+    if (mini ? !e.shiftKey && !e.nativeEvent.isComposing : e.ctrlKey || e.metaKey) { e.preventDefault(); void kirim() }
   }
 
   async function hapus(id: string) {
@@ -234,13 +241,16 @@ function Percakapan({ ruang, muatDaftar }: { ruang: Ruang; muatDaftar: () => Pro
   const guru = profil?.peran === 'guru'
 
   return (
-    <div className="chat-panel">
+    <div className={'chat-panel' + (mini ? ' mini' : '')}>
       <div className="chat-kepala">
-        <button type="button" className="tombol chat-kembali" style={biru} onClick={() => navigate('/portal/chat')}>Kembali</button>
+        {mini
+          ? <button type="button" className="tombol" style={biru} onClick={mini.kembali} aria-label="Kembali ke daftar percakapan">&lsaquo;</button>
+          : <button type="button" className="tombol chat-kembali" style={biru} onClick={() => navigate('/portal/chat')}>Kembali</button>}
         <div>
           <h2>{ruang.judul}</h2>
           <small>{labelJenis[ruang.jenis]}</small>
         </div>
+        {mini && <Link to={`/portal/chat/${ruang.id}`} className="chat-penuh">Layar penuh</Link>}
       </div>
 
       {akses === 'pemantau' && <p className="catatan chat-banner">Anda memantau percakapan ini sebagai wali kelas. Hanya baca. Akses Anda tercatat.</p>}
@@ -285,7 +295,7 @@ function Percakapan({ ruang, muatDaftar }: { ruang: Ruang; muatDaftar: () => Pro
         <form className="chat-kirim" onSubmit={kirim}>
           <label className="sr-saja" htmlFor="chat-teks">Tulis pesan</label>
           <textarea
-            id="chat-teks" rows={2} maxLength={BATAS} value={teks} placeholder="Tulis pesan. Ctrl+Enter untuk kirim."
+            id="chat-teks" rows={mini ? 1 : 2} maxLength={BATAS} value={teks} placeholder={mini ? 'Tulis pesan. Enter untuk kirim.' : 'Tulis pesan. Ctrl+Enter untuk kirim.'}
             onChange={(e) => setTeks(e.target.value)} onKeyDown={tekan}
           />
           <div className="chat-kirim-bawah">
