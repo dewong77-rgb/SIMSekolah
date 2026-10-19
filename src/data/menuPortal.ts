@@ -72,14 +72,6 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
       ],
     },
     {
-      judul: 'Data sekolah',
-      item: [
-        { to: '/portal/rombel', label: 'Rombel', ikon: 'sekolah', ket: 'Kelas, wali kelas, dan anggota' },
-        { to: '/portal/peserta-didik', label: 'Daftar siswa', ikon: 'kelompok', ket: 'Siswa aktif per kelas' },
-        { to: '/portal/ptk', label: 'Data PTK', ikon: 'tas', ket: 'Pendidik dan tenaga kependidikan' },
-      ],
-    },
-    {
       judul: 'Data diri',
       item: [
         { to: '/portal/data-saya', label: 'Profil saya', ikon: 'pengguna', ket: 'Data pribadi dan kepegawaian seperti di Dapodik' },
