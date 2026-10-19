@@ -30,7 +30,7 @@ type Koreksi = {
 }
 type Jurnal = { tanggal: string; pertemuan_nomor: number | null; materi: string; kegiatan: string | null; kendala: string | null; tindak_lanjut: string | null; hadir: number; izin: number; sakit: number; alpa: number }
 
-const kodeAbsen: Record<string, string> = { hadir: 'H', izin: 'I', sakit: 'S', alpa: 'A' }
+const kodeAbsen: Record<string, string> = { hadir: 'Sudah' }
 const labelTugas: Record<string, string> = { belum: 'Belum', terkumpul: 'Terkumpul', terlambat: 'Terlambat', dinilai: 'Dinilai' }
 const labelKuis: Record<string, string> = { belum: 'Belum', berjalan: 'Mengerjakan', perlu_koreksi: 'Menunggu koreksi', selesai: 'Selesai' }
 const grupNama: Record<string, string> = { kuis: 'Kuis', tugas: 'Tugas', uh: 'Ulangan harian', uts: 'UTS', uas: 'UAS' }
@@ -89,7 +89,7 @@ export async function unduhRekapKelas(kelas: Info, bobot: Record<string, number>
   // 1. Ringkasan
   sheet('Ringkasan', ['Keterangan', 'Isi'], [
     ['Mata pelajaran', kelas.mapel], ['Rombel', kelas.rombel], ['Guru', kelas.guru], ['Semester', kelas.semester],
-    ['Jumlah siswa', urut.length], ['Pertemuan terbit', sesi.length], ['Pertemuan dengan absen dibuka', rekap.total_sesi],
+    ['Jumlah siswa', urut.length], ['Pertemuan terbit', sesi.length], ['Pertemuan terbit (penyebut rekap pengerjaan)', rekap.total_sesi],
     ['Kuis dan ulangan', asesmen.length], ['Tugas', tugas.length],
     ['Bobot nilai akhir', grupUrut.map((g) => `${grupNama[g]} ${bobot[g] ?? 0}%`).join(', ')],
     ['Diunduh', new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }) + ' WIB'],
@@ -97,15 +97,15 @@ export async function unduhRekapKelas(kelas: Info, bobot: Record<string, number>
 
   // 2. Kehadiran
   const rk = new Map(rekap.siswa.map((s) => [s.peserta_didik_id, s]))
-  sheet('Kehadiran', [...pangkal, 'Hadir', 'Izin', 'Sakit', 'Alpa', 'Persen hadir'],
+  sheet('Pengerjaan LMS', [...pangkal, 'Dikerjakan', 'Belum dikerjakan', 'Total pertemuan', 'Persen dikerjakan'],
     urut.map((s) => {
       const r = rk.get(s.peserta_didik_id)
-      return [...identitas(s), r?.hadir ?? 0, r?.izin ?? 0, r?.sakit ?? 0, r?.alpa ?? 0,
+      return [...identitas(s), r?.hadir ?? 0, Math.max(rekap.total_sesi - (r?.hadir ?? 0), 0), rekap.total_sesi,
         rekap.total_sesi > 0 && r ? Math.round((r.hadir / rekap.total_sesi) * 100) : null]
     }))
 
-  // 3. Absen per pertemuan (H hadir, I izin, S sakit, A alpa, kosong belum dicatat)
-  sheet('Absen per pertemuan', [...pangkal, ...sesi.map((p) => `P${p.nomor}`)],
+  // 3. Pengerjaan per pertemuan (Sudah = dikerjakan di LMS, kosong = belum)
+  sheet('Pengerjaan per pertemuan', [...pangkal, ...sesi.map((p) => `P${p.nomor}`)],
     urut.map((s) => [...identitas(s), ...absen.map((a) => kodeAbsen[a.siswa.find((x) => x.peserta_didik_id === s.peserta_didik_id)?.status ?? ''] ?? '')]), 6)
 
   // 4. Nilai akhir

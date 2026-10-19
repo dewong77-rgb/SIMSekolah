@@ -26,7 +26,7 @@ type Kelas = {
 type Pertemuan = {
   id: string; nomor: number; judul: string; tanggal: string; tujuan: string | null
   status: 'draf' | 'terbit'; wajib_absen: boolean; absen_terbuka: boolean; absen_tutup: string | null
-  kode_absen: string | null; jumlah_materi: number; jumlah_latihan: number; hadir: number | null; status_saya: string | null
+  kode_absen: string | null; jumlah_materi: number; jumlah_latihan: number; hadir: number | null; jumlah_siswa?: number | null; status_saya: string | null
   kelengkapan: Kelengkapan | null
   ditutup?: boolean; buka_sampai?: string | null; terbuka?: boolean; boleh?: boolean | null; tuntas_saya?: boolean | null
 }
@@ -40,10 +40,12 @@ type BarisTerpadu = {
   forum_topik: number; forum_balasan: number; forum_total: number
 }
 type Terpadu = { total_lembar?: number; total_materi: number; total_latihan: number; total_topik: number; siswa: BarisTerpadu[] }
-type BarisRekap = { peserta_didik_id: string; nama: string; nisn: string | null; hadir: number; izin: number; sakit: number; alpa: number }
+type BarisRekap = { peserta_didik_id: string; nama: string; nisn: string | null; hadir: number; izin: number; sakit: number; alpa: number; per_pertemuan: Record<string, string> }
+type RekapKelasData = { total_sesi: number; pertemuan: { id: string; nomor: number; judul: string }[]; siswa: BarisRekap[] }
 
-const labelStatus: Record<string, string> = { hadir: 'Hadir', izin: 'Izin', sakit: 'Sakit', alpa: 'Alpa', belum: 'Belum dicatat' }
-const kelasStatus: Record<string, string> = { hadir: 'status-selesai', izin: 'status-diteruskan', sakit: 'status-diteruskan', alpa: 'status-ditolak', belum: 'status-dibatalkan' }
+// Di LMS hanya ada dua keadaan: dikerjakan atau belum. Status lama izin/sakit/alpa/belum dihitung belum dikerjakan.
+const labelStatus: Record<string, string> = { hadir: 'Dikerjakan', izin: 'Belum dikerjakan', sakit: 'Belum dikerjakan', alpa: 'Belum dikerjakan', belum: 'Belum dikerjakan' }
+const kelasStatus: Record<string, string> = { hadir: 'status-selesai', izin: 'status-dibatalkan', sakit: 'status-dibatalkan', alpa: 'status-dibatalkan', belum: 'status-dibatalkan' }
 
 function Kembali({ ke, teks }: { ke: string; teks: string }) {
   return <p className="catatan jarak"><Link to={ke}>{teks}</Link></p>
@@ -241,7 +243,7 @@ export function DetailKelas() {
         <div className="alat-bar">
           <button className="tombol tombol-isi" onClick={() => setForm(!form)}><Ikon nama={form ? 'tutup' : 'tambah'} ukuran={16} /> {form ? 'Tutup formulir' : 'Tambah pertemuan'}</button>
           <span className="alat-pemisah" aria-hidden="true" />
-          <Link to={`/portal/lms/${kelasId}/rekap`} className="alat-pil"><Ikon nama="centang" ukuran={16} /> Rekap kehadiran</Link>
+          <Link to={`/portal/lms/${kelasId}/rekap`} className="alat-pil"><Ikon nama="centang" ukuran={16} /> Rekap pengerjaan</Link>
           <Link to={`/portal/lms/${kelasId}/nilai`} className="alat-pil"><Ikon nama="grafik" ukuran={16} /> Buku nilai</Link>
           <Link to={`/portal/lms/${kelasId}/jurnal`} className="alat-pil"><Ikon nama="pena" ukuran={16} /> Jurnal mengajar</Link>
           <button type="button" className="alat-pil" disabled={!kelas || mengunduh} onClick={() => void unduhSemua()}>
@@ -319,7 +321,7 @@ export function DetailKelas() {
                 <td>{tgl(p.tanggal)}</td>
                 <td>
                   {kelola
-                    ? <>{p.hadir ?? 0} hadir{p.absen_terbuka ? <> <span className="status status-menunggu">Absen dibuka</span></> : null}</>
+                    ? <>{p.hadir ?? 0}{p.jumlah_siswa != null ? ` dari ${p.jumlah_siswa} siswa` : ''} mengerjakan{p.absen_terbuka ? <> <span className="status status-menunggu">Absen dibuka</span></> : null}</>
                     : p.absen_terbuka && !p.status_saya
                       ? <span className="status status-menunggu">Absen dibuka</span>
                       : <span className={`status ${kelasStatus[p.status_saya ?? 'belum']}`}>{labelStatus[p.status_saya ?? 'belum']}</span>}
@@ -417,9 +419,9 @@ function RekapPertemuan({ pertemuanId, nomor, versi }: { pertemuanId: string; no
     setGalat('')
     try { await panggil('lms_absen_guru', { p_pertemuan: pertemuanId, p_pd: pd, p_status: status, p_catatan: null }); await muat() } catch (e) { setGalat((e as Error).message) }
   }
-  const hitung = (s: string) => (baris ?? []).filter((b) => b.status === s).length
-  const sumber = (pd: string) => baris?.find((b) => b.peserta_didik_id === pd)?.sumber
+    const sumber = (pd: string) => baris?.find((b) => b.peserta_didik_id === pd)?.sumber
   const n = t?.siswa.length ?? 0
+  const dikerjakan = t ? t.siswa.filter((x) => x.absen === 'hadir').length : 0
   const pct = (x: number) => (n > 0 ? Math.round((x / n) * 100) : 0)
   const bacaSemua = t ? t.siswa.filter((x) => t.total_materi > 0 && x.materi_selesai >= t.total_materi).length : 0
   const latihanSemua = t ? t.siswa.filter((x) => t.total_latihan > 0 && x.latihan_selesai >= t.total_latihan).length : 0
@@ -428,7 +430,7 @@ function RekapPertemuan({ pertemuanId, nomor, versi }: { pertemuanId: string; no
   function unduh() {
     if (!t) return
     unduhCsv(`rekap-pertemuan-${nomor}.csv`, [
-      ['No', 'Nama', 'NISN', 'Kehadiran', 'Materi selesai', 'Total materi', 'Latihan selesai', 'Total latihan', 'Nilai latihan', 'Lembar kerja', 'Nilai lembar', 'Topik forum', 'Balasan forum', 'Total kiriman forum', 'Nilai pertemuan'],
+      ['No', 'Nama', 'NISN', 'Pengerjaan', 'Materi selesai', 'Total materi', 'Latihan selesai', 'Total latihan', 'Nilai latihan', 'Lembar kerja', 'Nilai lembar', 'Topik forum', 'Balasan forum', 'Total kiriman forum', 'Nilai pertemuan'],
       ...t.siswa.map((x, i) => [x.no_urut ?? i + 1, x.nama, x.nisn, labelStatus[x.absen] ?? x.absen, x.materi_selesai, t.total_materi, x.latihan_selesai, t.total_latihan, x.latihan_nilai, (t.total_lembar ?? 0) > 0 ? (x.lembar_status ?? 'belum') : '', x.lembar_nilai ?? '', x.forum_topik, x.forum_balasan, x.forum_total, nl[x.peserta_didik_id]?.nilai ?? '']),
     ])
   }
@@ -438,7 +440,7 @@ function RekapPertemuan({ pertemuanId, nomor, versi }: { pertemuanId: string; no
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
       {baris && t && (
         <div className="grid grid-3">
-          <div><small>Kehadiran</small><p style={{ margin: 0, fontSize: '1.2rem' }}>{hitung('hadir')} dari {n}</p><small>{hitung('izin')} izin, {hitung('sakit')} sakit, {hitung('alpa')} alpa, {hitung('belum')} belum dicatat</small></div>
+          <div><small>Pertemuan dikerjakan</small><p style={{ margin: 0, fontSize: '1.2rem' }}>{dikerjakan} dari {n} siswa ({pct(dikerjakan)}%)</p><small>{n - dikerjakan} siswa belum mengerjakan</small></div>
           <div><small>Materi dibaca tuntas</small><p style={{ margin: 0, fontSize: '1.2rem' }}>{t.total_materi > 0 ? `${bacaSemua} siswa (${pct(bacaSemua)}%)` : '-'}</p><small>{t.total_materi} materi pada pertemuan ini</small></div>
           <div><small>Latihan soal selesai</small><p style={{ margin: 0, fontSize: '1.2rem' }}>{t.total_latihan > 0 ? `${latihanSemua} siswa (${pct(latihanSemua)}%)` : '-'}</p><small>{t.total_latihan} latihan terbit</small></div>
           <div><small>Aktif di forum</small><p style={{ margin: 0, fontSize: '1.2rem' }}>{aktifForum} siswa ({pct(aktifForum)}%)</p><small>{kiriman} kiriman siswa, {t.total_topik} topik</small></div>
@@ -449,7 +451,7 @@ function RekapPertemuan({ pertemuanId, nomor, versi }: { pertemuanId: string; no
         <label className="baris-centang"><input type="checkbox" checked={langsung} onChange={(e) => setLangsung(e.target.checked)} /> Pantau langsung (segar tiap 20 detik)</label>
         <label>Tampilkan
           <select value={saring} onChange={(e) => setSaring(e.target.value)}>
-            <option value="semua">Semua siswa</option><option value="belum_absen">Belum mulai (belum hadir)</option>
+            <option value="semua">Semua siswa</option><option value="belum_absen">Belum mengerjakan pertemuan ini</option>
             <option value="belum_lembar">Belum mengumpulkan lembar</option><option value="belum_latihan">Belum menyelesaikan latihan</option>
             <option value="belum_forum">Belum ikut forum</option>
           </select>
@@ -457,14 +459,14 @@ function RekapPertemuan({ pertemuanId, nomor, versi }: { pertemuanId: string; no
       </div>
       <div className="tabel-bungkus jarak">
         <table>
-          <thead><tr><th>No</th><th>Nama</th><th>Kehadiran</th><th>Materi</th><th>Latihan</th>{(t?.total_lembar ?? 0) > 0 && <th>Lembar kerja</th>}<th>Forum</th><th>Nilai pertemuan</th><th>Ubah absen</th></tr></thead>
+          <thead><tr><th>No</th><th>Nama</th><th>Pengerjaan</th><th>Materi</th><th>Latihan</th>{(t?.total_lembar ?? 0) > 0 && <th>Lembar kerja</th>}<th>Forum</th><th>Nilai pertemuan</th><th>Tandai</th></tr></thead>
           <tbody>
             {!t && <tr><td colSpan={9}>Memuat...</td></tr>}
-            {(t?.siswa ?? []).filter((x) => saring === 'semua' || (saring === 'belum_absen' && x.absen === 'belum') || (saring === 'belum_lembar' && !x.lembar_status) || (saring === 'belum_latihan' && t!.total_latihan > 0 && x.latihan_selesai < t!.total_latihan) || (saring === 'belum_forum' && x.forum_total === 0)).map((x, i) => (
+            {(t?.siswa ?? []).filter((x) => saring === 'semua' || (saring === 'belum_absen' && x.absen !== 'hadir') || (saring === 'belum_lembar' && !x.lembar_status) || (saring === 'belum_latihan' && t!.total_latihan > 0 && x.latihan_selesai < t!.total_latihan) || (saring === 'belum_forum' && x.forum_total === 0)).map((x, i) => (
               <tr key={x.peserta_didik_id}>
                 <td>{x.no_urut ?? i + 1}</td>
                 <td>{x.nama}<br /><small>{x.nisn ?? ''}</small></td>
-                <td><span className={`status ${kelasStatus[x.absen]}`}>{labelStatus[x.absen]}</span>{sumber(x.peserta_didik_id) === 'guru' ? <small> (guru)</small> : null}</td>
+                <td><span className={`status ${kelasStatus[x.absen]}`}>{labelStatus[x.absen]}</span>{sumber(x.peserta_didik_id) === 'guru' ? <small> (ditandai guru)</small> : null}</td>
                 <td>{t && t.total_materi > 0 ? `${x.materi_selesai}/${t.total_materi}` : '-'}</td>
                 <td>{t && t.total_latihan > 0 ? <>{x.latihan_selesai}/{t.total_latihan}{x.latihan_nilai !== null ? <><br /><small>nilai {nilaiTeks(x.latihan_nilai)}</small></> : null}</> : '-'}</td>
                 {(t?.total_lembar ?? 0) > 0 && <td>{x.lembar_status ? <>{x.lembar_status === 'dinilai' ? 'Dinilai' : 'Terkumpul'}{x.lembar_nilai != null ? <><br /><small>nilai {nilaiTeks(x.lembar_nilai)}</small></> : null}</> : <small>Belum</small>}</td>}
@@ -473,7 +475,8 @@ function RekapPertemuan({ pertemuanId, nomor, versi }: { pertemuanId: string; no
                 <td>
                   <select aria-label={`Ubah status ${x.nama}`} value="" onChange={(e) => e.target.value && void ubah(x.peserta_didik_id, e.target.value)}>
                     <option value="">Pilih</option>
-                    {['hadir', 'izin', 'sakit', 'alpa'].map((st) => <option key={st} value={st}>{labelStatus[st]}</option>)}
+                    <option value="hadir">Tandai dikerjakan</option>
+                    <option value="alpa">Tandai belum dikerjakan</option>
                   </select>
                 </td>
               </tr>
@@ -884,39 +887,52 @@ export function RuangPertemuan() {
   )
 }
 
-/** Rekap kehadiran semua pertemuan satu kelas. */
+/** Rekap pengerjaan LMS: pertemuan yang sudah dan belum dikerjakan tiap siswa. */
 export function RekapKelas() {
   const { kelasId = '' } = useParams()
-  const [data, setData] = useState<{ total_sesi: number; siswa: BarisRekap[] } | null>(null)
+  const [data, setData] = useState<RekapKelasData | null>(null)
   const [galat, setGalat] = useState('')
   useEffect(() => {
-    panggil<{ total_sesi: number; siswa: BarisRekap[] }>('lms_rekap_kelas', { p_kelas: kelasId }).then(setData).catch((e: Error) => setGalat(e.message))
+    panggil<RekapKelasData>('lms_rekap_kelas', { p_kelas: kelasId }).then(setData).catch((e: Error) => setGalat(e.message))
   }, [kelasId])
+  const persen = (s: BarisRekap) => (data && data.total_sesi > 0 ? Math.round((s.hadir / data.total_sesi) * 100) : null)
+  const aktif = (s: BarisRekap, pertemuanId: string) => s.per_pertemuan[pertemuanId] === 'hadir'
   return (
-    <Halaman judul="Rekap kehadiran" lead={data ? `${data.total_sesi} pertemuan dengan absen dibuka.` : undefined}>
+    <Halaman judul="Rekap pengerjaan LMS" lead={data ? `${data.total_sesi} pertemuan terbit. Dikerjakan berarti siswa sudah membuka materi, mengerjakan lembar kerja, atau menulis di forum.` : undefined}>
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
       <div className="tabel-bungkus">
         <table>
-          <thead><tr><th>Nama</th><th>Hadir</th><th>Izin</th><th>Sakit</th><th>Alpa</th><th>Kehadiran</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Nama</th>
+              {(data?.pertemuan ?? []).map((p) => <th key={p.id} title={p.judul} style={{ textAlign: 'center' }}>P{p.nomor}</th>)}
+              <th>Dikerjakan</th><th>Belum</th><th>%</th>
+            </tr>
+          </thead>
           <tbody>
-            {!data && <tr><td colSpan={6}>Memuat...</td></tr>}
+            {!data && <tr><td colSpan={5}>Memuat...</td></tr>}
+            {data && data.siswa.length === 0 && <tr><td colSpan={data.pertemuan.length + 4}>Belum ada siswa di rombel ini.</td></tr>}
             {(data?.siswa ?? []).map((s) => (
               <tr key={s.peserta_didik_id}>
                 <td>{s.nama}<br /><small>{s.nisn ?? ''}</small></td>
-                <td>{s.hadir}</td><td>{s.izin}</td><td>{s.sakit}</td><td>{s.alpa}</td>
-                <td>{data && data.total_sesi > 0 ? `${Math.round((s.hadir / data.total_sesi) * 100)}%` : '-'}</td>
+                {(data?.pertemuan ?? []).map((p) => (
+                  <td key={p.id} style={{ textAlign: 'center' }} aria-label={aktif(s, p.id) ? 'Dikerjakan' : 'Belum dikerjakan'}>{aktif(s, p.id) ? '✓' : '–'}</td>
+                ))}
+                <td>{s.hadir}</td>
+                <td>{Math.max((data?.total_sesi ?? 0) - s.hadir, 0)}</td>
+                <td>{persen(s) === null ? '-' : `${persen(s)}%`}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       <div className="aksi jarak">
-        <button className="tombol" style={{ color: 'var(--warna-utama)' }} disabled={!data} onClick={() => data && unduhCsv('rekap-kehadiran.csv', [
-          ['Nama', 'NISN', 'Hadir', 'Izin', 'Sakit', 'Alpa', 'Persen hadir'],
-          ...data.siswa.map((s) => [s.nama, s.nisn, s.hadir, s.izin, s.sakit, s.alpa, data.total_sesi > 0 ? Math.round((s.hadir / data.total_sesi) * 100) : null]),
+        <button className="tombol" style={{ color: 'var(--warna-utama)' }} disabled={!data} onClick={() => data && unduhCsv('rekap-pengerjaan-lms.csv', [
+          ['Nama', 'NISN', ...data.pertemuan.map((p) => `P${p.nomor}`), 'Dikerjakan', 'Belum dikerjakan', 'Total pertemuan', 'Persen dikerjakan'],
+          ...data.siswa.map((s) => [s.nama, s.nisn, ...data.pertemuan.map((p) => (aktif(s, p.id) ? 'Sudah' : 'Belum')), s.hadir, Math.max(data.total_sesi - s.hadir, 0), data.total_sesi, persen(s)]),
         ])}>Unduh CSV</button>
       </div>
-      <p className="catatan jarak">Pertemuan yang belum dicatat untuk seorang siswa tidak dihitung hadir.</p>
+      <p className="catatan jarak">Tercatat otomatis dari aktivitas siswa di LMS. Kehadiran tatap muka (hadir, izin, sakit, alpa) dicatat di modul Kesiswaan.</p>
       <Kembali ke={`/portal/lms/${kelasId}`} teks="Kembali ke kelas" />
     </Halaman>
   )

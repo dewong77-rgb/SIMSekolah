@@ -55,7 +55,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
         { to: '/portal/lms', label: 'Kelas saya', ikon: 'buku', ket: 'Kelas, pertemuan, materi, lembar kerja, dan tugas' },
         { to: '/portal/lms/dashboard', label: 'Pantau semua kelas', ikon: 'grafik', ket: 'Siapa sudah hadir dan mengumpulkan, semua kelas dalam satu layar' },
         { to: '/portal/penilaian/kuis', cocok: '/portal/penilaian', label: 'Kuis', ikon: 'centang', ket: 'Kuis dari semua kelas. UTS dan UAS lewat Asesmen digital (CBT)' },
-        { to: '/portal/absensi', label: 'Rekap kehadiran', ikon: 'centang', ket: 'Jumlah siswa yang diajar dan rekap kehadiran per kelas' },
+        { to: '/portal/absensi', label: 'Rekap pengerjaan', ikon: 'centang', ket: 'Jumlah siswa yang diajar dan rekap pengerjaan LMS per kelas' },
         { to: '/portal/nilai', label: 'Rekap nilai', ikon: 'grafik', ket: 'Nilai kuis dan tugas semua siswa per kelas, siap diunduh ke Excel' },
         { to: '/asesmen', label: 'Asesmen digital (CBT)', ikon: 'pena', ket: 'Bank soal dan pengawasan ujian sekolah (UTS, UAS)' },
         perpustakaan,
@@ -133,7 +133,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
       judul: 'Pembelajaran',
       item: [
         { to: '/portal/lms', label: 'Kelas ajar', ikon: 'buku', ket: 'Kelas, materi, absensi per pertemuan' },
-        { to: '/portal/absensi', label: 'Absensi', ikon: 'centang', ket: 'Jumlah siswa yang diajar dan rekap kehadiran per kelas' },
+        { to: '/portal/absensi', label: 'Rekap pengerjaan', ikon: 'centang', ket: 'Jumlah siswa yang diajar dan rekap pengerjaan LMS per kelas' },
         { to: '/portal/lms/administrasi', label: 'Administrasi guru', ikon: 'dokumen', ket: 'Perangkat ajar dan supervisi' },
         perpustakaan,
         chat,
