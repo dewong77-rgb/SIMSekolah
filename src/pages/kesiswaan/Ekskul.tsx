@@ -5,7 +5,6 @@ import CetakFormulir, { TandaTangan } from '../../components/CetakFormulir'
 import { Link } from 'react-router-dom'
 import Halaman from '../../components/Halaman'
 import CariSiswa from '../../components/CariSiswa'
-import { supabase } from '../../lib/supabase'
 import { panggil, tgl } from '../../lib/rpc'
 import { PERAN_EKSKUL, PREDIKAT, hariIni, label, tambahHari, type SiswaCari } from '../../lib/kesiswaan'
 import Gerbang from './Gerbang'
@@ -203,7 +202,7 @@ function Isi() {
 
   const muat = useCallback(() => { panggil<NonNullable<typeof data>>('ekskul_daftar').then((x) => { setData(x); setGalat('') }).catch((e: Error) => setGalat(e.message)) }, [])
   useEffect(() => { muat() }, [muat])
-  useEffect(() => { if (data?.bisa_atur) supabase.from('ptk').select('id,nama').order('nama').limit(1000).then(({ data: p }) => setPtk(p ?? [])) }, [data?.bisa_atur])
+  useEffect(() => { if (data?.bisa_atur) panggil<{ id: string; nama: string }[]>('ptk_pilihan').then((p) => setPtk(p ?? [])).catch(() => setPtk([])) }, [data?.bisa_atur])
 
   async function simpan(e: Ekskul | null, f: FormData) {
     setGalat('')
