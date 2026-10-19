@@ -832,6 +832,11 @@ tbody tr:hover td { background: #f8fafd; }
 .kelas-meta { margin-top: 8px; font-size: .82rem; font-weight: 600; color: var(--w, var(--warna-utama)); }
 .kelas-kepala { display: flex; align-items: center; gap: 14px; padding: 14px 16px; margin-bottom: 14px; background: #fff; border: 1px solid var(--garis); border-left: 5px solid var(--w, var(--warna-utama)); border-radius: var(--radius); box-shadow: var(--bayangan-1); }
 .kelas-kepala small { display: block; color: var(--teks-lembut); }
+.pilih-kelas { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 14px; }
+.pilih-kelas span { font-size: .85rem; color: var(--teks-lembut); white-space: nowrap; }
+.pilih-kelas select { min-width: 200px; max-width: 100%; }
+.kelas-kepala .pilih-kelas { margin: 0 0 0 auto; }
+@media (max-width: 560px) { .kelas-kepala { flex-wrap: wrap; } .kelas-kepala .pilih-kelas { margin: 6px 0 0; width: 100%; } .pilih-kelas select { flex: 1; } }
 .alat-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 16px; }
 .alat-bar .tombol { display: inline-flex; align-items: center; gap: 8px; }
 .alat-pemisah { width: 1px; height: 28px; background: var(--garis); margin: 0 4px; }
