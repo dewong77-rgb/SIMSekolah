@@ -1,7 +1,6 @@
 // Struktur organisasi satu ekskul (bagan berjenjang) dan penambahan anggota per rombel.
 import { useEffect, useState } from 'react'
 import TombolIkon from '../../components/TombolIkon'
-import { supabase } from '../../lib/supabase'
 import { panggil } from '../../lib/rpc'
 
 export type Simpul = {
@@ -86,7 +85,7 @@ export function StrukturOrganisasi({ ekskulId, struktur, anggota, ubahBoleh, mua
 
   useEffect(() => {
     if (!ubahBoleh) return
-    supabase.from('ptk').select('id,nama').order('nama').limit(1000).then(({ data }) => setGuru(data ?? []))
+    panggil<{ id: string; nama: string }[]>('ptk_pilihan').then((d) => setGuru(d ?? [])).catch(() => setGuru([]))
   }, [ubahBoleh])
 
   async function jalan(fn: () => Promise<unknown>) {
