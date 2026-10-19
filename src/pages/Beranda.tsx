@@ -23,11 +23,11 @@ function Judul({ label, judul, tautan, ke }: { label: string; judul: string; tau
 }
 
 const aplikasi = [
-  { href: 'http://103.159.220.9:1113/', judul: 'Dapodik Sekolah', isi: 'Buka aplikasi Dapodik di server sekolah. Dibuka di tab baru.' },
-  { href: 'http://103.159.220.9:1114/', judul: 'e-Rapor SMK', isi: 'Buka aplikasi e-Rapor SMK untuk penilaian dan rapor. Dibuka di tab baru.' },
+  { href: '/dapodik', judul: 'Dapodik Sekolah', isi: 'Buka aplikasi Dapodik di server sekolah. Dibuka di tab baru.' },
+  { href: '/erapor', judul: 'e-Rapor SMK', isi: 'Buka aplikasi e-Rapor SMK untuk penilaian dan rapor. Dibuka di tab baru.' },
 ]
 
-const Rangka =({ n }: { n: number }) => (
+const Rangka = ({ n }: { n: number }) => (
   <>{Array.from({ length: n }, (_, i) => <div key={i} className="kartu rangka" aria-hidden="true"><i /><i /><i /></div>)}</>
 )
 
