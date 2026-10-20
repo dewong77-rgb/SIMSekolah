@@ -3,11 +3,8 @@ import { KartuBerita } from './Berita'
 import { useBeritaPublik } from '../lib/hubin'
 import { useSekolah } from '../lib/profilSekolah'
 import JamSistem from '../components/JamSistem'
-import { useStatistik } from '../lib/dataPublik'
 import { useAuth } from '../auth/AuthContext'
 import Ikon from '../components/Ikon'
-
-const angka = (n: number | undefined) => (n === undefined ? null : n.toLocaleString('id-ID'))
 
 function Judul({ label, judul, tautan, ke }: { label: string; judul: string; tautan?: string; ke?: string }) {
   return (
@@ -28,15 +25,8 @@ const Rangka = ({ n }: { n: number }) => (
 export default function Beranda() {
   const sekolah = useSekolah()
   const { hasil: hasilBerita } = useBeritaPublik(3)
-  const st = useStatistik()
   const { session } = useAuth()
   const pintuPortal = session ? '/portal' : '/masuk'
-  const ringkasan = [
-    { label: 'Peserta didik aktif', nilai: angka(st?.peserta_didik_aktif), ikon: 'kelompok' },
-    { label: 'Guru dan tenaga kependidikan', nilai: angka(st?.ptk), ikon: 'pengguna' },
-    { label: 'Rombongan belajar', nilai: angka(st?.rombel), ikon: 'sekolah' },
-    { label: 'Alumni tercatat', nilai: angka(st?.alumni), ikon: 'tas' },
-  ]
   return (
     <>
       <section className="hero">
@@ -61,18 +51,6 @@ export default function Beranda() {
               <li><Link to="/kontak"><Ikon nama="surat" ukuran={18} /><span>Kontak</span></Link></li>
             </ul>
           </div>
-        </div>
-      </section>
-
-      <section className="wadah stat-melayang">
-        <div className="statistik">
-          {ringkasan.map((r) => (
-            <div key={r.label} className="stat">
-              <span className="stat-ikon"><Ikon nama={r.ikon} ukuran={22} /></span>
-              {r.nilai === null ? <strong className="rangka-angka" aria-label="Memuat" /> : <strong>{r.nilai}</strong>}
-              <span>{r.label}</span>
-            </div>
-          ))}
         </div>
       </section>
 
