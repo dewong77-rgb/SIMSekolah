@@ -162,7 +162,7 @@ export function DaftarKelas() {
               <span className="kelas-meta">{k.jumlah_pertemuan} pertemuan{k.peran === 'pengelola' ? ' · Anda pengelola' : ''}</span>
             </span>
           </Link>
-          {k.peran === 'pengelola' && <button type="button" className="kelas-hapus" title="Hapus kelas ini (jika salah)" aria-label={`Hapus kelas ${k.mapel} ${k.rombel}`} onClick={() => void hapus(k)}><Ikon nama="tutup" ukuran={14} /></button>}
+          {k.peran === 'pengelola' && <button type="button" className="kelas-hapus" title="Hapus kelas ini (jika salah)" aria-label={`Hapus kelas ${k.mapel} ${k.rombel}`} onClick={() => void hapus(k)}><Ikon nama="sampah" ukuran={14} /><span>Hapus</span></button>}
           </div>
         ))}
       </div>
@@ -278,7 +278,7 @@ export function DetailKelas() {
           </button>
           <span className="alat-pemisah" aria-hidden="true" />
           <button type="button" className="alat-pil" style={{ color: '#8a1f1f' }} disabled={!kelas} onClick={() => void hapusKelas()} title="Hapus kelas yang salah rombel atau mata pelajaran">
-            <Ikon nama="tutup" ukuran={16} /> Hapus kelas
+            <Ikon nama="sampah" ukuran={16} /> Hapus kelas
           </button>
         </div>
       )}
