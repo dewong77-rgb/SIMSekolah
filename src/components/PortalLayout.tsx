@@ -8,6 +8,7 @@ import { panggil } from '../lib/rpc'
 import Ikon from './Ikon'
 import PembatasGalat from './PembatasGalat'
 import ChatMengambang from './ChatMengambang'
+import Lonceng from './Lonceng'
 
 export type Lencana = Partial<Record<'ajuan_masuk' | 'ajuan_saya' | 'disposisi' | 'surat' | 'sarpras' | 'sarpras_kerusakan' | 'sarpras_permintaan' | 'kesiswaan' | 'keluar' | 'panggilan' | 'chat', number>>
 
@@ -157,7 +158,6 @@ export default function PortalLayout() {
   const nAjuan = ada('/portal/ajuan-masuk') ? lencana.ajuan_masuk ?? 0 : 0
   const nDisposisi = ada('/portal/disposisi') ? lencana.disposisi ?? 0 : 0
   const nSarpras = (ada('/portal/sarpras/usulan') ? lencana.sarpras ?? 0 : 0) + (ada('/portal/sarpras/kerusakan') ? lencana.sarpras_kerusakan ?? 0 : 0) + (ada('/portal/sarpras/permintaan') ? lencana.sarpras_permintaan ?? 0 : 0)
-  const totalPerhatian = nAjuan + nDisposisi + nSarpras
 
   return (
     <KonteksPortal.Provider value={{ menu, lencana, nama }}>
@@ -257,15 +257,15 @@ export default function PortalLayout() {
             )}
             <div className="atas-kanan">
               <JamSistem varian="ringkas" />
-              {punyaMenu && totalPerhatian > 0 && (
-                <Link
-                  to={nAjuan > 0 ? '/portal/ajuan-masuk' : '/portal/disposisi'}
-                  className="ikon-tombol lonceng"
-                  aria-label={`${totalPerhatian} hal menunggu tindakan Anda`}
-                  title={`${totalPerhatian} menunggu tindakan Anda`}
-                >
-                  <Ikon nama="lonceng" /><b className="angka">{totalPerhatian > 99 ? '99+' : totalPerhatian}</b>
-                </Link>
+              {punyaMenu && (
+                <Lonceng
+                  guru={profil?.peran === 'guru'}
+                  tindakan={[
+                    { label: 'ajuan menunggu persetujuan', to: '/portal/ajuan-masuk', n: nAjuan },
+                    { label: 'surat menunggu disposisi', to: '/portal/disposisi', n: nDisposisi },
+                    { label: 'usulan atau laporan sarpras menunggu', to: ['/portal/sarpras/usulan', '/portal/sarpras/kerusakan', '/portal/sarpras/permintaan'].find(ada) ?? '/portal', n: nSarpras },
+                  ]}
+                />
               )}
               {session && (
                 <div className="akun-menu" ref={akunRef}>

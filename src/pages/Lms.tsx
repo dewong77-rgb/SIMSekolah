@@ -11,7 +11,6 @@ import { DaftarKuis, LatihanPertemuan } from './LmsKuis'
 import { DaftarTugas } from './LmsTugas'
 import { Forum } from './LmsForum'
 import { nilaiTeks, unduhCsv } from './lmsUtil'
-import PengingatLms from './LmsPengingat'
 import { wordKeHtml, judulDariNama, BATAS_HTML } from '../lib/dokumen'
 import { unduhRekapKelas, unduhRekapPengerjaan } from './lmsXlsx'
 import KelolaPertemuan, { AksesPertemuan } from './LmsKelola'
@@ -60,33 +59,6 @@ function warnaKelas(mapel: string) {
 }
 const inisialKelas = (mapel: string) => mapel.split(/\s+/).filter(Boolean).slice(0, 2).map((x) => x[0]).join('').toUpperCase()
 
-/** Peringatan dari Waka Kurikulum (misalnya jam mengajar sudah mulai tetapi LMS belum dibuka). */
-function PeringatanWaka() {
-  const [daftar, setDaftar] = useState<{ id: string; dari: string; pesan: string; waktu: string }[]>([])
-  useEffect(() => {
-    const muat = () => panggil<typeof daftar>('lms_peringatan_saya').then(setDaftar).catch(() => undefined)
-    void muat()
-    const t = window.setInterval(() => { if (document.visibilityState === 'visible') void muat() }, 60_000)
-    return () => window.clearInterval(t)
-  }, [])
-  async function baca(id: string) {
-    setDaftar((d) => d.filter((x) => x.id !== id))
-    try { await panggil('lms_peringatan_baca', { p_id: id }) } catch { /* tampil lagi pada muat berikutnya */ }
-  }
-  if (daftar.length === 0) return null
-  return (
-    <section className="perhatian pengingat" aria-label="Peringatan dari kurikulum" role="alert">
-      <h2 className="menu-bagian-judul" style={{ margin: 0 }}>Pesan dari kurikulum ({daftar.length})</h2>
-      {daftar.map((x) => (
-        <div key={x.id} className="perhatian-item pengingat-lewat" style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
-          <span className="pengingat-isi"><strong>{x.pesan}</strong><small>{x.dari}, {tglJam(x.waktu)}</small></span>
-          <button type="button" className="tombol" onClick={() => void baca(x.id)}>Mengerti</button>
-        </div>
-      ))}
-    </section>
-  )
-}
-
 /** Daftar kelas ajar milik pengguna. Guru dan admin TU bisa membuat kelas ajar baru. */
 export function DaftarKelas() {
   const { profil } = useAuth()
@@ -133,8 +105,6 @@ export function DaftarKelas() {
   return (
     <Halaman judul="Kelas saya" lead={siswa ? 'Pilih kelas, lalu ketuk Mulai belajar. Semua langkah dibimbing satu per satu.' : 'Kelas yang Anda ajar semester ini.'}>
       {siswa && <BerandaBelajar />}
-      {profil?.peran === 'guru' && <PeringatanWaka />}
-      <PengingatLms maks={3} />
       {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
       {bolehBuat && (
         <section aria-label="Mulai dari sini" className="lms-mulai">
