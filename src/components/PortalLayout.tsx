@@ -112,8 +112,8 @@ export default function PortalLayout() {
     return () => { batal = true; window.clearInterval(id); window.removeEventListener('sims:chat', hitung); document.removeEventListener('visibilitychange', hitung) }
   }, [bisaChat])
 
-  // Denyut kehadiran guru di LMS: dikirim saat guru membuka halaman LMS dan tiap 2 menit selama tab terlihat.
-  const guruDiLms = profil?.peran === 'guru' && /^\/portal\/(lms|penilaian|absensi|nilai)(\/|$)/.test(pathname)
+  // Denyut kehadiran guru dan siswa di LMS: dikirim saat membuka halaman LMS dan tiap 2 menit selama tab terlihat.
+  const guruDiLms = (profil?.peran === 'guru' || profil?.peran === 'siswa') && /^\/portal\/(lms|penilaian|absensi|nilai)(\/|$)/.test(pathname)
   useEffect(() => {
     if (!guruDiLms) return
     const kirim = () => { if (!document.hidden) panggil('lms_denyut').catch(() => undefined) }
