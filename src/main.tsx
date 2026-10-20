@@ -86,6 +86,8 @@ const DetailRombel = lazy(() => import('./pages/DataSekolah').then((m) => ({ def
 const DaftarKelas = lazy(() => import('./pages/Lms').then((m) => ({ default: m.DaftarKelas })))
 const DetailKelas = lazy(() => import('./pages/Lms').then((m) => ({ default: m.DetailKelas })))
 const RuangTugas = lazy(() => import('./pages/LmsTugas').then((m) => ({ default: m.RuangTugas })))
+const PantauJamLms = lazy(() => import('./pages/PantauJamLms'))
+const KehadiranGuruLms = lazy(() => import('./pages/KehadiranGuruLms'))
 const AdministrasiGuru = lazy(() => import('./pages/LmsGuru').then((m) => ({ default: m.AdministrasiGuru })))
 const JurnalKelas = lazy(() => import('./pages/LmsGuru').then((m) => ({ default: m.JurnalKelas })))
 const BukuNilai = lazy(() => import('./pages/LmsGuru').then((m) => ({ default: m.BukuNilai })))
@@ -642,6 +644,8 @@ createRoot(document.getElementById('root')!).render(
           <Route path="portal/lms/:kelasId/pertemuan/:id" element={<RequireRole peran={['admin_tu', 'guru', 'siswa']}><Suspense fallback={<Memuat />}><RuangPertemuan /></Suspense></RequireRole>} />
           <Route path="portal/lms/:kelasId/kuis/:id" element={<RequireRole peran={['admin_tu', 'guru', 'siswa']}><Suspense fallback={<Memuat />}><RuangKuis /></Suspense></RequireRole>} />
           <Route path="portal/lms/:kelasId/tugas/:id" element={<RequireRole peran={['admin_tu', 'guru', 'siswa']}><Suspense fallback={<Memuat />}><RuangTugas /></Suspense></RequireRole>} />
+          <Route path="portal/lms/pantau-jam" element={<RequireRole peran={['guru', 'admin_tu', 'staf']} izin="lms.pantau_guru"><Suspense fallback={<Memuat />}><PantauJamLms /></Suspense></RequireRole>} />
+          <Route path="portal/lms/kehadiran-guru" element={<RequireRole peran={['guru', 'admin_tu', 'staf']} izin="lms.pantau_guru"><Suspense fallback={<Memuat />}><KehadiranGuruLms /></Suspense></RequireRole>} />
           <Route path="portal/lms/administrasi" element={<RequireRole peran={['admin_tu', 'guru']}><Suspense fallback={<Memuat />}><AdministrasiGuru /></Suspense></RequireRole>} />
           <Route path="portal/lms/:kelasId/jurnal" element={<RequireRole peran={['admin_tu', 'guru']}><Suspense fallback={<Memuat />}><JurnalKelas /></Suspense></RequireRole>} />
           <Route path="portal/nilai" element={<RequireRole peran={['admin_tu', 'guru']}><Suspense fallback={<Memuat />}><RekapNilai /></Suspense></RequireRole>} />
