@@ -8,7 +8,7 @@ import {
   type BeritaDetail, type BeritaRingkas, type Penanda,
 } from '../lib/berita'
 
-const BATAS = 12
+const BATAS = 10
 const NAMA_SEKOLAH = 'SMKN 1 Gunung Sindur'
 
 function Gambar({ b, rasio = '16/9', muat = 'lazy' }: { b: { gambar_url: string | null; gambar_path?: string | null; judul: string }; rasio?: string; muat?: 'lazy' | 'eager' }) {
@@ -76,6 +76,24 @@ function Samping({ p, aktifTag, aktifTema }: { p: Penanda | null; aktifTag?: str
   )
 }
 
+/** Tombol halaman bernomor: 1 ... 4 5 6 ... 12, dengan Sebelumnya dan Berikutnya. `hal` mulai dari 0. */
+function NomorHalaman({ hal, jumlah, ke }: { hal: number; jumlah: number; ke: (h: number) => void }) {
+  const tampil = new Set([0, jumlah - 1, hal - 1, hal, hal + 1])
+  const nomor = [...tampil].filter((n) => n >= 0 && n < jumlah).sort((a, b) => a - b)
+  return (
+    <nav className="bt-halaman" aria-label="Halaman berita">
+      <button type="button" className="tombol" disabled={hal === 0} onClick={() => ke(hal - 1)}>Sebelumnya</button>
+      {nomor.map((n, i) => (
+        <span key={n} className="bt-halaman-item">
+          {i > 0 && n - nomor[i - 1] > 1 && <span aria-hidden="true">…</span>}
+          <button type="button" className={'tombol' + (n === hal ? ' tombol-isi' : '')} aria-current={n === hal ? 'page' : undefined} aria-label={`Halaman ${n + 1}`} onClick={() => ke(n)}>{n + 1}</button>
+        </span>
+      ))}
+      <button type="button" className="tombol" disabled={hal >= jumlah - 1} onClick={() => ke(hal + 1)}>Berikutnya</button>
+    </nav>
+  )
+}
+
 export function BeritaDaftar() {
   const [sp, setSp] = useSearchParams()
   const kategori = sp.get('kategori'), tag = sp.get('tag'), tema = sp.get('tema'), cari = sp.get('cari')
@@ -85,6 +103,7 @@ export function BeritaDaftar() {
   const [kata, setKata] = useState(cari ?? '')
   useEffect(() => { setKata(cari ?? '') }, [cari])
   useEffect(() => { document.title = `Berita | ${NAMA_SEKOLAH}` }, [])
+  useEffect(() => { window.scrollTo(0, 0) }, [hal])
 
   const ubah = (n: Record<string, string | null>) => {
     const q = new URLSearchParams()
@@ -159,11 +178,10 @@ export function BeritaDaftar() {
           )}
 
           {hasil && hasil.total > BATAS && (
-            <div className="aksi" style={{ alignItems: 'center' }}>
-              <button className="tombol" disabled={hal === 0} onClick={() => ubah({ kategori, tag, tema, cari, hal: hal > 1 ? String(hal - 1) : null })}>Lebih baru</button>
-              <span className="catatan">Halaman {hal + 1} dari {Math.ceil(hasil.total / BATAS)}</span>
-              <button className="tombol" disabled={(hal + 1) * BATAS >= hasil.total} onClick={() => ubah({ kategori, tag, tema, cari, hal: String(hal + 1) })}>Lebih lama</button>
-            </div>
+            <>
+              <NomorHalaman hal={hal} jumlah={Math.ceil(hasil.total / BATAS)} ke={(h) => ubah({ kategori, tag, tema, cari, hal: h > 0 ? String(h) : null })} />
+              <p className="catatan bt-halaman-ket">Menampilkan {(hal * BATAS + 1).toLocaleString('id-ID')} sampai {Math.min((hal + 1) * BATAS, hasil.total).toLocaleString('id-ID')} dari {hasil.total.toLocaleString('id-ID')} berita</p>
+            </>
           )}
         </div>
         <Samping p={penanda} aktifTag={tag} aktifTema={tema} />

@@ -1446,3 +1446,9 @@ a.bt-tag:hover, button.bt-tag:hover, .bt-tag.aktif { background: var(--warna-uta
 
 .form label.baris-centang { display: flex; align-items: center; gap: 8px; font-weight: 400; }
 .form label.baris-centang input { margin-top: 0; }
+
+/* Tombol halaman berita */
+.bt-halaman { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; margin: 28px 0 6px; }
+.bt-halaman-item { display: inline-flex; align-items: center; gap: 6px; }
+.bt-halaman .tombol { min-width: 40px; padding-left: 12px; padding-right: 12px; }
+.bt-halaman-ket { text-align: center; }
