@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react'
 import { Dokumen, type Ctx } from './PerangkatAjar'
+import { panggil } from '../lib/rpc'
 
 // Contoh format perangkat ajar untuk guru yang dokumennya masih kosong.
 // TP, ATP, KKTP, Silabus, Prota, dan Promes memakai penyaji dokumen yang sama dengan dokumen asli, diisi data contoh.
@@ -143,18 +145,97 @@ export function unduhTemplateDokumen(jenis: 'modul_ajar' | 'rpp') {
   setTimeout(() => URL.revokeObjectURL(url), 5000)
 }
 
-/** Contoh format satu jenis perangkat ajar, dengan penanda jelas bahwa isinya contoh. */
+type Sumber = { ptk_id: string; guru: string; mapel: string; tingkat: string; jumlah_tp: number; milik_saya: boolean }
+type Isi = { guru: string; tp: Ctx['tp']; mg: Ctx['mg']; pf: Ctx['pf'] }
+
+function ctxDari(sumber: Sumber, isi: { tp: Ctx['tp']; minggu: Ctx['mg']; profil: Ctx['pf'] }): Ctx {
+  const awal = isi.minggu.map((m) => m.tanggal_mulai).filter((x): x is string => !!x).sort()[0]
+  const th = awal ? (Number(awal.slice(5, 7)) >= 7 ? Number(awal.slice(0, 4)) : Number(awal.slice(0, 4)) - 1) : null
+  return { tp: isi.tp, mg: isi.minggu, pf: isi.profil, mapel: sumber.mapel, tingkat: sumber.tingkat, rombel: [], tahun: th ? `${th}/${th + 1}` : '' }
+}
+
+/** Menyalin contoh bersama ke Rencana ajar milik guru yang sedang masuk (titik awal untuk diubah). */
+function SalinContoh({ isi, sumber }: { isi: Isi; sumber: Sumber }) {
+  const [v, setV] = useState({ mapel: '', tingkat: sumber.tingkat })
+  const [pesan, setPesan] = useState('')
+  const [sibuk, setSibuk] = useState(false)
+  async function salin() {
+    const mapel = v.mapel.trim(); const tingkat = v.tingkat.trim().toUpperCase()
+    if (!mapel || !tingkat) { setPesan('Isi mata pelajaran dan tingkat dulu.'); return }
+    setSibuk(true); setPesan('')
+    try {
+      const saya = await panggil<{ tp: { mapel: string; tingkat: string }[]; minggu: { mapel: string; tingkat: string }[] }>('lms_rencana_saya')
+      const ada = [...saya.tp, ...saya.minggu].some((x) => x.mapel.toLowerCase() === mapel.toLowerCase() && x.tingkat === tingkat)
+      if (ada && !window.confirm(`Rencana ${mapel} kelas ${tingkat} Anda sudah ada dan akan DIGANTI dengan contoh ini. Lanjutkan?`)) { setSibuk(false); return }
+      const h = await panggil<{ tp: number; minggu: number }>('lms_rencana_ganti', {
+        p_mapel: mapel, p_tingkat: tingkat,
+        p_tp: isi.tp.map(({ elemen_kode, elemen_nama, capaian, semester, kode, rumusan, alokasi_jp, kriteria, nilai_tuntas }) => ({ elemen_kode, elemen_nama, capaian, semester, kode, rumusan, alokasi_jp, kriteria, nilai_tuntas })),
+        p_minggu: isi.mg.map(({ semester, nomor, tanggal_mulai, tanggal_selesai, elemen_kode, materi_pokok, jp, tp_kode, keterangan, efektif }) => ({ semester, nomor, tanggal_mulai, tanggal_selesai, elemen_kode, materi_pokok, jp, tp_kode, keterangan, efektif })),
+      })
+      setPesan(`Tersalin: ${h.tp} TP dan ${h.minggu} baris program semester ke Rencana ajar ${mapel} kelas ${tingkat}. Buka Rencana ajar untuk menyesuaikan isinya.`)
+    } catch (e) { setPesan((e as Error).message) }
+    setSibuk(false)
+  }
+  return (
+    <div className="kartu jarak tanpa-cetak">
+      <h3 style={{ marginTop: 0 }}>Pakai sebagai titik awal</h3>
+      <p className="catatan">Salin contoh ini ke Rencana ajar Anda, lalu ubah sesuai mata pelajaran dan kelas Anda. Tanggal program semester perlu disesuaikan dengan kalender sekolah.</p>
+      <div className="form">
+        <div className="grid grid-2">
+          <label>Mata pelajaran Anda<input value={v.mapel} onChange={(e) => setV({ ...v, mapel: e.target.value })} placeholder="Nama mata pelajaran" /></label>
+          <label>Tingkat<input value={v.tingkat} onChange={(e) => setV({ ...v, tingkat: e.target.value })} style={{ maxWidth: 90 }} /></label>
+        </div>
+        <div className="aksi"><button type="button" className="tombol tombol-isi" disabled={sibuk} onClick={() => void salin()}>{sibuk ? 'Menyalin...' : 'Salin ke Rencana ajar saya'}</button></div>
+      </div>
+      {pesan && <p className="catatan" role="status">{pesan}</p>}
+    </div>
+  )
+}
+
+/** Contoh format satu jenis perangkat ajar. Memakai rencana ajar yang dibagikan guru sekolah bila ada, jika tidak contoh bawaan. */
 export function ContohFormat({ jenis }: { jenis: string }) {
   const dok = jenis === 'modul_ajar' || jenis === 'rpp'
+  const [daftar, setDaftar] = useState<Sumber[]>([])
+  const [pilih, setPilih] = useState('')
+  const [isi, setIsi] = useState<Isi | null>(null)
+  useEffect(() => {
+    if (dok) return
+    panggil<Sumber[]>('lms_rencana_contoh_daftar').then((d) => { setDaftar(d); setPilih(d.length ? `${d[0].ptk_id}|${d[0].mapel}|${d[0].tingkat}` : '') }).catch(() => undefined)
+  }, [dok])
+  const sumber = daftar.find((x) => `${x.ptk_id}|${x.mapel}|${x.tingkat}` === pilih)
+  useEffect(() => {
+    setIsi(null)
+    if (!sumber) return
+    let batal = false
+    panggil<{ guru: string; tp: Ctx['tp']; minggu: Ctx['mg']; profil: Ctx['pf'] }>('lms_rencana_contoh_ambil', { p_ptk: sumber.ptk_id, p_mapel: sumber.mapel, p_tingkat: sumber.tingkat })
+      .then((r) => { if (!batal) setIsi({ guru: r.guru, tp: r.tp, mg: r.minggu, pf: r.profil }) }).catch(() => undefined)
+    return () => { batal = true }
+  }, [sumber?.ptk_id, sumber?.mapel, sumber?.tingkat])
+  const nyata = !!sumber && !!isi
   return (
     <div className="kartu jarak contoh-format">
-      <p className="catatan"><strong>Contoh format.</strong> Isi di bawah hanya ilustrasi pengisian, bukan data Anda dan bukan keputusan kurikulum sekolah.</p>
-      {dok
-        ? <>
-            <div className="aksi tanpa-cetak"><button type="button" className="tombol tombol-isi" onClick={() => unduhTemplateDokumen(jenis as 'modul_ajar' | 'rpp')}>Unduh template Word</button></div>
-            <Kerangka jenis={jenis as 'modul_ajar' | 'rpp'} />
-          </>
-        : <Dokumen jenis={jenis} c={contohCtx} />}
+      {dok ? (
+        <>
+          <p className="catatan"><strong>Contoh format.</strong> Isi di bawah hanya kerangka dan petunjuk pengisian, bukan keputusan kurikulum sekolah.</p>
+          <div className="aksi tanpa-cetak"><button type="button" className="tombol tombol-isi" onClick={() => unduhTemplateDokumen(jenis as 'modul_ajar' | 'rpp')}>Unduh template Word</button></div>
+          <Kerangka jenis={jenis as 'modul_ajar' | 'rpp'} />
+        </>
+      ) : (
+        <>
+          {nyata
+            ? <p className="catatan"><strong>Contoh dari rekan guru.</strong> Ini rencana ajar {sumber.mapel} kelas {sumber.tingkat} milik {isi.guru}, dibagikan sebagai contoh. Mata pelajaran Anda boleh berbeda; yang dicontoh adalah susunan dan tingkat kerincian pengisiannya.</p>
+            : <p className="catatan"><strong>Contoh format.</strong> Isi di bawah hanya ilustrasi pengisian, bukan data Anda dan bukan keputusan kurikulum sekolah.</p>}
+          {daftar.length > 1 && (
+            <label className="tanpa-cetak">Sumber contoh
+              <select value={pilih} onChange={(e) => setPilih(e.target.value)}>
+                {daftar.map((x) => <option key={`${x.ptk_id}|${x.mapel}|${x.tingkat}`} value={`${x.ptk_id}|${x.mapel}|${x.tingkat}`}>{x.mapel} kelas {x.tingkat}, {x.guru}</option>)}
+              </select>
+            </label>
+          )}
+          {nyata ? <Dokumen jenis={jenis} c={ctxDari(sumber, { tp: isi.tp, minggu: isi.mg, profil: isi.pf })} /> : <Dokumen jenis={jenis} c={contohCtx} />}
+          {nyata && !sumber.milik_saya && <SalinContoh key={`${sumber.ptk_id}|${sumber.mapel}|${sumber.tingkat}`} isi={isi} sumber={sumber} />}
+        </>
+      )}
     </div>
   )
 }
