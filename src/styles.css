@@ -1438,3 +1438,8 @@ a.bt-tag:hover, button.bt-tag:hover, .bt-tag.aktif { background: var(--warna-uta
 .chat-panel.mini .chat-pesan { flex: 1; height: auto; min-height: 0; padding: 10px; }
 .chat-panel.mini .gelembung { max-width: 88%; }
 .chat-panel.mini .chat-kirim textarea { font-size: 15px; resize: none; }
+
+.kelas-bungkus { position: relative; }
+.kelas-bungkus .kartu-kelas { height: 100%; }
+.kelas-hapus { position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; display: grid; place-items: center; padding: 0; border: 1px solid #d9b8b8; border-radius: 8px; background: #fff; color: #8a1f1f; cursor: pointer; opacity: .7; }
+.kelas-hapus:hover, .kelas-hapus:focus-visible { opacity: 1; background: #fbeeee; }
