@@ -141,7 +141,7 @@ export function DaftarKelas() {
       <h2 className="menu-bagian-judul jarak">{siswa ? 'Semua mata pelajaran' : 'Daftar kelas'}</h2>
       <div className="grid daftar-kelas">
         {!kelas && <p className="catatan">Memuat...</p>}
-        {kelas && kelas.length === 0 && <div className="kartu"><p>Belum ada kelas.</p><p className="catatan">{bolehBuat ? 'Buat kelas baru dari tombol di atas.' : 'Kelas muncul setelah guru membuat kelas ajar untuk rombel Anda.'}</p></div>}
+        {kelas && kelas.length === 0 && <div className="kartu"><p>Belum ada kelas.</p><p className="catatan">{bolehBuat ? 'Buat kelas baru dari tombol di atas. Kelas yang salah bisa dihapus dari halaman kelasnya.' : 'Kelas muncul setelah guru membuat kelas ajar untuk rombel Anda.'}</p></div>}
         {(kelas ?? []).map((k) => (
           <Link key={k.id} to={`/portal/lms/${k.id}`} className="kartu tautan kartu-kelas" style={{ ['--w' as string]: warnaKelas(k.mapel) }}>
             <span className="kelas-inisial" aria-hidden="true">{inisialKelas(k.mapel)}</span>
@@ -220,6 +220,19 @@ export function DetailKelas() {
     try { await panggil('lms_pertemuan_hapus', { p_pertemuan: p.id, p_paksa: true }); await muat() } catch (er) { setGalat((er as Error).message) }
   }
 
+  const arah = useNavigate()
+  async function hapusKelas() {
+    if (!kelas) return
+    if (!window.confirm(`Hapus kelas ${kelas.mapel} ${kelas.rombel}? Kelas hilang dari daftar. Data pertemuan dan nilai tetap tersimpan.`)) return
+    setGalat('')
+    try { await panggil('lms_hapus_kelas_ajar', { p_kelas: kelasId, p_paksa: false }); arah('/portal/lms'); return } catch (er) {
+      const m = (er as Error).message
+      if (!m.startsWith('Kelas ini sudah punya')) { setGalat(m); return }
+      if (!window.confirm(`${m}\n\nTetap hapus?`)) return
+    }
+    try { await panggil('lms_hapus_kelas_ajar', { p_kelas: kelasId, p_paksa: true }); arah('/portal/lms') } catch (er) { setGalat((er as Error).message) }
+  }
+
   const [mengunduh, setMengunduh] = useState(false)
   async function unduhSemua() {
     if (!kelas) return
@@ -250,6 +263,10 @@ export function DetailKelas() {
           <Link to={`/portal/lms/${kelasId}/jurnal`} className="alat-pil"><Ikon nama="pena" ukuran={16} /> Jurnal mengajar</Link>
           <button type="button" className="alat-pil" disabled={!kelas || mengunduh} onClick={() => void unduhSemua()}>
             <Ikon nama="unduh" ukuran={16} /> {mengunduh ? 'Menyiapkan berkas...' : 'Unduh Excel'}
+          </button>
+          <span className="alat-pemisah" aria-hidden="true" />
+          <button type="button" className="alat-pil" style={{ color: '#8a1f1f' }} disabled={!kelas} onClick={() => void hapusKelas()} title="Hapus kelas yang salah rombel atau mata pelajaran">
+            <Ikon nama="tutup" ukuran={16} /> Hapus kelas
           </button>
         </div>
       )}
