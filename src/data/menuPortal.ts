@@ -181,6 +181,7 @@ const menuIzin: { izin: string; nama: string; bidang: string; ikon: string; to?:
   { izin: 'kurikulum.atur_jadwal', nama: 'Jam pelajaran', bidang: 'Kurikulum', ikon: 'kalender', to: '/portal/jam-pelajaran' },
   { izin: 'kurikulum.kalender', nama: 'Kalender sekolah', bidang: 'Kurikulum', ikon: 'kalender', to: '/portal/kalender' },
   { izin: 'kurikulum.struktur', nama: 'Struktur kurikulum', bidang: 'Kurikulum', ikon: 'buku', to: '/portal/kurikulum/struktur' },
+  { izin: 'lms.pantau_guru', nama: 'Kehadiran guru di LMS', bidang: 'Kurikulum', ikon: 'centang', to: '/portal/lms/kehadiran-guru' },
   { izin: 'kurikulum.struktur', nama: 'Beban mengajar', bidang: 'Kurikulum', ikon: 'kelompok', to: '/portal/kurikulum/beban' },
   { izin: 'kurikulum.struktur', nama: 'Jadwal pelajaran', bidang: 'Kurikulum', ikon: 'kalender', to: '/portal/kurikulum/jadwal' },
   { izin: 'kurikulum.struktur', nama: 'Wali kelas', bidang: 'Kurikulum', ikon: 'sekolah', to: '/portal/kurikulum/wali-kelas' },

@@ -112,6 +112,17 @@ export default function PortalLayout() {
     return () => { batal = true; window.clearInterval(id); window.removeEventListener('sims:chat', hitung); document.removeEventListener('visibilitychange', hitung) }
   }, [bisaChat])
 
+  // Denyut kehadiran guru di LMS: dikirim saat guru membuka halaman LMS dan tiap 2 menit selama tab terlihat.
+  const guruDiLms = profil?.peran === 'guru' && /^\/portal\/(lms|penilaian|absensi|nilai)(\/|$)/.test(pathname)
+  useEffect(() => {
+    if (!guruDiLms) return
+    const kirim = () => { if (!document.hidden) panggil('lms_denyut').catch(() => undefined) }
+    kirim()
+    const id = window.setInterval(kirim, 120000)
+    document.addEventListener('visibilitychange', kirim)
+    return () => { window.clearInterval(id); document.removeEventListener('visibilitychange', kirim) }
+  }, [guruDiLms])
+
   // Nama dari data PTK atau peserta didik. Gagal atau kosong: header memakai email.
   const userId = session?.user.id
   useEffect(() => {
