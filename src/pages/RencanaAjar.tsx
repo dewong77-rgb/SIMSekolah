@@ -18,11 +18,16 @@ export default function RencanaAjar() {
   const [baru, setBaru] = useState({ mapel: '', tingkat: '' })
   const [sibuk, setSibuk] = useState(false)
   const berkas = useRef<HTMLInputElement>(null)
+  const [bagi, setBagi] = useState<Set<string>>(new Set())
 
   const muat = useCallback(async () => {
     try { setD(await panggil<Data>('lms_rencana_saya')) } catch (e) { setGalat((e as Error).message) }
   }, [])
   useEffect(() => { void muat() }, [muat])
+  useEffect(() => {
+    panggil<{ mapel: string; tingkat: string; milik_saya: boolean }[]>('lms_rencana_contoh_daftar')
+      .then((x) => setBagi(new Set(x.filter((y) => y.milik_saya).map((y) => `${y.mapel}|${y.tingkat}`)))).catch(() => undefined)
+  }, [])
 
   const kelompok = useMemo<Kelompok[]>(() => {
     const s = new Map<string, Kelompok>()
@@ -40,6 +45,15 @@ export default function RencanaAjar() {
     if (!mapel || !tingkat) { setGalat('Isi mata pelajaran dan tingkat dulu.'); return }
     setGalat(null)
     await unduhTemplateRencana(mapel, tingkat, isi ? { tp, minggu: mg, profil: d?.profil?.find((x) => x.mapel === mapel && x.tingkat === tingkat)?.data } : undefined)
+  }
+
+  async function ubahBagi(nilai: boolean) {
+    setGalat(null); setInfo(null)
+    try {
+      await panggil('lms_rencana_bagikan', { p_mapel: mapel, p_tingkat: tingkat, p_bagikan: nilai })
+      setBagi((b) => { const n = new Set(b); if (nilai) n.add(`${mapel}|${tingkat}`); else n.delete(`${mapel}|${tingkat}`); return n })
+      setInfo(nilai ? 'Rencana ini sekarang tampil sebagai contoh untuk guru lain (NIP tidak ikut dibagikan).' : 'Rencana ini tidak lagi dibagikan.')
+    } catch (e) { setGalat((e as Error).message) }
   }
 
   async function unggah(f: File | undefined) {
@@ -80,6 +94,9 @@ export default function RencanaAjar() {
             <label>Mata pelajaran<input value={baru.mapel} onChange={(e) => setBaru({ ...baru, mapel: e.target.value })} placeholder="Informatika" /></label>
             <label>Tingkat<input value={baru.tingkat} onChange={(e) => setBaru({ ...baru, tingkat: e.target.value })} placeholder="X" style={{ maxWidth: 90 }} /></label>
           </div>
+        )}
+        {tp.length > 0 && (
+          <label className="baris-centang"><input type="checkbox" checked={bagi.has(`${mapel}|${tingkat}`)} onChange={(e) => void ubahBagi(e.target.checked)} /> Bagikan rencana ini sebagai contoh untuk guru lain di sekolah (NIP tidak ikut dibagikan)</label>
         )}
         <p className="catatan">Nama mata pelajaran harus sama dengan yang dipakai di kelas ajar. Tingkat diambil dari kata pertama nama rombel (X TE 1 menjadi X).</p>
         <div className="aksi">
