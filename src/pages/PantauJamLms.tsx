@@ -12,6 +12,11 @@ type Baris = {
   guru_masuk: boolean; guru_pertama: string | null; guru_terakhir: string | null; guru_online: boolean
   siswa_total: number; siswa_masuk: number; ada_kelas: boolean; ada_pertemuan: boolean
 }
+type SiswaLog = {
+  peserta_didik_id: string; nama: string; nisn: string | null; no_urut: number | null
+  masuk: boolean; pertama: string | null; terakhir: string | null; jumlah: number | null
+  pertama_hari: string | null; terakhir_hari: string | null; jam_aktif: number[]
+}
 type Data = { tanggal: string; hari: number; hari_ini: boolean; menit_sekarang: number; jam_sekarang: number; jam_dipilih: number; jam: Jam[]; baris: Baris[] }
 
 const hariIni = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' })
@@ -39,6 +44,63 @@ function statusGuru(b: Baris, w: Waktu): { label: string; kelas: string; perlu: 
   return { label: w === 'berjalan' ? 'Belum masuk' : 'Tidak masuk', kelas: 'status-dibatalkan', perlu: w === 'berjalan' }
 }
 
+function LogSiswa({ b, tanggal, jamKe, jamTeks, tutup }: { b: Baris; tanggal: string; jamKe: number; jamTeks: string; tutup: () => void }) {
+  const [daftar, setDaftar] = useState<SiswaLog[] | null>(null)
+  const [galat, setGalat] = useState('')
+  const [saring, setSaring] = useState<'semua' | 'masuk' | 'belum'>('semua')
+  useEffect(() => {
+    setDaftar(null)
+    panggil<{ siswa: SiswaLog[] }>('lms_pantau_siswa', { p_rombel: b.rombel_id, p_tanggal: tanggal, p_jam: jamKe }).then((r) => setDaftar(r.siswa)).catch((e: Error) => setGalat(e.message))
+  }, [b.rombel_id, tanggal, jamKe])
+  const tampil = (daftar ?? []).filter((x) => saring === 'semua' || (saring === 'masuk' ? x.masuk : !x.masuk))
+  const masuk = (daftar ?? []).filter((x) => x.masuk).length
+  const jamAktif = (x: SiswaLog) => (x.jam_aktif.length ? x.jam_aktif.map((j) => `Jam ${j}`).join(', ') : '-')
+  function unduh() {
+    unduhCsv(`log-siswa-${b.rombel}-jam-${jamKe}-${tanggal}.csv`, [
+      ['No', 'Nama', 'NISN', `Masuk jam ${jamKe}`, 'Pertama (jam ini)', 'Terakhir (jam ini)', 'Masuk pertama hari ini', 'Aktif di jam pelajaran'],
+      ...(daftar ?? []).map((x, i) => [x.no_urut ?? i + 1, x.nama, x.nisn, x.masuk ? 'Ya' : 'Belum', jam(x.pertama), jam(x.terakhir), jam(x.pertama_hari), x.jam_aktif.join(' ')]),
+    ])
+  }
+  return (
+    <div className="kartu jarak">
+      <div className="aksi" style={{ justifyContent: 'space-between' }}>
+        <h3 style={{ margin: 0 }}>Log siswa {b.rombel} · {b.mapel} · jam {jamKe} ({jamTeks})</h3>
+        <button type="button" className="tombol" onClick={tutup}>Tutup</button>
+      </div>
+      {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
+      {daftar && <p className="catatan">{masuk} dari {daftar.length} siswa sudah masuk pada jam ini.</p>}
+      <div className="aksi">
+        <label>Tampilkan
+          <select value={saring} onChange={(e) => setSaring(e.target.value as typeof saring)}>
+            <option value="semua">Semua siswa</option><option value="masuk">Sudah masuk</option><option value="belum">Belum masuk</option>
+          </select>
+        </label>
+        <button type="button" className="tombol" style={{ color: 'var(--warna-utama)' }} disabled={!daftar} onClick={unduh}>Unduh CSV</button>
+      </div>
+      <div className="tabel-bungkus jarak">
+        <table>
+          <thead><tr><th>No</th><th>Nama</th><th>Jam {jamKe}</th><th>Pertama</th><th>Terakhir</th><th>Masuk pertama hari ini</th><th>Aktif di jam pelajaran</th></tr></thead>
+          <tbody>
+            {!daftar && !galat && <tr><td colSpan={7}>Memuat...</td></tr>}
+            {daftar && tampil.length === 0 && <tr><td colSpan={7}>Tidak ada siswa yang cocok.</td></tr>}
+            {tampil.map((x, i) => (
+              <tr key={x.peserta_didik_id}>
+                <td>{x.no_urut ?? i + 1}</td>
+                <td>{kapital(x.nama)}<br /><small>{x.nisn ?? ''}</small></td>
+                <td><span className={`status ${x.masuk ? 'status-selesai' : 'status-dibatalkan'}`}>{x.masuk ? 'Masuk' : 'Belum masuk'}</span></td>
+                <td>{jam(x.pertama)}</td>
+                <td>{jam(x.terakhir)}</td>
+                <td>{jam(x.pertama_hari)}</td>
+                <td><small>{jamAktif(x)}</small></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 export default function PantauJamLms() {
   const [tanggal, setTanggal] = useState(hariIni)
   const [jamManual, setJamManual] = useState<number | null>(null)
@@ -48,6 +110,7 @@ export default function PantauJamLms() {
   const [langsung, setLangsung] = useState(true)
   const [terkirim, setTerkirim] = useState<Set<string>>(new Set())
   const [sibuk, setSibuk] = useState(false)
+  const [lihat, setLihat] = useState<Baris | null>(null)
 
   const muat = useCallback(async () => {
     try { setData(await panggil<Data>('lms_pantau_jam', { p_tanggal: tanggal, p_jam: jamManual })); setGalat('') } catch (e) { setGalat((e as Error).message) }
@@ -140,9 +203,12 @@ export default function PantauJamLms() {
                       <td><span className={`status ${s.kelas}`}>{s.label}</span>{b.guru_masuk && <><br /><small>masuk {jam(b.guru_pertama)}, terakhir {jam(b.guru_terakhir)}</small></>}</td>
                       <td>{b.siswa_total > 0 ? <><strong>{b.siswa_masuk}</strong><small> / {b.siswa_total} ({pct(b.siswa_masuk, b.siswa_total)}%)</small></> : '-'}</td>
                       <td>{!b.ada_kelas ? <small>Kelas LMS belum dibuat</small> : b.ada_pertemuan ? 'Ada' : <small>Belum ada</small>}</td>
-                      <td>{s.perlu && b.ptk_id && (terkirim.has(b.ptk_id)
+                      <td>
+                        <button type="button" className="tombol" onClick={() => setLihat(b)}>Lihat siswa</button>{' '}
+                        {s.perlu && b.ptk_id && (terkirim.has(b.ptk_id)
                         ? <small>Sudah diingatkan</small>
-                        : <button type="button" className="tombol" disabled={sibuk} onClick={() => void ingatkan([b])}>Ingatkan</button>)}</td>
+                        : <button type="button" className="tombol" disabled={sibuk} onClick={() => void ingatkan([b])}>Ingatkan</button>)}
+                      </td>
                     </tr>
                   )
                 })}
@@ -151,6 +217,7 @@ export default function PantauJamLms() {
           </div>
         </>
       )}
+      {lihat && data && <LogSiswa b={lihat} tanggal={tanggal} jamKe={data.jam_dipilih} jamTeks={dipilih ? `${dipilih.mulai}-${dipilih.selesai}` : ''} tutup={() => setLihat(null)} />}
       {!data && !galat && <p className="catatan">Memuat...</p>}
       <p className="catatan">Masuk berarti membuka halaman LMS pada jam itu. Pencatatan mulai sejak fitur ini aktif. Daftar kelas mengikuti jadwal pelajaran dari bagian kurikulum.</p>
     </Halaman>
