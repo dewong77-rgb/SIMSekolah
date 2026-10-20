@@ -4,6 +4,7 @@ import Halaman from '../components/Halaman'
 import { panggil } from '../lib/rpc'
 import { DaftarPerangkat } from './LmsGuru'
 import type { BarisMinggu, BarisTp, Profil } from './lmsRencanaXlsx'
+import { ContohFormat } from './ContohPerangkat'
 
 // Perangkat ajar guru: TP, ATP, Silabus, Prota, Promes disusun otomatis dari satu sumber (Rencana ajar).
 // Modul Ajar dan RPP berupa dokumen (berkas, tautan, atau teks).
@@ -11,7 +12,7 @@ import type { BarisMinggu, BarisTp, Profil } from './lmsRencanaXlsx'
 type Tp = BarisTp & { mapel: string; tingkat: string; urutan: number }
 type Minggu = BarisMinggu & { id: string; mapel: string; tingkat: string; urutan: number }
 type Data = { tp: Tp[]; minggu: Minggu[]; profil?: { mapel: string; tingkat: string; data: Profil }[] }
-type Ctx = { tp: Tp[]; mg: Minggu[]; pf: Profil; mapel: string; tingkat: string; rombel: string[]; tahun: string }
+export type Ctx = { tp: Tp[]; mg: Minggu[]; pf: Profil; mapel: string; tingkat: string; rombel: string[]; tahun: string }
 
 const JENIS = [
   { k: 'tp', nama: 'TP', judul: 'Tujuan Pembelajaran (TP)', turunan: true, ket: 'Rumusan tujuan per elemen, disusun dari Rencana ajar.' },
@@ -238,6 +239,7 @@ export default function PerangkatAjar() {
   const [d, setD] = useState<Data | null>(null)
   const [galat, setGalat] = useState('')
   const [pilih, setPilih] = useState('')
+  const [contoh, setContoh] = useState(false)
   const [kelasSaya, setKelasSaya] = useState<{ mapel: string; rombel: string; peran: string }[]>([])
   useEffect(() => { panggil<{ mapel: string; rombel: string; peran: string }[]>('lms_kelas_saya').then(setKelasSaya).catch(() => undefined) }, [])
   useEffect(() => { if (def?.turunan) panggil<Data>('lms_rencana_saya').then(setD).catch((e) => setGalat((e as Error).message)) }, [def?.turunan])
@@ -248,6 +250,8 @@ export default function PerangkatAjar() {
     return [...s.entries()]
   }, [d])
   const aktif = pilih || kelompok[0]?.[0] || ''
+  const kosong = !!def?.turunan && !!d && kelompok.length === 0
+  const tampilContoh = contoh || kosong
   if (!def) return <Navigate to="/portal/lms/perangkat/tp" replace />
   const [mapel, tingkat] = aktif.split('|')
   const tp = (d?.tp ?? []).filter((t) => t.mapel === mapel && t.tingkat === tingkat)
@@ -264,10 +268,24 @@ export default function PerangkatAjar() {
         {JENIS.map((j) => <Link key={j.k} to={`/portal/lms/perangkat/${j.k}`} className={`tombol${j.k === jenis ? ' tombol-isi' : ''}`}>{j.nama}</Link>)}
       </nav>
       {galat && <p className="catatan galat" role="alert">{galat}</p>}
+      <div className="aksi tanpa-cetak">
+        <button type="button" className="tombol" aria-expanded={tampilContoh} onClick={() => setContoh(!contoh)}>{tampilContoh ? 'Sembunyikan contoh format' : 'Lihat contoh format'}</button>
+        {def.turunan && <Link to="/portal/lms/rencana" className="tombol">Unduh template Excel</Link>}
+      </div>
+      {tampilContoh && <ContohFormat jenis={jenis} />}
       {def.turunan ? (
         <>
           {!d && !galat && <p className="catatan">Memuat...</p>}
-          {d && kelompok.length === 0 && <p className="catatan">Belum ada data. Isi dari template Excel di <Link to="/portal/lms/rencana">Rencana ajar</Link>, maka TP, ATP, Silabus, Prota, dan Promes tersusun sendiri.</p>}
+          {d && kelompok.length === 0 && (
+            <div className="kartu jarak">
+              <p><strong>Belum ada data.</strong> Contoh format ada di atas. Cara mengisinya:</p>
+              <ol>
+                <li>Buka <Link to="/portal/lms/rencana">Rencana ajar</Link> dan unduh template Excel.</li>
+                <li>Isi sheet TP (tujuan, kriteria, alokasi) dan sheet Minggu (program semester).</li>
+                <li>Unggah kembali. TP, ATP, KKTP, Silabus, Prota, dan Promes tersusun otomatis.</li>
+              </ol>
+            </div>
+          )}
           {kelompok.length > 0 && (
             <>
               {kelompok.length > 1 && (
