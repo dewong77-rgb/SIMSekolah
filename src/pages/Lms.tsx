@@ -6,7 +6,6 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import Halaman from '../components/Halaman'
 import { useAuth } from '../auth/AuthContext'
 import { panggil, tgl, tglJam } from '../lib/rpc'
-import { supabase } from '../lib/supabase'
 import PilihKelas from './LmsPilihKelas'
 import { DaftarKuis, LatihanPertemuan } from './LmsKuis'
 import { DaftarTugas } from './LmsTugas'
@@ -78,8 +77,7 @@ export function DaftarKelas() {
   useEffect(() => { void muat() }, [muat])
   useEffect(() => {
     if (!form || rombel.length) return
-    supabase.from('rombel').select('id, nama').eq('jenis_rombel', 'Kelas Utama').order('nama')
-      .then(({ data }) => setRombel((data as { id: string; nama: string }[] | null) ?? []))
+    panggil<{ id: string; nama: string }[]>('lms_rombel_pilihan').then(setRombel).catch((e: Error) => setGalat(e.message))
   }, [form, rombel.length])
 
   async function buat(e: FormEvent) {

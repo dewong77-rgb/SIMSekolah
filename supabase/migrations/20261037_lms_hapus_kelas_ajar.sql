@@ -67,3 +67,17 @@ exception when unique_violation then
 end $$;
 revoke all on function public.lms_buat_kelas_ajar(uuid, text, uuid) from public, anon;
 grant execute on function public.lms_buat_kelas_ajar(uuid, text, uuid) to authenticated;
+
+-- Pilihan rombel untuk formulir "Buat kelas baru". Guru tidak perlu menunggu penugasan kurikulum,
+-- dan formulir tidak bergantung pada hak baca langsung ke tabel rombel.
+create or replace function public.lms_rombel_pilihan() returns jsonb
+language sql stable security definer set search_path = '' as $$
+  select coalesce(jsonb_agg(jsonb_build_object('id', r.id, 'nama', r.nama, 'semester', r.semester_id)
+           order by r.semester_id desc, r.nama), '[]'::jsonb)
+  from public.rombel r
+  where r.jenis_rombel = 'Kelas Utama'
+    and (private.adalah_super() or r.npsn = private.npsn_saya())
+    and (private.adalah_super() or private.peran_saya() in ('guru', 'admin_tu'))
+$$;
+revoke all on function public.lms_rombel_pilihan() from public, anon;
+grant execute on function public.lms_rombel_pilihan() to authenticated;
