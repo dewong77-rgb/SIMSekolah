@@ -93,6 +93,17 @@ export function DaftarKelas() {
     setSibuk(false)
   }
 
+  async function hapus(k: Kelas) {
+    if (!window.confirm(`Hapus kelas ${k.mapel} ${k.rombel}? Kelas hilang dari daftar. Data pertemuan dan nilai tetap tersimpan.`)) return
+    setGalat('')
+    try { await panggil('lms_hapus_kelas_ajar', { p_kelas: k.id, p_paksa: false }); await muat(); return } catch (er) {
+      const m = (er as Error).message
+      if (!m.startsWith('Kelas ini sudah punya')) { setGalat(m); return }
+      if (!window.confirm(`${m}\n\nTetap hapus?`)) return
+    }
+    try { await panggil('lms_hapus_kelas_ajar', { p_kelas: k.id, p_paksa: true }); await muat() } catch (er) { setGalat((er as Error).message) }
+  }
+
   const siswa = profil?.peran === 'siswa'
   return (
     <Halaman judul="Kelas saya" lead={siswa ? 'Pilih kelas, lalu ketuk Mulai belajar. Semua langkah dibimbing satu per satu.' : 'Kelas yang Anda ajar semester ini.'}>
@@ -143,7 +154,8 @@ export function DaftarKelas() {
         {!kelas && <p className="catatan">Memuat...</p>}
         {kelas && kelas.length === 0 && <div className="kartu"><p>Belum ada kelas.</p><p className="catatan">{bolehBuat ? 'Buat kelas baru dari tombol di atas. Kelas yang salah bisa dihapus dari halaman kelasnya.' : 'Kelas muncul setelah guru membuat kelas ajar untuk rombel Anda.'}</p></div>}
         {(kelas ?? []).map((k) => (
-          <Link key={k.id} to={`/portal/lms/${k.id}`} className="kartu tautan kartu-kelas" style={{ ['--w' as string]: warnaKelas(k.mapel) }}>
+          <div key={k.id} className="kelas-bungkus">
+          <Link to={`/portal/lms/${k.id}`} className="kartu tautan kartu-kelas" style={{ ['--w' as string]: warnaKelas(k.mapel) }}>
             <span className="kelas-inisial" aria-hidden="true">{inisialKelas(k.mapel)}</span>
             <span className="kelas-isi">
               <small>{k.rombel}</small>
@@ -152,6 +164,8 @@ export function DaftarKelas() {
               <span className="kelas-meta">{k.jumlah_pertemuan} pertemuan{k.peran === 'pengelola' ? ' · Anda pengelola' : ''}</span>
             </span>
           </Link>
+          {k.peran === 'pengelola' && <button type="button" className="kelas-hapus" title="Hapus kelas ini (jika salah)" aria-label={`Hapus kelas ${k.mapel} ${k.rombel}`} onClick={() => void hapus(k)}><Ikon nama="tutup" ukuran={14} /></button>}
+          </div>
         ))}
       </div>
       <Kembali ke="/portal" teks="Kembali ke portal" />
