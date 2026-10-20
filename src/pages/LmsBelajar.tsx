@@ -10,17 +10,17 @@ import { LatihanPertemuan } from './LmsKuis'
 import { Forum } from './LmsForum'
 import { PengingatNilai } from './LmsProgres'
 
-export type Materi = { id: string; urutan: number; jenis: 'teks' | 'video' | 'tautan' | 'berkas'; judul: string; isi: string | null; url: string | null; selesai: boolean; format: 'teks' | 'html'; untuk: 'siswa' | 'guru'; tugas_id?: string | null; mulai_pada?: string | null }
+export type Materi = { id: string; urutan: number; jenis: 'teks' | 'video' | 'tautan' | 'berkas'; judul: string; isi: string | null; url: string | null; selesai: boolean; format: 'teks' | 'html'; untuk: 'siswa' | 'guru'; tugas_id?: string | null; mulai_pada?: string | null; menit_baca?: number }
 
 const labelJenis: Record<string, string> = { teks: 'Bacaan', video: 'Video', tautan: 'Tautan', berkas: 'Berkas' }
 
-/** Jeda baca minimal sebelum bahan bacaan boleh ditandai selesai. Harus sama dengan batas di lms_tandai_selesai. */
-const MENIT_BACA_MINIMAL = 10
+/** Jeda baca minimal sebelum bahan bacaan boleh ditandai selesai. Diatur guru per kelas; server memakai nilai yang sama di lms_tandai_selesai. */
+const MENIT_BACA_AWAL = 10
 
-function sisaDetikBaca(mulaiPada?: string | null): number {
-  if (!mulaiPada) return MENIT_BACA_MINIMAL * 60
+function sisaDetikBaca(mulaiPada: string | null | undefined, menit: number): number {
+  if (!mulaiPada) return menit * 60
   const lewat = (Date.now() - new Date(mulaiPada).getTime()) / 1000
-  return Math.max(0, Math.ceil(MENIT_BACA_MINIMAL * 60 - lewat))
+  return Math.max(0, Math.ceil(menit * 60 - lewat))
 }
 
 function formatMenitDetik(detik: number): string {
@@ -46,13 +46,14 @@ export function IsiMateri({ m, siswa, selesai, pratinjau, setelah }: { m: Materi
   const yt = m.jenis === 'video' && m.url ? idYoutube(m.url) : null
   const kenaJeda = siswa && !pratinjau && !m.tugas_id && !m.selesai
   const [kirim, setKirim] = useState(false)
-  const [sisa, setSisa] = useState(() => (kenaJeda ? sisaDetikBaca(m.mulai_pada) : 0))
+  const menit = m.menit_baca ?? MENIT_BACA_AWAL
+  const [sisa, setSisa] = useState(() => (kenaJeda ? sisaDetikBaca(m.mulai_pada, menit) : 0))
   useEffect(() => {
     if (!kenaJeda) return
-    setSisa(sisaDetikBaca(m.mulai_pada))
-    const iv = window.setInterval(() => setSisa(sisaDetikBaca(m.mulai_pada)), 1000)
+    setSisa(sisaDetikBaca(m.mulai_pada, menit))
+    const iv = window.setInterval(() => setSisa(sisaDetikBaca(m.mulai_pada, menit)), 1000)
     return () => window.clearInterval(iv)
-  }, [kenaJeda, m.mulai_pada])
+  }, [kenaJeda, m.mulai_pada, menit])
   return (
     <div className="kartu jarak">
       <div className="lencana-baris">
