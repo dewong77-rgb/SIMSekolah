@@ -104,6 +104,7 @@ const ProgresSaya = lazy(() => import('./pages/LmsProgres').then((m) => ({ defau
 const AbsensiGuru = lazy(() => import('./pages/LmsAbsensi'))
 const TautanOrtu = lazy(() => import('./pages/LmsProgres').then((m) => ({ default: m.TautanOrtu })))
 const RuangKuis = lazy(() => import('./pages/LmsKuis').then((m) => ({ default: m.RuangKuis })))
+const IsianLembar = lazy(() => import('./pages/LmsIsianLembar'))
 const RuangPertemuan = lazy(() => import('./pages/Lms').then((m) => ({ default: m.RuangPertemuan })))
 const RekapKelas = lazy(() => import('./pages/Lms').then((m) => ({ default: m.RekapKelas })))
 const AsesmenLayout = lazy(() => import('./pages/asesmen/AsesmenLayout'))
@@ -641,6 +642,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="portal/lms/dashboard" element={<RequireRole peran={['admin_tu', 'guru']}><Suspense fallback={<Memuat />}><DashboardPembelajaran /></Suspense></RequireRole>} />
           <Route path="portal/lms/:kelasId" element={<RequireRole peran={['admin_tu', 'guru', 'siswa']}><Suspense fallback={<Memuat />}><DetailKelas /></Suspense></RequireRole>} />
           <Route path="portal/lms/:kelasId/rekap" element={<RequireRole peran={['admin_tu', 'guru']}><Suspense fallback={<Memuat />}><RekapKelas /></Suspense></RequireRole>} />
+          <Route path="portal/lms/:kelasId/pertemuan/:id/isian" element={<RequireRole peran={['admin_tu', 'guru']}><Suspense fallback={<Memuat />}><IsianLembar /></Suspense></RequireRole>} />
           <Route path="portal/lms/:kelasId/pertemuan/:id" element={<RequireRole peran={['admin_tu', 'guru', 'siswa']}><Suspense fallback={<Memuat />}><RuangPertemuan /></Suspense></RequireRole>} />
           <Route path="portal/lms/:kelasId/kuis/:id" element={<RequireRole peran={['admin_tu', 'guru', 'siswa']}><Suspense fallback={<Memuat />}><RuangKuis /></Suspense></RequireRole>} />
           <Route path="portal/lms/:kelasId/tugas/:id" element={<RequireRole peran={['admin_tu', 'guru', 'siswa']}><Suspense fallback={<Memuat />}><RuangTugas /></Suspense></RequireRole>} />

@@ -342,6 +342,7 @@ export function DetailKelas() {
                   {kelola && p.kelengkapan
                     ? <small>
                         <span className={`status ${p.kelengkapan.materi > 0 ? 'status-selesai' : 'status-dibatalkan'}`}>Materi {p.kelengkapan.materi}</span>{' '}
+                        {(p.kelengkapan.lembar ?? 0) > 0 && <><span className="status status-selesai">Lembar {p.kelengkapan.lembar}</span>{' '}</>}
                         <span className={`status ${p.kelengkapan.latihan > 0 ? 'status-selesai' : 'status-dibatalkan'}`}>Latihan {p.kelengkapan.latihan}</span>{' '}
                         <span className={`status ${p.kelengkapan.forum > 0 ? 'status-selesai' : 'status-dibatalkan'}`}>Forum {p.kelengkapan.forum}</span>
                         {p.status === 'draf' ? <> <span className="status status-menunggu">Draf</span></> : null}
@@ -360,6 +361,7 @@ export function DetailKelas() {
                   <Link to={`/portal/lms/${kelasId}/pertemuan/${p.id}`}>Buka</Link>
                   {kelola && (
                     <div className="aksi" style={{ marginTop: 6 }}>
+                      <Link to={`/portal/lms/${kelasId}/pertemuan/${p.id}/isian`} className="tombol tombol-isi" title="Lihat isian lembar kerja yang diisi siswa">Isian siswa</Link>
                       <button type="button" className="tombol" style={{ color: 'var(--warna-utama)' }} onClick={() => mulaiUbah(p)}>Ubah</button>
                       <button type="button" className="tombol" style={{ color: '#8a1f1f', borderColor: '#8a1f1f' }} onClick={() => void hapusPertemuan(p)}>Hapus</button>
                     </div>
@@ -954,6 +956,7 @@ export function RuangPertemuan() {
         <div id="forum"><Forum pertemuanId={id} kelasId={kelasId} kelola={kelola} setelah={kelola ? () => void muat() : undefined} /></div>
       )}
 
+      {kelola && p && tab === 'rekap' && <p className="aksi tanpa-cetak"><Link to={`/portal/lms/${kelasId}/pertemuan/${id}/isian`} className="tombol tombol-isi">Lihat isian lembar kerja siswa</Link></p>}
       {kelola && p && tab === 'rekap' && <RekapPertemuan pertemuanId={id} nomor={p.nomor} versi={versi} />}
       <Kembali ke={`/portal/lms/${kelasId}`} teks="Kembali ke daftar pertemuan" />
     </Halaman>
