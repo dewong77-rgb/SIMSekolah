@@ -2,11 +2,39 @@ import Halaman, { Segera } from '../components/Halaman'
 import { useKerjasama } from '../lib/hubin'
 import { bersihWilayah, nomorWa, useSekolah } from '../lib/profilSekolah'
 import { tanggalPanjang } from '../lib/format'
-import { useJurusan } from '../lib/dataPublik'
+import { useJurusan, useStatistik } from '../lib/dataPublik'
+import Ikon from '../components/Ikon'
 import { urlPublik, useGaleri } from '../lib/gambar'
 import { Link } from 'react-router-dom'
 import { useState, type FormEvent } from 'react'
 import { cekDataAlumni, type HasilAlumni } from '../lib/alumni'
+
+const angka = (n: number | undefined) => (n === undefined ? null : n.toLocaleString('id-ID'))
+
+/** Ringkasan angka sekolah dari data Dapodik. */
+function SekolahDalamAngka() {
+  const st = useStatistik()
+  const ringkasan = [
+    { label: 'Peserta didik aktif', nilai: angka(st?.peserta_didik_aktif), ikon: 'kelompok' },
+    { label: 'Guru dan tenaga kependidikan', nilai: angka(st?.ptk), ikon: 'pengguna' },
+    { label: 'Rombongan belajar', nilai: angka(st?.rombel), ikon: 'sekolah' },
+    { label: 'Alumni tercatat', nilai: angka(st?.alumni), ikon: 'tas' },
+  ]
+  return (
+    <section className="jarak" aria-label="Sekolah dalam angka">
+      <h3>Sekolah dalam angka</h3>
+      <div className="statistik">
+        {ringkasan.map((r) => (
+          <div key={r.label} className="stat">
+            <span className="stat-ikon"><Ikon nama={r.ikon} ukuran={22} /></span>
+            {r.nilai === null ? <strong className="rangka-angka" aria-label="Memuat" /> : <strong>{r.nilai}</strong>}
+            <span>{r.label}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
 
 export function Profil() {
   const { data: d, sampulUrl } = useSekolah()
@@ -34,6 +62,7 @@ export function Profil() {
           {misi.length > 0 ? <ul>{misi.map((m, i) => <li key={i}>{m}</li>)}</ul> : <p>Misi sekolah belum diisi.</p>}
         </div>
       </div>
+      <SekolahDalamAngka />
       {(d?.tentang || d?.sejarah) && (
         <div className="grid grid-2 jarak">
           {d?.tentang && <div className="kartu"><h3>Tentang sekolah</h3><p style={{ whiteSpace: 'pre-line' }}>{d.tentang}</p></div>}
