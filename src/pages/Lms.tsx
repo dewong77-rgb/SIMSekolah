@@ -282,6 +282,7 @@ export function DetailKelas() {
           </button>
         </div>
       )}
+      {kelola && <PengaturanBaca kelasId={kelasId} />}
       {form && (
         <form className="kartu form jarak" onSubmit={simpan}>
           <div className="grid grid-2">
@@ -379,6 +380,49 @@ export function DetailKelas() {
       })()}
       <Kembali ke="/portal/lms" teks="Kembali ke daftar kelas" />
     </Halaman>
+  )
+}
+
+const PILIHAN_BACA = [0, 5, 10, 15, 20, 30, 45, 60]
+
+/** Waktu baca minimal per kelas: satu pengaturan untuk semua pertemuan. */
+function PengaturanBaca({ kelasId }: { kelasId: string }) {
+  const [menit, setMenit] = useState<number | null>(null)
+  const [semua, setSemua] = useState(false)
+  const [sibuk, setSibuk] = useState(false)
+  const [pesan, setPesan] = useState('')
+  const [galat, setGalat] = useState('')
+  useEffect(() => {
+    setMenit(null); setPesan('')
+    panggil<number>('lms_baca_ambil', { p_kelas: kelasId }).then(setMenit).catch((e: Error) => setGalat(e.message))
+  }, [kelasId])
+  async function simpan(e: FormEvent) {
+    e.preventDefault()
+    if (menit === null) return
+    setSibuk(true); setGalat(''); setPesan('')
+    try {
+      const n = await panggil<number>('lms_baca_atur', { p_kelas: kelasId, p_menit: menit, p_semua: semua })
+      setPesan(`Tersimpan untuk ${n} kelas.`)
+    } catch (er) { setGalat((er as Error).message) }
+    setSibuk(false)
+  }
+  const opsi = menit !== null && !PILIHAN_BACA.includes(menit) ? [...PILIHAN_BACA, menit].sort((a, b) => a - b) : PILIHAN_BACA
+  return (
+    <details className="kartu jarak">
+      <summary>Pengaturan kelas: waktu baca minimal{menit !== null ? ` (${menit === 0 ? 'tanpa jeda' : `${menit} menit`})` : ''}</summary>
+      <form className="form" onSubmit={simpan}>
+        <label>Waktu baca minimal sebelum siswa bisa menandai bacaan selesai
+          <select value={menit ?? ''} disabled={menit === null} onChange={(e) => setMenit(Number(e.target.value))}>
+            {opsi.map((m) => <option key={m} value={m}>{m === 0 ? 'Tanpa jeda' : `${m} menit`}</option>)}
+          </select>
+        </label>
+        <label className="baris-centang"><input type="checkbox" checked={semua} onChange={(e) => setSemua(e.target.checked)} /> Terapkan juga ke semua kelas saya</label>
+        <p className="catatan">Berlaku untuk semua pertemuan di kelas ini, termasuk yang sudah ada.</p>
+        <div className="aksi"><button className="tombol tombol-isi" disabled={sibuk || menit === null}>{sibuk ? 'Menyimpan...' : 'Simpan pengaturan'}</button></div>
+        {pesan && <p className="catatan" role="status"><strong>{pesan}</strong></p>}
+        {galat && <p className="catatan galat" role="alert">Galat: {galat}</p>}
+      </form>
+    </details>
   )
 }
 
