@@ -4,20 +4,20 @@ import { panggil, tglJam } from '../lib/rpc'
 
 // Pengingat LMS untuk siswa dan guru. Dihitung server saat dibuka, hilang sendiri setelah tindakan selesai.
 
-type Butir = {
+export type Butir = {
   jenis: 'absen' | 'tugas' | 'lembar' | 'latihan' | 'forum' | 'koreksi' | 'nilai' | 'absen_guru' | 'draf'
   judul: string; kelas_id: string; mapel: string; rombel: string
   pertemuan_id: string | null; tugas_id: string | null; asesmen_id: string | null; batas: string | null
   tingkat: 'lewat' | 'segera' | 'biasa'
 }
-type Hasil = { peran: 'siswa' | 'guru' | 'lain'; jumlah: number; butir: Butir[] }
+export type Hasil = { peran: 'siswa' | 'guru' | 'lain'; jumlah: number; butir: Butir[] }
 
-const label: Record<Butir['jenis'], string> = {
+export const labelPengingat: Record<Butir['jenis'], string> = {
   absen: 'Absen', tugas: 'Tugas', lembar: 'Lembar kerja', latihan: 'Latihan', forum: 'Diskusi',
   koreksi: 'Koreksi', nilai: 'Penilaian', absen_guru: 'Absen', draf: 'Persiapan',
 }
 
-function tujuan(b: Butir): string {
+export function tujuan(b: Butir): string {
   const k = `/portal/lms/${b.kelas_id}`
   if ((b.jenis === 'latihan' || b.jenis === 'koreksi') && b.asesmen_id) return `${k}/kuis/${b.asesmen_id}`
   if (b.jenis === 'tugas' && b.tugas_id) return `${k}/tugas/${b.tugas_id}`
@@ -56,7 +56,7 @@ export default function PengingatLms({ maks = 6 }: { maks?: number }) {
       <h2 className="menu-bagian-judul" style={{ margin: 0 }}>{h.peran === 'siswa' ? 'Yang perlu Anda kerjakan' : 'Yang perlu Anda tindak lanjuti'} ({h.jumlah})</h2>
       {tampil.map((b, i) => (
         <Link key={i} to={tujuan(b)} className={`perhatian-item pengingat-${b.tingkat}`}>
-          <span className="lencana">{label[b.jenis]}</span>
+          <span className="lencana">{labelPengingat[b.jenis]}</span>
           <span className="pengingat-isi"><strong>{b.judul}</strong><small>{b.mapel} {b.rombel}{ket(b) ? `, ${ket(b)}` : ''}</small></span>
         </Link>
       ))}

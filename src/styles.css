@@ -1446,3 +1446,26 @@ a.bt-tag:hover, button.bt-tag:hover, .bt-tag.aktif { background: var(--warna-uta
 
 .form label.baris-centang { display: flex; align-items: center; gap: 8px; font-weight: 400; }
 .form label.baris-centang input { margin-top: 0; }
+
+/* Tombol halaman berita */
+.bt-halaman { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; margin: 28px 0 6px; }
+.bt-halaman-item { display: inline-flex; align-items: center; gap: 6px; }
+.bt-halaman .tombol { min-width: 40px; padding-left: 12px; padding-right: 12px; }
+.bt-halaman-ket { text-align: center; }
+
+/* Lonceng notifikasi */
+.lonceng-menu { position: relative; }
+.lonceng-kotak { position: absolute; right: 0; top: calc(100% + 8px); width: min(380px, calc(100vw - 24px)); max-height: min(70vh, 560px); overflow-y: auto; background: #fff; border: 1px solid var(--garis); border-radius: 14px; box-shadow: 0 10px 28px rgba(0,0,0,.14); padding: 8px; z-index: 45; animation: muncul .16s var(--ease); }
+.lonceng-kepala { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 6px 8px; border-bottom: 1px solid var(--garis); }
+.lonceng-daftar { list-style: none; margin: 0; padding: 0; }
+.lonceng-item { padding: 8px 6px; border-bottom: 1px solid var(--garis); border-left: 3px solid transparent; }
+.lonceng-item:last-child { border-bottom: 0; }
+.lonceng-item.tingkat-lewat { border-left-color: #c62828; }
+.lonceng-item.tingkat-segera { border-left-color: var(--warna-aksen); }
+.lonceng-item a { display: grid; gap: 2px; color: var(--teks); text-decoration: none; }
+.lonceng-item a:hover strong { text-decoration: underline; }
+.lonceng-item .lencana { justify-self: start; }
+.lonceng-item small { color: var(--teks-lembut); }
+.lonceng-aksi { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; padding: 2px 6px; border: 0; border-radius: 6px; background: none; font: inherit; font-size: .8rem; color: var(--warna-utama); cursor: pointer; }
+.lonceng-aksi:hover { background: var(--latar-lembut); }
+.lonceng-kosong { margin: 0; padding: 14px 8px; color: var(--teks-lembut); text-align: center; font-size: .9rem; }

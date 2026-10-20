@@ -6,7 +6,6 @@ import { useAuth } from '../auth/AuthContext'
 import { namaPeran } from '../data/menuPortal'
 import AgendaTerdekat from '../components/AgendaTerdekat'
 import JamSistem from '../components/JamSistem'
-import PengingatLms from './LmsPengingat'
 import { BerandaBelajar } from './LmsBelajar'
 
 const kalimatPeran = {
@@ -51,7 +50,6 @@ export default function Portal() {
       )}
 
       {profil.peran === 'siswa' && <BerandaBelajar />}
-      {(profil.peran === 'siswa' || profil.peran === 'guru') && <PengingatLms />}
 
       {profil.peran !== 'orang_tua' && (
         <Link to="/asesmen" className="kartu tautan kartu-menu jarak">
