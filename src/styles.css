@@ -1443,3 +1443,6 @@ a.bt-tag:hover, button.bt-tag:hover, .bt-tag.aktif { background: var(--warna-uta
 .kelas-bungkus .kartu-kelas { height: 100%; }
 .kelas-hapus { position: absolute; top: 6px; right: 6px; display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; font-size: .78rem; border: 1px solid #d9b8b8; border-radius: 8px; background: #fff; color: #8a1f1f; cursor: pointer; opacity: .85; }
 .kelas-hapus:hover, .kelas-hapus:focus-visible { opacity: 1; background: #fbeeee; }
+
+.form label.baris-centang { display: flex; align-items: center; gap: 8px; font-weight: 400; }
+.form label.baris-centang input { margin-top: 0; }
