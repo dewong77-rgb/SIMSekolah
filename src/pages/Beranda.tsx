@@ -24,7 +24,7 @@ const Rangka = ({ n }: { n: number }) => (
 
 export default function Beranda() {
   const sekolah = useSekolah()
-  const { hasil: hasilBerita } = useBeritaPublik(3)
+  const { hasil: hasilBerita } = useBeritaPublik(6)
   const { session } = useAuth()
   const pintuPortal = session ? '/portal' : '/masuk'
   return (
@@ -58,7 +58,7 @@ export default function Beranda() {
         <Judul label="Kabar sekolah" judul="Berita terbaru" tautan="Semua berita" ke="/berita" />
         {hasilBerita && hasilBerita.baris.length === 0 && <p className="kartu kosong-berita">Belum ada berita yang diterbitkan.</p>}
         <div className="grid grid-3">
-          {!hasilBerita && <Rangka n={3} />}
+          {!hasilBerita && <Rangka n={6} />}
           {hasilBerita?.baris.map((b) => <KartuBerita key={b.slug} b={b} />)}
         </div>
       </section>
