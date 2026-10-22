@@ -105,6 +105,7 @@ const AbsensiGuru = lazy(() => import('./pages/LmsAbsensi'))
 const TautanOrtu = lazy(() => import('./pages/LmsProgres').then((m) => ({ default: m.TautanOrtu })))
 const RuangKuis = lazy(() => import('./pages/LmsKuis').then((m) => ({ default: m.RuangKuis })))
 const IsianLembar = lazy(() => import('./pages/LmsIsianLembar'))
+const EksporData = lazy(() => import('./pages/EksporData'))
 const RuangPertemuan = lazy(() => import('./pages/Lms').then((m) => ({ default: m.RuangPertemuan })))
 const RekapKelas = lazy(() => import('./pages/Lms').then((m) => ({ default: m.RekapKelas })))
 const AsesmenLayout = lazy(() => import('./pages/asesmen/AsesmenLayout'))
@@ -583,6 +584,14 @@ createRoot(document.getElementById('root')!).render(
             element={
               <RequireRole peran={['admin_tu', 'guru', 'staf']}>
                 <Suspense fallback={<Memuat />}><KelolaJam /></Suspense>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="portal/ekspor"
+            element={
+              <RequireRole peran={['admin_tu']}>
+                <Suspense fallback={<Memuat />}><EksporData /></Suspense>
               </RequireRole>
             }
           />
