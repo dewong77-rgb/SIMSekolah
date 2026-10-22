@@ -112,6 +112,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
       judul: 'Dapodik',
       item: [
         { to: '/portal/unggah', label: 'Unggah Dapodik', ikon: 'unggah', ket: 'Unggah berkas ekspor Dapodik' },
+        { to: '/portal/ekspor', label: 'Ekspor data', ikon: 'unduh', ket: 'Unduh biodata siswa dan guru dalam format Dapodik' },
         { to: '/portal/riwayat', label: 'Riwayat unggah', ikon: 'riwayat', ket: 'Berkas yang pernah diunggah dan ringkasannya' },
         { to: '/portal/ajuan-masuk', label: 'Ajuan perbaikan', ikon: 'kotak', ket: 'Periksa ajuan dan teruskan ke operator Dapodik', lencana: 'ajuan_masuk' },
       ],
