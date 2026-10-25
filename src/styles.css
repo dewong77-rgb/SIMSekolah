@@ -1469,3 +1469,27 @@ a.bt-tag:hover, button.bt-tag:hover, .bt-tag.aktif { background: var(--warna-uta
 .lonceng-aksi { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; padding: 2px 6px; border: 0; border-radius: 6px; background: none; font: inherit; font-size: .8rem; color: var(--warna-utama); cursor: pointer; }
 .lonceng-aksi:hover { background: var(--latar-lembut); }
 .lonceng-kosong { margin: 0; padding: 14px 8px; color: var(--teks-lembut); text-align: center; font-size: .9rem; }
+
+/* Statistik kunjungan di beranda */
+.kunjungan-grafik { display: flex; gap: 10px; align-items: stretch; margin-top: 12px; padding: 14px 18px; }
+.kunjungan-hari { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+.kunjungan-hari small { color: var(--teks-lembut); font-size: .75rem; }
+.kunjungan-batang { width: 100%; max-width: 44px; height: 64px; display: flex; align-items: flex-end; }
+.kunjungan-batang i { display: block; width: 100%; background: var(--warna-utama); border-radius: 4px 4px 0 0; opacity: .85; }
+.kunjungan-hari:last-child .kunjungan-batang i { background: var(--warna-aksen); opacity: 1; }
+
+/* Rekap LMS per rombel dan mata pelajaran */
+.rekap-rombel { margin-top: 14px; padding: 0; overflow: hidden; }
+.rekap-rombel > summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, 280px); gap: 6px 18px; align-items: center; padding: 14px 18px; }
+.rekap-rombel > summary::-webkit-details-marker { display: none; }
+.rekap-rombel[open] > summary { border-bottom: 1px solid var(--garis); }
+.rekap-judul { display: flex; flex-direction: column; min-width: 0; }
+.rekap-judul strong { font-size: 1.05rem; }
+.rekap-judul small { color: var(--teks-lembut); }
+.rekap-bar { height: 8px; background: #e6e9ef; border-radius: 4px; overflow: hidden; margin-top: 4px; }
+.rekap-bar i { display: block; height: 8px; background: #2f8f4e; }
+.rekap-angka { font-size: .85rem; }
+.rekap-angka b { color: #1d6b34; } .rekap-angka em { font-style: normal; color: #8a1f1f; font-weight: 600; }
+.rekap-rombel .tabel-bungkus { margin: 0; border: 0; border-radius: 0; }
+.rekap-kosong { padding: 12px 18px; }
+@media (max-width: 720px) { .rekap-rombel > summary { grid-template-columns: 1fr; } .kunjungan-grafik { padding: 12px; gap: 6px; } }

@@ -122,6 +122,7 @@ const menuPeran: Record<Peran, KelompokPortal[]> = {
       item: [
         { to: '/portal/lms', label: 'Kelas ajar', ikon: 'buku', ket: 'Kelas, materi, absensi per pertemuan' },
         { to: '/portal/absensi', label: 'Rekap pengerjaan', ikon: 'centang', ket: 'Jumlah siswa yang diajar dan rekap pengerjaan LMS per kelas' },
+        { to: '/portal/lms/rekap-mapel', label: 'Rekap LMS per kelas', ikon: 'grafik', ket: 'Per rombel: mapel mana yang sudah dan belum mengunggah pertemuan' },
         { to: '/portal/lms/administrasi', label: 'Kelengkapan administrasi', ikon: 'dokumen', ket: 'Kelengkapan pertemuan semua guru dan dokumen perangkat ajar' },
         perpustakaan,
         { to: '/asesmen', label: 'Asesmen digital (CBT)', ikon: 'pena', ket: 'Kelola ujian, ruang, bank soal, dan pengawas' },
@@ -183,6 +184,7 @@ const menuIzin: { izin: string; nama: string; bidang: string; ikon: string; to?:
   { izin: 'kurikulum.kalender', nama: 'Kalender sekolah', bidang: 'Kurikulum', ikon: 'kalender', to: '/portal/kalender' },
   { izin: 'kurikulum.struktur', nama: 'Struktur kurikulum', bidang: 'Kurikulum', ikon: 'buku', to: '/portal/kurikulum/struktur' },
   { izin: 'lms.pantau_guru', nama: 'Pantau per jam pelajaran', bidang: 'Kurikulum', ikon: 'jam', to: '/portal/lms/pantau-jam' },
+  { izin: 'lms.pantau_kelas', nama: 'Rekap LMS per kelas', bidang: 'Kurikulum dan wali kelas', ikon: 'grafik', to: '/portal/lms/rekap-mapel' },
   { izin: 'lms.pantau_guru', nama: 'Kehadiran guru di LMS', bidang: 'Kurikulum', ikon: 'centang', to: '/portal/lms/kehadiran-guru' },
   { izin: 'kurikulum.struktur', nama: 'Beban mengajar', bidang: 'Kurikulum', ikon: 'kelompok', to: '/portal/kurikulum/beban' },
   { izin: 'kurikulum.struktur', nama: 'Jadwal pelajaran', bidang: 'Kurikulum', ikon: 'kalender', to: '/portal/kurikulum/jadwal' },
