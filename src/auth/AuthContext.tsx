@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase, type ProfilPengguna } from '../lib/supabase'
+import { catatKunjungan, catatLogin } from '../lib/kunjungan'
 
 export type PenugasanSaya = {
   jabatan_kode: string; jabatan_nama: string; kelompok: string
@@ -46,6 +47,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Profil dimuat di efek terpisah agar tidak memanggil Supabase di dalam callback auth.
   const userId = session?.user.id ?? null
+  useEffect(() => { catatKunjungan() }, [])
+  useEffect(() => { if (userId) catatLogin(userId) }, [userId])
   useEffect(() => {
     if (!userId) {
       setProfil(null)
