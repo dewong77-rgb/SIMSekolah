@@ -25,6 +25,7 @@ export default function RequireRole({ peran, superAdmin = false, izin, children 
     return (
       <Halaman judul="Gagal memuat akun" lead="Koneksi ke server terputus atau terlalu lambat. Akun Anda tidak bermasalah.">
         <div className="kartu">
+          <p className="catatan">Rincian teknis: {galatProfil}</p>
           <div className="aksi">
             <button className="tombol tombol-isi" onClick={muatUlang}>Coba lagi</button>
             <button className="tombol" onClick={keluar}>Keluar</button>

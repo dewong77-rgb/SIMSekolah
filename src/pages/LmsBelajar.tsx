@@ -278,7 +278,7 @@ export function BerandaBelajar() {
     let batal = false
     const muat = () => panggil<Beranda[]>('lms_beranda_siswa').then((r) => { if (!batal) setD(r) }).catch(() => undefined)
     void muat()
-    const t = setInterval(muat, 60000)
+    const t = setInterval(() => { if (document.visibilityState === 'visible') void muat() }, 120_000)
     return () => { batal = true; clearInterval(t) }
   }, [])
   if (!d || d.length === 0) return null
