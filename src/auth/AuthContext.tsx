@@ -17,7 +17,7 @@ type NilaiAuth = {
   punyaIzin: (izin: string, lingkup?: string) => boolean
   memuat: boolean
   /** Terisi bila profil gagal dimuat (jaringan putus, server lambat). Berbeda dengan akun yang memang belum terdaftar. */
-  galatProfil: boolean
+  galatProfil: string | null
   muatUlang: () => void
   keluar: () => Promise<void>
 }
@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [penugasan, setPenugasan] = useState<PenugasanSaya[]>([])
   const [memuatSesi, setMemuatSesi] = useState(true)
   const [memuatProfil, setMemuatProfil] = useState(false)
-  const [galatProfil, setGalatProfil] = useState(false)
+  const [galatProfil, setGalatProfil] = useState<string | null>(null)
   const [ulang, setUlang] = useState(0)
 
   useEffect(() => {
@@ -59,17 +59,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     let batal = false
     setMemuatProfil(true)
-    setGalatProfil(false)
-    // Batas waktu 20 detik: tanpa ini, satu permintaan yang menggantung membuat layar "Memuat..." selamanya.
-    const batas = new Promise<never>((_, tolak) => window.setTimeout(() => tolak(new Error('waktu habis')), 20000))
-    Promise.race([
-      Promise.all([
-        supabase.from('profil_pengguna').select('user_id, npsn, peran, ptk_id, peserta_didik_id').eq('user_id', userId).maybeSingle(),
-        supabase.from('super_admin').select('user_id').eq('user_id', userId).maybeSingle(),
-        supabase.rpc('penugasan_saya'),
-      ]),
-      batas,
-    ])
+    setGalatProfil(null)
+    // Satu percobaan: batas waktu 15 detik, tanpa ini satu permintaan yang menggantung membuat layar "Memuat..." selamanya.
+    const muatSekali = () => {
+      let pewaktu = 0
+      const batas = new Promise<never>((_, tolak) => { pewaktu = window.setTimeout(() => tolak(new Error('waktu habis (15 detik)')), 15000) })
+      return Promise.race([
+        Promise.all([
+          supabase.from('profil_pengguna').select('user_id, npsn, peran, ptk_id, peserta_didik_id').eq('user_id', userId).maybeSingle(),
+          supabase.from('super_admin').select('user_id').eq('user_id', userId).maybeSingle(),
+          supabase.rpc('penugasan_saya'),
+        ]),
+        batas,
+      ]).finally(() => window.clearTimeout(pewaktu))
+    }
+    // Galat sementara (jaringan, waktu habis, 5xx) dicoba ulang sekali. Galat izin (401/403) tidak akan membaik dengan mengulang.
+    const sementara = (e: unknown) => {
+      const status = (e as { status?: number } | null)?.status
+      return status === undefined || status >= 500 || status === 408 || status === 429
+    }
+    const rincian = (e: unknown) => {
+      const g = e as { message?: string; code?: string; status?: number } | null
+      return [g?.status, g?.code, g?.message ?? String(e)].filter(Boolean).join(' · ')
+    }
+    muatSekali()
+      .catch(async (e) => {
+        if (!sementara(e)) throw e
+        await new Promise((r) => window.setTimeout(r, 1500))
+        return muatSekali()
+      })
       .then(([p, sa, pg]) => {
         if (batal) return
         if (p.error) throw p.error
@@ -77,7 +95,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSuperAdmin(!!sa.data)
         setPenugasan((pg.data as PenugasanSaya[] | null) ?? [])
       })
-      .catch(() => { if (!batal) setGalatProfil(true) })
+      .catch((e) => {
+        if (batal) return
+        setGalatProfil(rincian(e))
+        // Token ditolak server: masuk ulang adalah satu-satunya jalan, jadi tidak perlu menunggu pengguna menekan tombol.
+        const status = (e as { status?: number } | null)?.status
+        if (status === 401) void supabase.auth.signOut()
+      })
       .finally(() => { if (!batal) setMemuatProfil(false) })
     return () => {
       batal = true

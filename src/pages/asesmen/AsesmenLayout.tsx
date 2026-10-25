@@ -45,6 +45,7 @@ export default function AsesmenLayout() {
     isi = (
       <div className="kartu">
         <p>Koneksi ke server terputus atau terlalu lambat. Akun Anda tidak bermasalah.</p>
+        <p className="catatan">Rincian teknis: {galatProfil}</p>
         <div className="aksi"><button className="tombol tombol-isi" onClick={muatUlang}>Coba lagi</button></div>
       </div>
     )
