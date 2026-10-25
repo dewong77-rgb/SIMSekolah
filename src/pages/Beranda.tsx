@@ -27,29 +27,18 @@ const angka = (n: number | undefined) => (n ?? 0).toLocaleString('id-ID')
 
 function StatistikKunjungan() {
   const { data, galat } = useStatistikKunjungan()
-  if (galat) return null
-  const maks = Math.max(1, ...(data?.harian ?? []).map((h) => h.pengunjung))
+  if (galat || !data) return null
+  const maks = Math.max(1, ...data.harian.map((h) => h.pengunjung))
   const hari = (t: string) => new Date(t + 'T00:00:00').toLocaleDateString('id-ID', { weekday: 'short' })
   return (
-    <section className="wadah bagian" aria-label="Statistik kunjungan">
-      <Judul label="Kunjungan situs" judul="Pengunjung dan akun yang masuk" />
-      <div className="pantau-ringkas">
-        <div className="ringkas-kartu"><span className="ringkas-ikon"><Ikon nama="kelompok" ukuran={20} /></span><div><strong>{data ? angka(data.hari_ini.pengunjung) : '-'}</strong><span>Pengunjung hari ini{data ? `, kemarin ${angka(data.kemarin.pengunjung)}` : ''}</span></div></div>
-        <div className="ringkas-kartu"><span className="ringkas-ikon"><Ikon nama="pengguna" ukuran={20} /></span><div><strong>{data ? angka(data.hari_ini.login) : '-'}</strong><span>Akun masuk hari ini{data ? `, kemarin ${angka(data.kemarin.login)}` : ''}</span></div></div>
-        <div className="ringkas-kartu"><span className="ringkas-ikon"><Ikon nama="kalender" ukuran={20} /></span><div><strong>{data ? angka(data.bulan_ini.pengunjung) : '-'}</strong><span>Pengunjung bulan ini, {data ? angka(data.bulan_ini.login) : '-'} akun masuk</span></div></div>
-        <div className="ringkas-kartu"><span className="ringkas-ikon"><Ikon nama="grafik" ukuran={20} /></span><div><strong>{data ? angka(data.total_pengunjung) : '-'}</strong><span>Pengunjung sejak pencatatan dimulai</span></div></div>
-      </div>
-      {data && data.harian.length > 0 && (
-        <div className="kartu kunjungan-grafik" role="img" aria-label={`Pengunjung tujuh hari terakhir: ${data.harian.map((h) => `${hari(h.tanggal)} ${h.pengunjung}`).join(', ')}`}>
-          {data.harian.map((h) => (
-            <div key={h.tanggal} className="kunjungan-hari">
-              <small>{angka(h.pengunjung)}</small>
-              <div className="kunjungan-batang"><i style={{ height: `${Math.max(4, (h.pengunjung / maks) * 100)}%` }} /></div>
-              <small>{hari(h.tanggal)}</small>
-            </div>
-          ))}
-        </div>
-      )}
+    <section className="wadah statistik-kecil" aria-label="Statistik kunjungan">
+      <span><b>{angka(data.hari_ini.pengunjung)}</b> pengunjung hari ini</span>
+      <span><b>{angka(data.hari_ini.login)}</b> akun masuk</span>
+      <span><b>{angka(data.bulan_ini.pengunjung)}</b> pengunjung bulan ini</span>
+      <span><b>{angka(data.total_pengunjung)}</b> total</span>
+      <span className="statistik-spark" role="img" aria-label={`Pengunjung tujuh hari terakhir: ${data.harian.map((h) => `${hari(h.tanggal)} ${h.pengunjung}`).join(', ')}`}>
+        {data.harian.map((h) => <i key={h.tanggal} title={`${hari(h.tanggal)}: ${h.pengunjung}`} style={{ height: `${Math.max(12, (h.pengunjung / maks) * 100)}%` }} />)}
+      </span>
     </section>
   )
 }
@@ -86,8 +75,6 @@ export default function Beranda() {
         </div>
       </section>
 
-      <StatistikKunjungan />
-
       <section className="wadah bagian">
         <Judul label="Kabar sekolah" judul="Berita terbaru" tautan="Semua berita" ke="/berita" />
         {hasilBerita && hasilBerita.baris.length === 0 && <p className="kartu kosong-berita">Belum ada berita yang diterbitkan.</p>}
@@ -101,6 +88,7 @@ export default function Beranda() {
           </div>
         )}
       </section>
+      <StatistikKunjungan />
     </>
   )
 }
