@@ -73,9 +73,13 @@ export default function PortalLayout() {
     setAkun(false)
   }, [pathname])
 
-  // Lencana dimuat ulang tiap pindah halaman agar angka ikut turun setelah ajuan atau disposisi dikerjakan.
+  // Lencana dimuat ulang saat pindah halaman agar angka ikut turun setelah ajuan atau disposisi dikerjakan.
+  // Jeda 30 detik antar pemuatan: lima panggilan ke basis data per klik menu membebani server saat banyak pengguna masuk bersamaan.
+  const lencanaTerakhir = useRef(0)
   useEffect(() => {
     if (!punyaMenu) return
+    if (Date.now() - lencanaTerakhir.current < 30_000) return
+    lencanaTerakhir.current = Date.now()
     let batal = false
     void (async () => {
       const [aj, sr, sp, ks, kt] = await Promise.allSettled([
@@ -102,12 +106,18 @@ export default function PortalLayout() {
   useEffect(() => {
     if (!bisaChat) return
     let batal = false
-    const hitung = () => {
+    let terakhir = 0
+    // Pembaruan dari halaman chat (sims:chat) langsung dihitung. Polling berkala dan kembalinya tab diberi jeda.
+    const hitung = (e?: Event) => {
       if (document.hidden) return
+      const paksa = e?.type === 'sims:chat'
+      if (!paksa && Date.now() - terakhir < 45_000) return
+      terakhir = Date.now()
       panggil<number>('chat_ringkasan').then((n) => { if (!batal) setLencana((l) => (l.chat === n ? l : { ...l, chat: n })) }).catch(() => undefined)
     }
     hitung()
-    const id = window.setInterval(hitung, 60000)
+    // Selang 90 detik ditambah acak: ribuan tab tidak lagi menembak server pada detik yang sama.
+    const id = window.setInterval(hitung, 90_000 + Math.floor(Math.random() * 20_000))
     window.addEventListener('sims:chat', hitung)
     document.addEventListener('visibilitychange', hitung)
     return () => { batal = true; window.clearInterval(id); window.removeEventListener('sims:chat', hitung); document.removeEventListener('visibilitychange', hitung) }
