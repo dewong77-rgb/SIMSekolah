@@ -1470,13 +1470,12 @@ a.bt-tag:hover, button.bt-tag:hover, .bt-tag.aktif { background: var(--warna-uta
 .lonceng-aksi:hover { background: var(--latar-lembut); }
 .lonceng-kosong { margin: 0; padding: 14px 8px; color: var(--teks-lembut); text-align: center; font-size: .9rem; }
 
-/* Statistik kunjungan di beranda */
-.kunjungan-grafik { display: flex; gap: 10px; align-items: stretch; margin-top: 12px; padding: 14px 18px; }
-.kunjungan-hari { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
-.kunjungan-hari small { color: var(--teks-lembut); font-size: .75rem; }
-.kunjungan-batang { width: 100%; max-width: 44px; height: 64px; display: flex; align-items: flex-end; }
-.kunjungan-batang i { display: block; width: 100%; background: var(--warna-utama); border-radius: 4px 4px 0 0; opacity: .85; }
-.kunjungan-hari:last-child .kunjungan-batang i { background: var(--warna-aksen); opacity: 1; }
+/* Statistik kunjungan di beranda: satu baris kecil di bawah */
+.statistik-kecil { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; margin: 28px auto 8px; padding: 10px 0; border-top: 1px solid var(--garis); font-size: .8rem; color: var(--teks-lembut); }
+.statistik-kecil b { color: var(--warna-utama); font-size: .95rem; }
+.statistik-spark { display: inline-flex; align-items: flex-end; gap: 2px; height: 18px; margin-left: auto; }
+.statistik-spark i { display: block; width: 5px; background: var(--warna-utama); opacity: .45; border-radius: 1px; }
+.statistik-spark i:last-child { background: var(--warna-aksen); opacity: 1; }
 
 /* Rekap LMS per rombel dan mata pelajaran */
 .rekap-rombel { margin-top: 14px; padding: 0; overflow: hidden; }
