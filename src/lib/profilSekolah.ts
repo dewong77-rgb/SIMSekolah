@@ -1,6 +1,7 @@
 // Profil sekolah untuk situs publik: isian manual super admin menang, kosong jatuh ke data Dapodik (RPC profil_sekolah_publik).
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
+import { rpcPublik } from './publik'
 import { urlPublik } from './gambar'
 import { sekolah as contoh } from '../data/contoh'
 
@@ -23,7 +24,8 @@ export const nomorWa = (t: string) => t.replace(/\D/g, '').replace(/^0/, '62')
 let janji: Promise<ProfilSekolah | null> | null = null
 export const muatProfilSekolah = (segar = false) => {
   if (!janji || segar) {
-    janji = Promise.resolve(supabase.rpc('profil_sekolah_publik')).then(({ data, error }) => (error || !data ? null : (data as ProfilSekolah))).catch(() => null)
+    // `segar` (setelah admin menyimpan) melewati penyangga agar perubahan langsung tampak.
+    janji = Promise.resolve(segar ? supabase.rpc('profil_sekolah_publik') : rpcPublik<ProfilSekolah>('profil_sekolah_publik')).then(({ data, error }) => (error || !data ? null : (data as ProfilSekolah))).catch(() => null)
   }
   return janji
 }

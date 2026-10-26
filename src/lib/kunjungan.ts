@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { panggil } from './rpc'
+import { rpcPublik } from './publik'
 
 // Pengunjung dikenali dari kode acak di peramban, bukan IP. Dicatat paling banyak satu kali per hari per peramban.
 
@@ -35,9 +36,12 @@ function kodePengunjung(): string {
 export function catatKunjungan() {
   const hari = hariWib()
   if (simpan('sims_kunjungan_hari') === hari) return
-  panggil('catat_kunjungan', { p_pengunjung: kodePengunjung() })
-    .then(() => simpan('sims_kunjungan_hari', hari))
-    .catch(() => undefined)
+  // Pencatatan bukan prioritas: ditunda beberapa detik agar tidak berebut koneksi dengan data yang sedang ditunggu pengunjung.
+  window.setTimeout(() => {
+    panggil('catat_kunjungan', { p_pengunjung: kodePengunjung() })
+      .then(() => simpan('sims_kunjungan_hari', hari))
+      .catch(() => undefined)
+  }, 4000 + Math.floor(Math.random() * 8000))
 }
 
 export function catatLogin(userId: string) {
@@ -54,9 +58,11 @@ export function useStatistikKunjungan() {
   const [galat, setGalat] = useState(false)
   useEffect(() => {
     let batal = false
-    panggil<StatistikKunjungan>('statistik_kunjungan')
-      .then((d) => { if (!batal) setData(d) })
-      .catch(() => { if (!batal) setGalat(true) })
+    rpcPublik<StatistikKunjungan>('statistik_kunjungan')
+      .then(({ data: d, error }) => {
+        if (batal) return
+        if (error || !d) setGalat(true); else setData(d)
+      })
     return () => { batal = true }
   }, [])
   return { data, galat }

@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
 import { panggil } from './rpc'
+import { rpcPublik } from './publik'
 import { teksPolos } from './isiBerita'
 
 export const KATEGORI_BERITA = [
@@ -135,9 +136,12 @@ export function useBeritaPublik(batas = 12, saring: Saring | string | null = nul
   useEffect(() => {
     let batal = false
     setHasil(null); setGalat(false)
-    panggil<{ total: number; baris: BeritaRingkas[] }>('berita_publik', {
+    rpcPublik<{ total: number; baris: BeritaRingkas[] }>('berita_publik', {
       p_kategori: s.kategori ?? null, p_batas: batas, p_mulai: mulai, p_tag: s.tag ?? null, p_tema: s.tema ?? null, p_cari: s.cari ?? null,
-    }).then((x) => { if (!batal) setHasil(x) }).catch(() => { if (!batal) setGalat(true) })
+    }).then(({ data, error }) => {
+      if (batal) return
+      if (error || !data) setGalat(true); else setHasil(data)
+    })
     return () => { batal = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [batas, kunci, mulai])

@@ -1,6 +1,7 @@
 // Kalender sekolah dan jam bel: pembacaan data publik, waktu WIB, posisi jam pelajaran saat ini, dan ekspor ke kalender pribadi.
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
+import { rpcPublik } from './publik'
 
 export type Kategori = 'kalender_pendidikan' | 'kegiatan' | 'libur' | 'ujian'
 export type Agenda = {
@@ -101,7 +102,7 @@ export function teksPosisi(p: Posisi): string {
 let janjiBel: Promise<JamBel[]> | null = null
 export const muatJamBel = (segar = false) => {
   if (!janjiBel || segar) {
-    janjiBel = Promise.resolve(supabase.rpc('jam_bel_publik')).then(({ data }) => (Array.isArray(data) ? (data as JamBel[]) : [])).catch(() => [])
+    janjiBel = Promise.resolve(segar ? supabase.rpc('jam_bel_publik') : rpcPublik<JamBel[]>('jam_bel_publik')).then(({ data }) => (Array.isArray(data) ? (data as JamBel[]) : [])).catch(() => [])
   }
   return janjiBel
 }
@@ -112,7 +113,7 @@ export function useJamBel() {
 }
 
 export async function muatAgenda(dari: string, sampai: string): Promise<Agenda[]> {
-  const { data, error } = await supabase.rpc('kalender_publik', { p_dari: dari, p_sampai: sampai })
+  const { data, error } = await rpcPublik('kalender_publik', { p_dari: dari, p_sampai: sampai })
   if (error) throw new Error(error.message)
   return (Array.isArray(data) ? data : []) as Agenda[]
 }
