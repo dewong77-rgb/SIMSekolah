@@ -81,13 +81,19 @@ export default function PortalLayout() {
     if (Date.now() - lencanaTerakhir.current < 30_000) return
     lencanaTerakhir.current = Date.now()
     let batal = false
+    // Hanya lencana yang benar-benar tampil di menu pengguna ini yang dihitung. Siswa, misalnya, tidak punya menu
+    // surat, sarpras, atau kesiswaan: lima panggilan per klik menu itu murni beban bagi server.
+    const dipakai = new Set<string>()
+    for (const k of menu.kelompok) for (const i of k.item) if (i.lencana) dipakai.add(i.lencana)
+    const perlu = (...kunci: string[]) => kunci.some((x) => dipakai.has(x))
+    const ambil = <T,>(aktif: boolean, fn: string): Promise<T> => (aktif ? panggil<T>(fn) : Promise.reject(new Error('dilewati')))
     void (async () => {
       const [aj, sr, sp, ks, kt] = await Promise.allSettled([
-        panggil<{ menunggu: number; antrean: number; saya: number }>('ajuan_ringkasan'),
-        panggil<{ disposisi_menunggu: number; belum_disposisi: number }>('surat_ringkasan'),
-        panggil<{ perlu_aksi: number; perlu_kerusakan: number; perlu_permintaan: number }>('sarpras_ringkasan'),
-        panggil<{ pelanggaran: number; prestasi: number; izin: number }>('kesiswaan_lencana'),
-        panggil<{ keluar: number; panggilan: number }>('kesiswaan_lencana_tambahan'),
+        ambil<{ menunggu: number; antrean: number; saya: number }>(perlu('ajuan_masuk', 'ajuan_saya'), 'ajuan_ringkasan'),
+        ambil<{ disposisi_menunggu: number; belum_disposisi: number }>(perlu('disposisi', 'surat'), 'surat_ringkasan'),
+        ambil<{ perlu_aksi: number; perlu_kerusakan: number; perlu_permintaan: number }>(perlu('sarpras', 'sarpras_kerusakan', 'sarpras_permintaan'), 'sarpras_ringkasan'),
+        ambil<{ pelanggaran: number; prestasi: number; izin: number }>(perlu('kesiswaan'), 'kesiswaan_lencana'),
+        ambil<{ keluar: number; panggilan: number }>(perlu('kesiswaan', 'keluar', 'panggilan'), 'kesiswaan_lencana_tambahan'),
       ])
       if (batal) return
       const l: Lencana = {}
@@ -99,7 +105,7 @@ export default function PortalLayout() {
       setLencana((lama) => ({ ...l, chat: lama.chat }))
     })()
     return () => { batal = true }
-  }, [punyaMenu, pathname])
+  }, [punyaMenu, pathname, menu])
 
   // Lencana chat: dihitung ulang tiap menit dan setiap halaman chat memberi kabar (sims:chat) setelah membaca atau mengirim.
   const bisaChat = punyaMenu && ['admin_tu', 'guru', 'staf', 'siswa'].includes(profil?.peran ?? '')
