@@ -25,9 +25,12 @@ const TTL: Record<string, number> = {
 const URL_SUPABASE = process.env.VITE_SUPABASE_URL ?? 'https://myjdtybkfgscerdhyemb.supabase.co'
 const KUNCI = process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? 'sb_publishable_3_nSHpyNyPTRIv2y0zD01A_dDeyGzB6'
 
-const tolak = (res: Res, kode: number) => {
+// Rincian galat hulu (status dan pesan PostgREST) ikut dikirim: tanpanya, kegagalan di Supabase tampak sama dengan
+// permintaan yang salah. Isinya hanya pesan galat publik, tanpa kunci atau data.
+const tolak = (res: Res, kode: number, hulu?: { status?: number; pesan?: string }) => {
   res.setHeader('Cache-Control', 'no-store')
-  res.status(kode).send('{"galat":true}')
+  res.setHeader('Content-Type', 'application/json; charset=utf-8')
+  res.status(kode).send(JSON.stringify({ galat: true, ...hulu }))
 }
 
 export default async function handler(req: Req, res: Res) {
@@ -50,14 +53,15 @@ export default async function handler(req: Req, res: Res) {
       body: JSON.stringify(args),
       signal: kendali.signal,
     })
-    if (!r.ok) return tolak(res, r.status >= 500 || r.status === 429 ? 502 : 400)
+    if (!r.ok) return tolak(res, r.status >= 500 || r.status === 429 ? 502 : 400, { status: r.status, pesan: (await r.text()).slice(0, 300) })
     const teks = await r.text()
     res.setHeader('Content-Type', 'application/json; charset=utf-8')
     // max-age pendek: pindah halaman di tab yang sama tidak perlu ke CDN lagi.
     res.setHeader('Cache-Control', `public, max-age=30, s-maxage=${ttl}, stale-while-revalidate=600, stale-if-error=86400`)
     res.status(200).send(teks)
-  } catch {
-    tolak(res, 502)
+  } catch (e) {
+    const g = e as { name?: string; message?: string; cause?: { code?: string; message?: string } }
+    tolak(res, 502, { pesan: `${g.name ?? 'Error'}: ${g.message ?? ''} ${g.cause?.code ?? ''} ${g.cause?.message ?? ''}`.trim().slice(0, 300) })
   } finally {
     clearTimeout(pewaktu)
   }
