@@ -36,6 +36,7 @@ export default function FormMasuk({ peranTersedia, tujuan }: { peranTersedia?: P
   const [sandi, setSandi] = useState('')
   const [status, setStatus] = useState<'diam' | 'kirim' | 'galat' | 'dibatasi' | 'nonaktif' | 'sibuk'>('diam')
   const [sisa, setSisa] = useState<number | null>(null)
+  const [lama, setLama] = useState(false)
   const [tunggu, setTunggu] = useState(15)
   const [email, setEmail] = useState('')
   const [statusEmail, setStatusEmail] = useState<'diam' | 'kirim' | 'terkirim' | 'galat'>('diam')
@@ -50,13 +51,16 @@ export default function FormMasuk({ peranTersedia, tujuan }: { peranTersedia?: P
   async function masuk(e: FormEvent) {
     e.preventDefault()
     setStatus('kirim')
-    // Batas 25 detik: tanpa ini tombol "Memeriksa..." menunggu selamanya saat server kewalahan.
+    // Batas 70 detik: tanpa ini tombol "Memeriksa..." menunggu selamanya. Sesudah restart atau lonjakan, satu login bisa
+    // memakan 30 detik lebih (diukur: berhasil di server pada detik ke-25+), jadi menyerah terlalu cepat membuang login yang sebenarnya berhasil.
+    setLama(false)
+    const pewaktuLama = window.setTimeout(() => setLama(true), 8_000)
     const panggilan = peran === 'orang_tua'
       ? supabase.functions.invoke('ortu', { body: { aksi: 'masuk', username: username.trim(), password: sandi } })
       : supabase.functions.invoke('masuk', { body: { peran, username: username.trim(), password: sandi } })
     let pewaktu = 0
-    const habis = new Promise<'habis'>((r) => { pewaktu = window.setTimeout(() => r('habis'), 25_000) })
-    const jawaban = await Promise.race([panggilan, habis]).finally(() => window.clearTimeout(pewaktu))
+    const habis = new Promise<'habis'>((r) => { pewaktu = window.setTimeout(() => r('habis'), 70_000) })
+    const jawaban = await Promise.race([panggilan, habis]).finally(() => { window.clearTimeout(pewaktu); window.clearTimeout(pewaktuLama); setLama(false) })
     if (jawaban === 'habis') { setStatus('sibuk'); return }
     const { data, error } = jawaban
     // Pada status 429 supabase-js mengembalikan error; badan jawabannya ada di error.context.
@@ -139,6 +143,9 @@ export default function FormMasuk({ peranTersedia, tujuan }: { peranTersedia?: P
               {status === 'kirim' ? 'Memeriksa...' : `Masuk sebagai ${info.nama.toLowerCase()}`}
             </button>
             <div aria-live="polite">
+              {status === 'kirim' && lama && (
+                <p className="catatan" role="status">Server sedang sibuk, pemeriksaan butuh waktu lebih lama. Mohon tunggu dan jangan menutup atau menekan tombol lagi.</p>
+              )}
               {status === 'galat' && (
                 <div className="kotak-hitung" role="alert">
                   <p style={{ margin: 0 }}><strong>Username atau password tidak cocok.</strong></p>
