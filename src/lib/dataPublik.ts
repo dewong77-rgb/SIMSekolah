@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
+import { rpcPublik } from './publik'
 import type { JurusanLengkap } from './hubin'
 
 export type Jurusan = {
@@ -66,7 +67,7 @@ export function useJurusan() {
       )
     })
     // Profil jurusan dari Waka Hubinmas didahulukan. Bila kosong atau gagal, pakai data Dapodik.
-    supabase.rpc('jurusan_profil_publik').then(({ data: d, error }) => {
+    rpcPublik('jurusan_profil_publik').then(({ data: d, error }) => {
       if (batal) return
       const baris = (d ?? []) as JurusanLengkap[]
       if (error || baris.length === 0) return void cadangan()
