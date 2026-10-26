@@ -45,7 +45,7 @@ export default async function handler(req: Req, res: Res) {
   if (typeof args !== 'object' || args === null || Array.isArray(args)) return tolak(res, 400)
 
   const kendali = new AbortController()
-  const pewaktu = setTimeout(() => kendali.abort(), 8000)
+  const pewaktu = setTimeout(() => kendali.abort(), 25_000)
   try {
     const r = await fetch(`${URL_SUPABASE}/rest/v1/rpc/${fn}`, {
       method: 'POST',

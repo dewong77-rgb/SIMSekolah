@@ -116,5 +116,10 @@
         }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "api/publik.ts": {
+      "maxDuration": 30
+    }
+  }
 }
