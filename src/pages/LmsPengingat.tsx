@@ -36,10 +36,12 @@ export function usePengingat() {
   const [h, setH] = useState<Hasil | null>(null)
   useEffect(() => {
     let batal = false
-    const muat = () => panggil<Hasil>('lms_pengingat_saya').then((r) => { if (!batal) setH(r) }).catch(() => undefined)
+    // Fungsi ini salah satu yang terberat di server (±1 detik untuk siswa). Selang 5 menit, dan kembalinya tab diberi jeda 2 menit.
+    let terakhir = 0
+    const muat = () => { terakhir = Date.now(); return panggil<Hasil>('lms_pengingat_saya').then((r) => { if (!batal) setH(r) }).catch(() => undefined) }
     void muat()
-    const t = window.setInterval(() => { if (document.visibilityState === 'visible') void muat() }, 120_000)
-    const v = () => { if (document.visibilityState === 'visible') void muat() }
+    const t = window.setInterval(() => { if (document.visibilityState === 'visible') void muat() }, 300_000)
+    const v = () => { if (document.visibilityState === 'visible' && Date.now() - terakhir > 120_000) void muat() }
     document.addEventListener('visibilitychange', v)
     return () => { batal = true; window.clearInterval(t); document.removeEventListener('visibilitychange', v) }
   }, [])
