@@ -5,6 +5,9 @@
 //   admin  : username dari profil_admin (hanya admin TU)
 // Dipanggil tanpa sesi (verify_jwt mati). Pencarian username dan verifikasi password terjadi di server,
 // email tidak pernah dikirim ke peramban. Jawaban gagal seragam, dengan batas percobaan per username dan per IP.
+//
+// Ketahanan: setiap panggilan keluar dibatasi 8 detik. Galat atau waktu habis dari database/Auth dijawab 503
+// {sibuk:true} dan TIDAK dicatat sebagai percobaan gagal (itu bukan salah password pengguna).
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const cors = {
@@ -16,9 +19,17 @@ const json = (b: unknown, status = 200) =>
   new Response(JSON.stringify(b), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
 
 const GAGAL = { ok: false }
+const SIBUK = () => json({ ok: false, sibuk: true }, 503)
 const BATAS_USERNAME = 5
 const BATAS_IP = 30
 const JENDELA_MENIT = 15
+const BATAS_DETIK = 8
+
+const fetchBatas: typeof fetch = (input, init) => {
+  const batas = AbortSignal.timeout(BATAS_DETIK * 1000)
+  const signal = init?.signal ? AbortSignal.any([init.signal, batas]) : batas
+  return fetch(input, { ...init, signal })
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
@@ -40,86 +51,103 @@ Deno.serve(async (req) => {
   if (peran === 'admin' && !/^[a-z0-9][a-z0-9._-]{3,31}$/.test(username)) return json(GAGAL, 400)
 
   const url = Deno.env.get('SUPABASE_URL')!
-  const db = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } })
+  const db = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false }, global: { fetch: fetchBatas } })
   const ip = (req.headers.get('cf-connecting-ip') ?? req.headers.get('x-forwarded-for') ?? 'tidak-diketahui').split(',')[0].trim()
   const kUser = `${peran}:${username}`
   const kIp = `ip:${ip}`
   const sejak = new Date(Date.now() - JENDELA_MENIT * 60_000).toISOString()
 
-  const hitungGagal = async (kunci: string) => {
-    const { count } = await db.from('percobaan_masuk').select('*', { count: 'exact', head: true })
-      .eq('kunci', kunci).eq('berhasil', false).gte('dibuat_pada', sejak)
-    return count ?? 0
-  }
-  // Menit sampai kunci terbuka: saat catatan gagal tertua dari deretan BATAS terbaru keluar dari jendela.
-  const menitTunggu = async (kunci: string, batas: number) => {
-    const { data } = await db.from('percobaan_masuk').select('dibuat_pada').eq('kunci', kunci).eq('berhasil', false)
-      .gte('dibuat_pada', sejak).order('dibuat_pada', { ascending: false }).limit(batas)
-    const t = data?.[batas - 1]?.dibuat_pada as string | undefined
-    if (!t) return JENDELA_MENIT
-    return Math.min(JENDELA_MENIT, Math.max(1, Math.ceil(JENDELA_MENIT - (Date.now() - new Date(t).getTime()) / 60_000)))
-  }
-  const gagalUser = await hitungGagal(kUser)
-  const gagalIp = await hitungGagal(kIp)
-  if (gagalUser >= BATAS_USERNAME || gagalIp >= BATAS_IP) {
-    const tunggu = Math.max(gagalUser >= BATAS_USERNAME ? await menitTunggu(kUser, BATAS_USERNAME) : 0, gagalIp >= BATAS_IP ? await menitTunggu(kIp, BATAS_IP) : 0)
-    return json({ ok: false, dibatasi: true, tunggu_menit: tunggu }, 429)
-  }
-  const catatGagal = () => db.from('percobaan_masuk').insert([{ kunci: kUser }, { kunci: kIp }])
-  // Jawaban gagal tetap seragam, ditambah sisa percobaan. Username yang tidak ada ikut dihitung sama, jadi tidak membocorkan apa pun.
-  const sisa = Math.max(0, BATAS_USERNAME - gagalUser - 1)
-  const gagal = async () => { await catatGagal(); return json({ ok: false, sisa }) }
+  try {
+    // null = galat atau waktu habis (bukan nol percobaan).
+    const hitungGagal = async (kunci: string): Promise<number | null> => {
+      const { count, error } = await db.from('percobaan_masuk').select('*', { count: 'exact', head: true })
+        .eq('kunci', kunci).eq('berhasil', false).gte('dibuat_pada', sejak)
+      return error ? null : (count ?? 0)
+    }
+    // Menit sampai kunci terbuka: saat catatan gagal tertua dari deretan BATAS terbaru keluar dari jendela.
+    const menitTunggu = async (kunci: string, batas: number) => {
+      const { data } = await db.from('percobaan_masuk').select('dibuat_pada').eq('kunci', kunci).eq('berhasil', false)
+        .gte('dibuat_pada', sejak).order('dibuat_pada', { ascending: false }).limit(batas)
+      const t = data?.[batas - 1]?.dibuat_pada as string | undefined
+      if (!t) return JENDELA_MENIT
+      return Math.min(JENDELA_MENIT, Math.max(1, Math.ceil(JENDELA_MENIT - (Date.now() - new Date(t).getTime()) / 60_000)))
+    }
+    const gagalUser = await hitungGagal(kUser)
+    const gagalIp = await hitungGagal(kIp)
+    if (gagalUser === null || gagalIp === null) return SIBUK()
+    if (gagalUser >= BATAS_USERNAME || gagalIp >= BATAS_IP) {
+      const tunggu = Math.max(gagalUser >= BATAS_USERNAME ? await menitTunggu(kUser, BATAS_USERNAME) : 0, gagalIp >= BATAS_IP ? await menitTunggu(kIp, BATAS_IP) : 0)
+      return json({ ok: false, dibatasi: true, tunggu_menit: tunggu }, 429)
+    }
+    const catatGagal = () => db.from('percobaan_masuk').insert([{ kunci: kUser }, { kunci: kIp }])
+    // Jawaban gagal tetap seragam, ditambah sisa percobaan. Username yang tidak ada ikut dihitung sama, jadi tidak membocorkan apa pun.
+    const sisa = Math.max(0, BATAS_USERNAME - gagalUser - 1)
+    const gagal = async () => { await catatGagal(); return json({ ok: false, sisa }) }
 
-  // Cari akun yang cocok dengan username pada peran yang dipilih.
-  const { data: sk } = await db.from('sekolah').select('npsn').limit(1).maybeSingle()
-  if (!sk) { return await gagal() }
-  let userIds: string[] = []
-  if (peran === 'siswa' || peran === 'alumni') {
-    const { data: pds } = await db.from('peserta_didik').select('id').eq('npsn', sk.npsn).eq('nisn', username)
-      .eq('status_peserta_didik', peran === 'siswa' ? 'aktif' : 'lulus')
-    const ids = (pds ?? []).map((p) => p.id as string)
-    if (ids.length) {
-      const { data } = await db.from('profil_pengguna').select('user_id').in('peserta_didik_id', ids).eq('peran', 'siswa')
-      userIds = (data ?? []).map((r) => r.user_id as string)
+    // Cari akun yang cocok dengan username pada peran yang dipilih.
+    const { data: sk, error: eSk } = await db.from('sekolah').select('npsn').limit(1).maybeSingle()
+    if (eSk) return SIBUK()
+    if (!sk) { return await gagal() }
+    let userIds: string[] = []
+    if (peran === 'siswa' || peran === 'alumni') {
+      const { data: pds, error: e1 } = await db.from('peserta_didik').select('id').eq('npsn', sk.npsn).eq('nisn', username)
+        .eq('status_peserta_didik', peran === 'siswa' ? 'aktif' : 'lulus')
+      if (e1) return SIBUK()
+      const ids = (pds ?? []).map((p) => p.id as string)
+      if (ids.length) {
+        const { data, error: e2 } = await db.from('profil_pengguna').select('user_id').in('peserta_didik_id', ids).eq('peran', 'siswa')
+        if (e2) return SIBUK()
+        userIds = (data ?? []).map((r) => r.user_id as string)
+      }
+    } else if (peran === 'guru') {
+      const { data: pt, error: e1 } = await db.from('ptk').select('id').eq('npsn', sk.npsn).or(`nip.eq.${username},nuptk.eq.${username}`)
+      if (e1) return SIBUK()
+      const ids = (pt ?? []).map((p) => p.id as string)
+      if (ids.length) {
+        const { data, error: e2 } = await db.from('profil_pengguna').select('user_id').in('ptk_id', ids).in('peran', ['guru', 'staf'])
+        if (e2) return SIBUK()
+        userIds = (data ?? []).map((r) => r.user_id as string)
+      }
+    } else {
+      const { data: pa, error: e1 } = await db.from('profil_admin').select('user_id').eq('username', username).maybeSingle()
+      if (e1) return SIBUK()
+      if (pa) {
+        const { data, error: e2 } = await db.from('profil_pengguna').select('user_id').eq('user_id', pa.user_id).eq('peran', 'admin_tu')
+        if (e2) return SIBUK()
+        userIds = (data ?? []).map((r) => r.user_id as string)
+      }
     }
-  } else if (peran === 'guru') {
-    const { data: pt } = await db.from('ptk').select('id').eq('npsn', sk.npsn).or(`nip.eq.${username},nuptk.eq.${username}`)
-    const ids = (pt ?? []).map((p) => p.id as string)
-    if (ids.length) {
-      const { data } = await db.from('profil_pengguna').select('user_id').in('ptk_id', ids).in('peran', ['guru', 'staf'])
-      userIds = (data ?? []).map((r) => r.user_id as string)
-    }
-  } else {
-    const { data: pa } = await db.from('profil_admin').select('user_id').eq('username', username).maybeSingle()
-    if (pa) {
-      const { data } = await db.from('profil_pengguna').select('user_id').eq('user_id', pa.user_id).eq('peran', 'admin_tu')
-      userIds = (data ?? []).map((r) => r.user_id as string)
-    }
-  }
-  userIds = userIds.slice(0, 3)
-  if (!userIds.length) { return await gagal() }
+    userIds = userIds.slice(0, 3)
+    if (!userIds.length) { return await gagal() }
 
-  const anon = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, { auth: { persistSession: false, autoRefreshToken: false } })
-  let nonaktif = false
-  for (const id of userIds) {
-    const { data: u } = await db.auth.admin.getUserById(id)
-    const email = u?.user?.email
-    if (!email) continue
-    const { data, error } = await anon.auth.signInWithPassword({ email, password })
-    if (error) {
-      if (error.code === 'user_banned' || /banned/i.test(error.message)) nonaktif = true
-      continue
+    const anon = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, { auth: { persistSession: false, autoRefreshToken: false }, global: { fetch: fetchBatas } })
+    let nonaktif = false
+    for (const id of userIds) {
+      const { data: u, error: eU } = await db.auth.admin.getUserById(id)
+      if (eU) return SIBUK()
+      const email = u?.user?.email
+      if (!email) continue
+      const { data, error } = await anon.auth.signInWithPassword({ email, password })
+      if (error) {
+        if (error.code === 'user_banned' || /banned/i.test(error.message)) nonaktif = true
+        // Galat jaringan atau server Auth (bukan password salah): jangan dihitung sebagai percobaan gagal.
+        else if (error.name === 'AuthRetryableFetchError' || (typeof error.status === 'number' && error.status >= 500)) return SIBUK()
+        continue
+      }
+      if (!data.session) continue
+      await db.from('percobaan_masuk').insert({ kunci: kUser, berhasil: true })
+      if (Math.random() < 0.02) await db.from('percobaan_masuk').delete().lt('dibuat_pada', new Date(Date.now() - 86_400_000).toISOString())
+      return json({
+        ok: true,
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+        wajib_ganti: !!(u.user.app_metadata as Record<string, unknown> | undefined)?.wajib_ganti_sandi,
+      })
     }
-    if (!data.session) continue
-    await db.from('percobaan_masuk').insert({ kunci: kUser, berhasil: true })
-    if (Math.random() < 0.02) await db.from('percobaan_masuk').delete().lt('dibuat_pada', new Date(Date.now() - 86_400_000).toISOString())
-    return json({
-      ok: true,
-      access_token: data.session.access_token,
-      refresh_token: data.session.refresh_token,
-      wajib_ganti: !!(u.user.app_metadata as Record<string, unknown> | undefined)?.wajib_ganti_sandi,
-    })
+    if (nonaktif) return json({ ok: false, nonaktif: true })
+    return await gagal()
+  } catch {
+    // Waktu habis atau galat tak terduga: server sibuk, bukan salah password.
+    return SIBUK()
   }
-  if (nonaktif) return json({ ok: false, nonaktif: true })
-  return await gagal()
 })
