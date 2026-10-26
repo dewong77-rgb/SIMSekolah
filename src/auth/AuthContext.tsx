@@ -64,14 +64,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const muatSekali = () => {
       let pewaktu = 0
       const batas = new Promise<never>((_, tolak) => { pewaktu = window.setTimeout(() => tolak(new Error('waktu habis (15 detik)')), 15000) })
-      return Promise.race([
-        Promise.all([
-          supabase.from('profil_pengguna').select('user_id, npsn, peran, ptk_id, peserta_didik_id').eq('user_id', userId).maybeSingle(),
-          supabase.from('super_admin').select('user_id').eq('user_id', userId).maybeSingle(),
-          supabase.rpc('penugasan_saya'),
-        ]),
-        batas,
-      ]).finally(() => window.clearTimeout(pewaktu))
+      // Satu panggilan menggantikan tiga (profil, super admin, penugasan): tiap pengguna yang masuk hemat dua
+      // permintaan ke server. Bila fungsinya belum ada (PGRST202/42883), jatuh ke tiga panggilan lama.
+      const tigaPanggilan = () => Promise.all([
+        supabase.from('profil_pengguna').select('user_id, npsn, peran, ptk_id, peserta_didik_id').eq('user_id', userId).maybeSingle(),
+        supabase.from('super_admin').select('user_id').eq('user_id', userId).maybeSingle(),
+        supabase.rpc('penugasan_saya'),
+      ])
+      const satuPanggilan = async () => {
+        const r = await supabase.rpc('profil_saya')
+        if (r.error) {
+          if (r.error.code === 'PGRST202' || r.error.code === '42883') return tigaPanggilan()
+          throw r.error
+        }
+        const d = r.data as { profil: ProfilPengguna | null; super_admin: boolean; penugasan: PenugasanSaya[] } | null
+        return [
+          { data: d?.profil ?? null, error: null },
+          { data: d?.super_admin ? { user_id: userId } : null },
+          { data: d?.penugasan ?? [] },
+        ] as unknown as Awaited<ReturnType<typeof tigaPanggilan>>
+      }
+      return Promise.race([satuPanggilan(), batas]).finally(() => window.clearTimeout(pewaktu))
     }
     // Galat sementara (jaringan, waktu habis, 5xx) dicoba ulang sekali. Galat izin (401/403) tidak akan membaik dengan mengulang.
     const sementara = (e: unknown) => {
