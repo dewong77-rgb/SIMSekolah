@@ -34,7 +34,7 @@ export default function FormMasuk({ peranTersedia, tujuan }: { peranTersedia?: P
 
   const [username, setUsername] = useState('')
   const [sandi, setSandi] = useState('')
-  const [status, setStatus] = useState<'diam' | 'kirim' | 'galat' | 'dibatasi' | 'nonaktif'>('diam')
+  const [status, setStatus] = useState<'diam' | 'kirim' | 'galat' | 'dibatasi' | 'nonaktif' | 'sibuk'>('diam')
   const [sisa, setSisa] = useState<number | null>(null)
   const [tunggu, setTunggu] = useState(15)
   const [email, setEmail] = useState('')
@@ -50,14 +50,22 @@ export default function FormMasuk({ peranTersedia, tujuan }: { peranTersedia?: P
   async function masuk(e: FormEvent) {
     e.preventDefault()
     setStatus('kirim')
-    const { data, error } = peran === 'orang_tua'
-      ? await supabase.functions.invoke('ortu', { body: { aksi: 'masuk', username: username.trim(), password: sandi } })
-      : await supabase.functions.invoke('masuk', { body: { peran, username: username.trim(), password: sandi } })
+    // Batas 25 detik: tanpa ini tombol "Memeriksa..." menunggu selamanya saat server kewalahan.
+    const panggilan = peran === 'orang_tua'
+      ? supabase.functions.invoke('ortu', { body: { aksi: 'masuk', username: username.trim(), password: sandi } })
+      : supabase.functions.invoke('masuk', { body: { peran, username: username.trim(), password: sandi } })
+    let pewaktu = 0
+    const habis = new Promise<'habis'>((r) => { pewaktu = window.setTimeout(() => r('habis'), 25_000) })
+    const jawaban = await Promise.race([panggilan, habis]).finally(() => window.clearTimeout(pewaktu))
+    if (jawaban === 'habis') { setStatus('sibuk'); return }
+    const { data, error } = jawaban
     // Pada status 429 supabase-js mengembalikan error; badan jawabannya ada di error.context.
-    let hasil = data as { ok?: boolean; access_token?: string; refresh_token?: string; dibatasi?: boolean; nonaktif?: boolean; sisa?: number; tunggu_menit?: number } | null
+    let hasil = data as { ok?: boolean; access_token?: string; refresh_token?: string; dibatasi?: boolean; nonaktif?: boolean; sibuk?: boolean; sisa?: number; tunggu_menit?: number } | null
     if (error && 'context' in error) {
       try { hasil = await (error as { context: Response }).context.json() } catch { hasil = null }
     }
+    // Galat jaringan atau server (tanpa jawaban yang bisa dibaca) bukan salah password: jangan dihitung sebagai itu.
+    if (hasil?.sibuk || (error && !hasil)) { setStatus('sibuk'); return }
     if (hasil?.ok && hasil.access_token && hasil.refresh_token) {
       const { error: es } = await supabase.auth.setSession({ access_token: hasil.access_token, refresh_token: hasil.refresh_token })
       if (!es) return // sesi terbentuk, halaman berpindah sendiri ke /portal
@@ -137,6 +145,12 @@ export default function FormMasuk({ peranTersedia, tujuan }: { peranTersedia?: P
                   {sisa !== null && <p style={{ margin: '4px 0 0' }}>Sisa percobaan: <strong>{sisa}</strong>. Periksa lagi sebelum menekan Masuk.</p>}
                   {formatAwal[peran] && <p style={{ margin: '4px 0 0' }}>{formatAwal[peran]}</p>}
                   <p style={{ margin: '4px 0 0' }}>Lupa password? Hubungi guru atau admin sekolah.</p>
+                </div>
+              )}
+              {status === 'sibuk' && (
+                <div className="kotak-hitung" role="alert">
+                  <p style={{ margin: 0 }}><strong>Server sedang sibuk. Password Anda belum diperiksa.</strong></p>
+                  <p style={{ margin: '4px 0 0' }}>Tunggu sekitar satu menit, lalu tekan Masuk sekali lagi. Menekan berulang kali membuat antrean makin panjang.</p>
                 </div>
               )}
               {status === 'nonaktif' && <p className="catatan" role="alert">Akun ini dinonaktifkan. Hubungi admin sekolah.</p>}
